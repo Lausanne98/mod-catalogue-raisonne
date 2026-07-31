@@ -195,7 +195,7 @@ footer{background:var(--sand2);color:var(--mid);padding:44px 40px 28px;border-to
       <div class="ndiv"></div>
       <a href="https://micheleokadoner.com/exhibitions/" target="_blank">Exhibitions</a>
       <div class="ndiv"></div>
-      <a href="#">About the CR</a>
+      <a href="catalogue_chronology_v5_sans.html">About the CR</a>
       <div class="ndiv"></div>
       <a href="https://micheleokadoner.com/bio/" target="_blank">Michele Oka Doner</a>
     </nav>
@@ -363,9 +363,9 @@ footer{background:var(--sand2);color:var(--mid);padding:44px 40px 28px;border-to
         <li><a href="#">Revisions Log</a></li>
       </ul></div>
       <div class="fc"><h4>Resources</h4><ul>
-        <li><a href="#">Exhibitions</a></li>
+        <li><a href="https://micheleokadoner.com/exhibitions/" target="_blank">Exhibitions</a></li>
         <li><a href="#">Publications</a></li>
-        <li><a href="#">Biography</a></li>
+        <li><a href="catalogue_chronology_v5_sans.html">Biography</a></li>
         <li><a href="#">Rights &amp; Reproductions</a></li>
       </ul></div>
       <div class="fc"><h4>Contact</h4><ul>
@@ -375,7 +375,7 @@ footer{background:var(--sand2);color:var(--mid);padding:44px 40px 28px;border-to
     </div>
     <div class="footer-bot">
       <p>© 1964–2026 Michele Oka Doner. All rights reserved.</p>
-      <p>micheleokadoner.com/catalogue — catalogue_v5.html</p>
+      <p>micheleokadoner.com/catalogue — catalogue_v9_sans.html</p>
     </div>
   </footer>
 </main>
@@ -599,8 +599,8 @@ function sortWorks(m){
   if(currentMode==='grid')renderGrid(filtered);else renderList(filtered);
 }
 function renderGrid(arr){
-  document.getElementById('workGrid').innerHTML=arr.map(w=>`
-    <div class="work-card">
+  document.getElementById('workGrid').innerHTML=arr.map(w=>{
+    const inner=`
       <div class="wc-img-wrap">
         ${w.img?`<img class="wc-img" src="${w.img}" alt="${w.title}" loading="lazy" onerror="this.outerHTML='<div class=wc-placeholder>${w.title}</div>'">`:`<div class="wc-placeholder">${w.title}</div>`}
       </div>
@@ -608,8 +608,11 @@ function renderGrid(arr){
         <div class="wc-title">${w.title}</div>
         <div class="wc-date">${w.date}</div>
         <div class="wc-num">${w.cr}</div>
-      </div>
-    </div>`).join('');
+      </div>`;
+    return w.id===2
+      ? `<a class="work-card" href="catalogue_entry_v4_sans.html" style="text-decoration:none;color:inherit;">${inner}</a>`
+      : `<div class="work-card">${inner}</div>`;
+  }).join('');
 }
 function renderList(arr){
   document.getElementById('workList').innerHTML=`

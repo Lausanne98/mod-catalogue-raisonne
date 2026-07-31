@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOD Catalogue Raisonné — Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--white:#ffffff;--sand:#f4f4f4;--ink:#111111;--mid:#555555;--light:#999999;--rule:#dddddd;--gold:#7a5c3a;--goldlt:#b08a5a;}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--white);color:var(--ink);font-family:'Inter',sans-serif;font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+  header{border-bottom:1px solid var(--rule);padding:40px 32px 28px;}
+  header h1{font-size:22px;font-weight:500;letter-spacing:-.01em;}
+  header p{color:var(--mid);margin-top:8px;max-width:640px;}
+  main{max-width:960px;margin:0 auto;padding:40px 32px 80px;}
+  .note{background:var(--sand);border:1px solid var(--rule);border-radius:4px;padding:16px 20px;font-size:13px;color:var(--mid);margin-bottom:40px;}
+  .note strong{color:var(--ink);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;}
+  .card{border:1px solid var(--rule);border-radius:6px;padding:24px;text-decoration:none;color:inherit;display:block;transition:border-color .2s,transform .2s;}
+  .card:hover{border-color:var(--goldlt);transform:translateY(-2px);}
+  .card .tag{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:500;}
+  .card h2{font-size:17px;font-weight:500;margin:10px 0 8px;}
+  .card p{font-size:13.5px;color:var(--mid);}
+  .card .file{display:block;margin-top:14px;font-size:11px;color:var(--light);font-family:monospace;}
+  footer{border-top:1px solid var(--rule);padding:20px 32px;font-size:12px;color:var(--light);text-align:center;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Michele Oka Doner: A Catalogue Raisonné — Working Preview</h1>
+  <p>Static HTML previews of the Catalogue Raisonné microsite, populated with real works, images, and biographical content sourced from micheleokadoner.com. Use this index to review page-level changes during the cataloguing workflow.</p>
+</header>
+<main>
+  <div class="note">
+    <strong>How to use this preview:</strong> open any page below directly in a browser (no build step required). Artwork and portrait images are hot-linked from micheleokadoner.com, so an internet connection is needed to see them render. Each page's header navigation now links through to the others.
+  </div>
+  <div class="grid">
+    <a class="card" href="HTMLs/catalogue_v9_sans.html">
+      <div class="tag">Browse</div>
+      <h2>Catalogue — Browse the Works</h2>
+      <p>Grid / list view of the full catalogue with search, filters, and sort. The "Germinating Seeds" card links through to its entry page as a working example.</p>
+      <span class="file">HTMLs/catalogue_v9_sans.html</span>
+    </a>
+    <a class="card" href="HTMLs/catalogue_entry_v4_sans.html">
+      <div class="tag">Entry</div>
+      <h2>Catalogue Entry — MODCR 2</h2>
+      <p>Full single-work entry page: image, description, provenance, exhibition history, literature, and citation — the template used for every catalogue number.</p>
+      <span class="file">HTMLs/catalogue_entry_v4_sans.html</span>
+    </a>
+    <a class="card" href="HTMLs/catalogue_chronology_v5_sans.html">
+      <div class="tag">About the CR</div>
+      <h2>Chronology / Biography / CV</h2>
+      <p>Decade-by-decade chronology of the artist's career, with tabbed Biography and Curriculum Vitae sections.</p>
+      <span class="file">HTMLs/catalogue_chronology_v5_sans.html</span>
+    </a>
+    <a class="card" href="HTMLs/mod_bio_v10_sans.html">
+      <div class="tag">Reference</div>
+      <h2>Standalone Biography Page</h2>
+      <p>Earlier standalone biography layout, kept as a reference page and source for the photos reused in the Chronology tab.</p>
+      <span class="file">HTMLs/mod_bio_v10_sans.html</span>
+    </a>
+  </div>
+</main>
+<footer>
+  Archive/ holds prior iterations of each page for reference. Database Templates/ holds the cataloguing spreadsheet template.
+</footer>
+</body>
+</html>
