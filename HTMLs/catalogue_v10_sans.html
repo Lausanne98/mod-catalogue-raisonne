@@ -133,7 +133,7 @@ main{margin-top:58px;min-height:calc(100vh - 58px);}
 /* WORKS GRID */
 .works-area{padding:0 32px 64px;}
 .work-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0;background:var(--white);border:1px solid var(--rule);margin-top:1px;}
-.work-card{background:var(--white);cursor:pointer;transition:background .18s;overflow:hidden;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);}
+.work-card{display:block;background:var(--white);cursor:pointer;transition:background .18s;overflow:hidden;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);text-decoration:none;color:inherit;}
 .work-card:hover{background:var(--hover);}
 .wc-img-wrap{width:100%;aspect-ratio:4/3;overflow:hidden;background:var(--white);display:flex;align-items:center;justify-content:center;padding:20px;border-bottom:1px solid var(--rulelg);}
 .wc-img{max-width:100%;max-height:100%;object-fit:contain;display:block;filter:grayscale(5%) contrast(.97);transition:filter .28s,transform .28s;}
@@ -148,7 +148,7 @@ main{margin-top:58px;min-height:calc(100vh - 58px);}
 .work-grid.hidden{display:none;}
 .wl-head,.wl-row{display:grid;grid-template-columns:68px 90px 1fr 1fr 120px;gap:16px;padding:10px 0;border-bottom:1px solid var(--rulelg);align-items:center;}
 .wl-head{font-family:'Inter',sans-serif;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--light);border-bottom-color:var(--rule);padding-bottom:12px;font-weight:500;}
-.wl-row{cursor:pointer;transition:padding .15s;}
+.wl-row{cursor:pointer;transition:padding .15s;text-decoration:none;color:inherit;}
 .wl-row:hover{background:var(--hover);padding-left:8px;}
 .wl-thumb{width:60px;height:60px;object-fit:cover;display:block;}
 .wl-num{font-family:'Inter',sans-serif;font-size:10px;color:var(--light);font-weight:400;}
@@ -579,7 +579,7 @@ function sortWorks(m){
 }
 function renderGrid(arr){
   document.getElementById('workGrid').innerHTML=arr.map(w=>`
-    <div class="work-card">
+    <a class="work-card" href="catalogue_entry_v6_sans.html?id=${w.id}">
       <div class="wc-img-wrap">
         ${w.img?`<img class="wc-img" src="${w.img}" alt="${w.title}" loading="lazy" onerror="this.outerHTML='<div class=wc-placeholder>${w.title}</div>'">`:`<div class="wc-placeholder">${w.title}</div>`}
       </div>
@@ -588,16 +588,16 @@ function renderGrid(arr){
         <div class="wc-date">${w.date}</div>
         <div class="wc-num">${w.cr}</div>
       </div>
-    </div>`).join('');
+    </a>`).join('');
 }
 function renderList(arr){
   document.getElementById('workList').innerHTML=`
     <div class="wl-head"><span></span><span>CR No.</span><span>Title</span><span>Medium</span><span>Date</span></div>
-    ${arr.map(w=>`<div class="wl-row">
+    ${arr.map(w=>`<a class="wl-row" href="catalogue_entry_v6_sans.html?id=${w.id}">
       ${w.img?`<img class="wl-thumb" src="${w.img}" alt="" onerror="this.style.display='none'">`:' <div class="wl-thumb" style="background:var(--sand)"></div>'}
       <span class="wl-num">${w.cr}</span><span class="wl-title">${w.title}</span>
       <span class="wl-med">${w.medium}</span><span class="wl-date">${w.date}</span>
-    </div>`).join('')}`;
+    </a>`).join('')}`;
 }
 function updateCount(n){document.getElementById('resultCount').textContent='Results 1 to '+n+' of '+n;}
 function setViewMode(m){
