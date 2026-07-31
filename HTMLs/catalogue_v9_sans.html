@@ -105,17 +105,10 @@ main{margin-top:58px;min-height:calc(100vh - 58px);}
 
 /* OVERVIEW */
 .overview-wrap{padding:32px 32px 36px;}
-.overview-inner{display:grid;grid-template-columns:1fr;gap:0;align-items:start;}
 
 .ov-text h2{font-family:'Inter',sans-serif;font-size:22px;font-weight:300;letter-spacing:-.01em;color:var(--ink);margin-bottom:16px;}
 .ov-text p{font-family:'Inter',sans-serif;font-size:13.5px;line-height:1.85;color:var(--ink);margin-bottom:14px;font-weight:400;}
 .ov-text p:last-child{margin-bottom:0;}
-.ov-subnav{display:none!important;}
-.osn-lbl{font-family:'Inter',sans-serif;font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--light);margin-bottom:10px;font-weight:500;}
-.osn-list{list-style:none;}
-.osn-list a{display:block;font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.04em;color:var(--mid);text-decoration:none;padding:4px 0;border-bottom:1px solid var(--rulelg);transition:color .2s;font-weight:400;}
-.osn-list a:hover{color:var(--ink);}
-.osn-list li:last-child a{border-bottom:none;}
 .ctx-cite-section{margin-top:28px;padding-top:20px;border-top:1px solid var(--rulelg);}
 .ctx-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:0 32px;}
 .ctx-col-hdr{font-family:'Inter',sans-serif;font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--light);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--rule);font-weight:500;}
@@ -177,8 +170,6 @@ footer{background:var(--sand2);color:var(--mid);padding:44px 40px 28px;border-to
 ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--rule);border-radius:2px;}
 @media(max-width:900px){nav,.tb-quick{display:none;}
 .footer-grid{grid-template-columns:1fr 1fr;}
-.overview-inner{grid-template-columns:1fr!important;}
-.ov-subnav{display:none;}
 .ctx-3col{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -311,10 +302,7 @@ footer{background:var(--sand2);color:var(--mid);padding:44px 40px 28px;border-to
       </div>
       <div class="ctx-sub-body" id="overviewBody">
         <div class="overview-wrap">
-          <div class="overview-inner" id="ovInner">
-            <div class="ov-text" id="ovText"></div>
-            <div class="ov-subnav" id="ovSubnav"></div>
-          </div>
+          <div class="ov-text" id="ovText"></div>
         </div>
       </div>
     </div>
@@ -549,8 +537,6 @@ function startAutoPlay(){
 
 function buildOverview(data){
   const textEl=document.getElementById('ovText');
-  const subEl=document.getElementById('ovSubnav');
-  const innerEl=document.getElementById('ovInner');
   let html=data.overview;
   const cols=data.cols||{};
   if(Object.keys(cols).length>0){
@@ -563,13 +549,6 @@ function buildOverview(data){
     </div></div>`;
   }
   textEl.innerHTML=html;
-  const nav=data.navItems||[];
-  const pop=nav.filter(n=>cols[n.label]);
-  if(pop.length>0){
-    subEl.style.display='';innerEl.classList.remove('no-subnav');
-    subEl.innerHTML=`<div class="osn-lbl">In this series</div>
-      <ul class="osn-list">${pop.map(n=>`<li><a href="#" onclick="document.querySelector('.ctx-cite-section').scrollIntoView({behavior:'smooth'});return false;">${n.label}</a></li>`).join('')}</ul>`;
-  }else{subEl.style.display='none';innerEl.classList.add('no-subnav');}
 }
 
 function filterWorks(){
