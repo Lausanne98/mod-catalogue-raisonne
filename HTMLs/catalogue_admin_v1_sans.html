@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0ede8;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #e2dfda;
+    --rulelg: #eeecea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f5f2;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--sand); color: var(--ink); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  header {
+    position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .header-nav { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+  .header-nav a { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); text-decoration: none; }
+  .header-nav a:hover { color: var(--ink); }
+  .header-nav button {
+    font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer;
+  }
+  .header-nav button:hover { color: var(--ink); }
+
+  main { max-width: 900px; margin: 0 auto; padding: 40px 20px 96px; }
+  .page-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 26px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .page-head p { font-size: 13px; color: var(--mid); margin-bottom: 36px; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-bottom: 36px; }
+  @media(max-width: 700px) { .stat-row { grid-template-columns: repeat(2,1fr); } }
+  .stat-tile { background: var(--white); padding: 20px; }
+  .stat-num { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 28px; letter-spacing: -.01em; }
+  .stat-lbl { font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--light); margin-top: 4px; }
+
+  .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 36px; }
+  @media(max-width: 600px) { .action-grid { grid-template-columns: 1fr; } }
+  .action-card {
+    background: var(--white); border: 1px solid var(--rule); padding: 24px; text-decoration: none; color: var(--ink);
+    display: block; transition: border-color .18s, background .18s;
+  }
+  .action-card:hover { border-color: var(--goldlt); background: var(--hover); }
+  .action-card h2 { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 15px; margin-bottom: 6px; }
+  .action-card p { font-size: 12px; color: var(--mid); line-height: 1.55; }
+
+  .pending-panel { background: var(--white); border: 1px solid var(--rule); padding: 20px 24px; }
+  .pending-panel h3 { font-size: 9px; letter-spacing: .16em; font-weight: 500; text-transform: uppercase; color: var(--light); margin-bottom: 14px; }
+  .pending-empty { font-size: 12.5px; color: var(--light); font-style: italic; }
+  .pending-list { list-style: none; }
+  .pending-list li { font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--rulelg); display: flex; justify-content: space-between; }
+  .pending-list li:last-child { border-bottom: none; }
+  .pending-tag { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px; }
+  .pending-tag.new { background: #eef4ec; color: #3f6b3f; }
+  .pending-tag.edit { background: #fdf3e9; color: #a05a2c; }
+  .pending-tag.del { background: #fbebeb; color: #a83232; }
+  .pending-actions { margin-top: 16px; display: flex; gap: 10px; }
+  .btn { font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 10px 18px; cursor: pointer; border: 1px solid var(--ink); background: var(--white); color: var(--ink); text-decoration: none; display: inline-block; }
+  .btn:hover { background: var(--ink); color: var(--white); }
+  .btn.primary { background: var(--ink); color: var(--white); }
+  .btn.primary:hover { background: var(--gold); border-color: var(--gold); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">MOD CR — Admin</div>
+  <div class="header-nav">
+    <a href="catalogue_admin_manage_v1_sans.html">Manage Works</a>
+    <a href="catalogue_intake_v1_sans.html">Add a Work</a>
+    <a href="catalogue_v10_sans.html">View Site</a>
+    <button onclick="logOut()">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <h1>Admin Dashboard</h1>
+    <p>Manage the catalogue's works, review pending changes, and export updates.</p>
+  </div>
+
+  <div class="stat-row" id="statRow"></div>
+
+  <div class="action-grid">
+    <a class="action-card" href="catalogue_admin_manage_v1_sans.html">
+      <h2>Manage Works →</h2>
+      <p>Browse, search, and filter every catalogued work by name, timeframe, or material. Edit or mark works for removal.</p>
+    </a>
+    <a class="action-card" href="catalogue_intake_v1_sans.html">
+      <h2>Add a Work →</h2>
+      <p>The intake form — new work details, photos, and a verbal annotation.</p>
+    </a>
+  </div>
+
+  <div class="pending-panel">
+    <h3>Pending Changes This Session</h3>
+    <div id="pendingContent"></div>
+  </div>
+</main>
+
+<script>
+if(localStorage.getItem('modcr_admin_authed') !== 'true'){
+  window.location.href = 'catalogue_admin_login_v1_sans.html';
+}
+function logOut(){
+  localStorage.removeItem('modcr_admin_authed');
+  window.location.href = 'catalogue_admin_login_v1_sans.html';
+}
+
+const works = [
+  {id:1,  cr:"MOD CR 1",  title:"Tattooed Torso",      date:"1966",    year:1966, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/TattooedTorso1966-icon.png"},
+  {id:13, cr:"MOD CR 13", title:"Ceramic Seeds",        date:"c. 1971", year:1971, medium:"Glazed ceramic",                     tag:"ceramic",      series:"early-clay",           img:"../Entry Images/TwoCeramicSeeds-icon-1.png"},
+  {id:2,  cr:"MOD CR 2",  title:"Germinating Seeds",    date:"c. 1972", year:1972, medium:"Bronze",                             tag:"bronze",       series:"early-clay",           img:"../Entry Images/GerminatingSeeds-icon-223x200.png"},
+  {id:18, cr:"MOD CR 18", title:"Tattooed Relic",       date:"c. 1974", year:1974, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/Tatoed_Relic.jpg"},
+  {id:14, cr:"MOD CR 14", title:"Death Masks",          date:"c. 1975", year:1975, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/DeathMasks-Icon.png"},
+  {id:15, cr:"MOD CR 15", title:"Descending Torsos",    date:"1975",    year:1975, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/DescendingTorsos1975-icon.png"},
+  {id:16, cr:"MOD CR 16", title:"Wings II",             date:"1975",    year:1975, medium:"Raku ceramic",                       tag:"ceramic",      series:"early-clay",           img:"../Entry Images/WaveFigures-Icon.png"},
+  {id:20, cr:"MOD CR 20", title:"Seeds & Pods",         date:"c. 1975", year:1975, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/SeadPods-icon.png"},
+  {id:17, cr:"MOD CR 17", title:"Triads",               date:"c. 1976", year:1976, medium:"Raku ceramic",                       tag:"ceramic",      series:"early-clay",           img:"../Entry Images/Tortoises-icon.png"},
+  {id:21, cr:"MOD CR 21", title:"Tattooed Dolls",       date:"c. 1975", year:1975, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/Totems-icon.png"},
+  {id:19, cr:"MOD CR 19", title:"Figures with Staffs",  date:"c. 1978", year:1978, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/Figures-Icon.png"},
+  {id:3,  cr:"MOD CR 3",  title:"Burning Branches",     date:"1975",    year:1975, medium:"Bronze",                             tag:"bronze",       series:"bronze-works",         img:"../Entry Images/BurningBranches-Icon.png"},
+  {id:4,  cr:"MOD CR 4",  title:"Soul Catchers",        date:"1977",    year:1977, medium:"Bronze",                             tag:"bronze",       series:"bronze-works",         img:"../Entry Images/SoulCatchers_Clay-Icon.png"},
+  {id:5,  cr:"MOD CR 5",  title:"Pictographs",          date:"c. 1979", year:1979, medium:"Graphite and ink on paper",          tag:"drawing",      series:"works-on-paper",       img:"../Entry Images/Pictograph_icon.png"},
+  {id:7,  cr:"MOD CR 7",  title:"Celestial Plaza",      date:"1986",    year:1986, medium:"Bronze — permanent public install.", tag:"installation", series:"public-installations", img:"../Entry Images/AMNH_installation-icon.png"},
+  {id:9,  cr:"MOD CR 9",  title:"Radiant Disk",         date:"1988",    year:1988, medium:"Bronze with patina",                 tag:"bronze",       series:"bronze-works",         img:"../Entry Images/RadiantDiskIceRing.png"},
+  {id:6,  cr:"MOD CR 6",  title:"A Walk on the Beach",  date:"1995",    year:1995, medium:"Bronze — permanent public install.", tag:"installation", series:"public-installations", img:"../Entry Images/PAMM-Michel-Oka-Doner-08_ICON-223x119.png"},
+  {id:10, cr:"MOD CR 10", title:"Blueprint of Eden",    date:"1999",    year:1999, medium:"Cyanotype, natural specimens",       tag:"drawing",      series:"works-on-paper",       img:"../Entry Images/BluePrintOfEden-IconV3-1-213x223.png"},
+  {id:11, cr:"MOD CR 11", title:"Thorn Man",            date:"c. 2000", year:2000, medium:"Bronze with silver",                 tag:"bronze",       series:"bronze-works",         img:"../Entry Images/Thornmen3_studio-photos_Dirk-Bakker-R_iconV2-177x223.png"},
+  {id:8,  cr:"MOD CR 8",  title:"Into the Mysterium",   date:"2003",    year:2003, medium:"Mixed media installation",           tag:"installation", series:"public-installations", img:"../Entry Images/Mysterium-Icon.png"},
+  {id:12, cr:"MOD CR 12", title:"Talisman",             date:"2019",    year:2019, medium:"Bronze — permanent public install.", tag:"installation", series:"public-installations", img:"../Entry Images/Talisman_Icon-142x223.png"},
+  {id:22, cr:"MOD CR 22", title:"Frond Necklace",       date:"Date pending", year:0, medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/FrondNecklace.jpg"},
+  {id:23, cr:"MOD CR 23", title:"Totem Necklace",       date:"Date pending", year:0, medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/TotemNecklace.jpg"},
+  {id:24, cr:"MOD CR 24", title:"Amulet Necklace",      date:"Date pending", year:0, medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/AmuletNecklace-Icon.png"},
+  {id:25, cr:"MOD CR 25", title:"Palm Necklace",        date:"Date pending", year:0, medium:"Gold",          tag:"jewelry", series:"jewelry", img:"../Entry Images/PalmNecklaceGold.jpg"},
+  {id:26, cr:"MOD CR 26", title:"Seed Ring",            date:"Date pending", year:0, medium:"Gold",          tag:"jewelry", series:"jewelry", img:"../Entry Images/SeedRing.jpg"},
+  {id:27, cr:"MOD CR 27", title:"Ceremonial Silver",    date:"Date pending", year:0, medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/CeremonialSilver-Icon.png"},
+  {id:28, cr:"MOD CR 28", title:"Palm Vase",            date:"1999",         year:1999, medium:"Sterling silver", tag:"jewelry", series:"jewelry", img:"../Entry Images/PalmVase1999-Icon.png"},
+];
+
+function renderStats(){
+  const byTag = {};
+  works.forEach(w => { byTag[w.tag] = (byTag[w.tag]||0) + 1; });
+  const tiles = [
+    {n: works.length, l: 'Total Works'},
+    {n: byTag.ceramic||0, l: 'Ceramic'},
+    {n: byTag.bronze||0, l: 'Bronze'},
+    {n: byTag.jewelry||0, l: 'Jewelry'},
+  ];
+  document.getElementById('statRow').innerHTML = tiles.map(t=>`
+    <div class="stat-tile"><div class="stat-num">${t.n}</div><div class="stat-lbl">${t.l}</div></div>`).join('');
+}
+renderStats();
+
+function loadJSON(key){ try{ return JSON.parse(localStorage.getItem(key) || '[]'); }catch(e){ return []; } }
+
+function renderPending(){
+  const batch = loadJSON('modcr_intake_batch');
+  const deletions = loadJSON('modcr_pending_deletions');
+  const wrap = document.getElementById('pendingContent');
+  if(batch.length === 0 && deletions.length === 0){
+    wrap.innerHTML = '<div class="pending-empty">No pending changes this session.</div>';
+    return;
+  }
+  let html = '<ul class="pending-list">';
+  batch.forEach(w=>{
+    const tag = w.editingId ? '<span class="pending-tag edit">Edit</span>' : '<span class="pending-tag new">New</span>';
+    html += `<li><span>${w.title || '(untitled)'}</span>${tag}</li>`;
+  });
+  deletions.forEach(d=>{
+    html += `<li><span>${d.title}</span><span class="pending-tag del">Delete</span></li>`;
+  });
+  html += '</ul><div class="pending-actions">';
+  if(batch.length){ html += '<a class="btn" href="catalogue_intake_v1_sans.html">Review in Intake Form</a>'; }
+  if(batch.length || deletions.length){ html += '<button class="btn primary" onclick="exportAll()">Export All Changes (.json)</button>'; }
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+renderPending();
+
+function exportAll(){
+  const bundle = {
+    exportedAt: new Date().toISOString(),
+    source: 'catalogue_admin_v1_sans.html',
+    entries: loadJSON('modcr_intake_batch'),
+    deletions: loadJSON('modcr_pending_deletions'),
+  };
+  const blob = new Blob([JSON.stringify(bundle, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `modcr-changes-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>

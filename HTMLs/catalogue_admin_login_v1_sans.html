@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Sign In — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0ede8;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #e2dfda;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --red:    #a83232;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--sand); color: var(--ink);
+    font-family: 'Inter', sans-serif; font-weight: 400;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .login-card {
+    background: var(--white); border: 1px solid var(--rule); padding: 40px 36px; width: 100%; max-width: 380px;
+  }
+  .login-head { margin-bottom: 28px; text-align: center; }
+  .login-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 20px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .login-head p { font-size: 12px; color: var(--mid); }
+  .f-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+  .f-label { font-size: 9.5px; letter-spacing: .1em; font-weight: 500; text-transform: uppercase; color: var(--light); }
+  input[type=password] {
+    font-family: 'Inter', sans-serif; font-size: 14px; color: var(--ink);
+    border: 1px solid var(--rule); padding: 10px 12px; width: 100%;
+  }
+  input:focus { outline: none; border-color: var(--goldlt); }
+  .login-btn {
+    width: 100%; font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    padding: 12px; background: var(--ink); color: var(--white); border: none; cursor: pointer; transition: background .18s;
+  }
+  .login-btn:hover { background: var(--gold); }
+  .login-error { font-size: 12px; color: var(--red); margin-top: 12px; text-align: center; display: none; }
+  .login-error.show { display: block; }
+  .login-back { text-align: center; margin-top: 20px; }
+  .login-back a { font-size: 11px; color: var(--light); text-decoration: none; }
+  .login-back a:hover { color: var(--ink); }
+  .security-note {
+    margin-top: 24px; padding: 12px 14px; background: #fdf3e9; border: 1px solid #eccca3;
+    font-size: 10.5px; line-height: 1.6; color: #7a4a1e;
+  }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="login-head">
+    <h1>Admin Sign In</h1>
+    <p>Michele Oka Doner: A Catalogue Raisonné</p>
+  </div>
+  <form id="loginForm" onsubmit="return handleLogin(event)">
+    <div class="f-field">
+      <label class="f-label" for="f-pass">Passphrase</label>
+      <input type="password" id="f-pass" autocomplete="current-password" autofocus>
+    </div>
+    <button type="submit" class="login-btn">Sign In</button>
+    <div class="login-error" id="loginError">That passphrase isn't correct.</div>
+  </form>
+  <div class="login-back"><a href="catalogue_v10_sans.html">← Back to the Catalogue</a></div>
+
+  <div class="security-note">
+    <strong>Not real security.</strong> This is a placeholder passphrase check with no backend behind it — it only
+    keeps casual visitors out, not a determined one. Real access control requires server-side authentication
+    (phase 2). Change the passphrase in this file's &lt;script&gt; before relying on it for anything sensitive.
+  </div>
+</div>
+
+<script>
+// PLACEHOLDER passphrase — change this. Client-side only: visible in page source,
+// bypassable via browser dev tools. Not real authentication.
+const ADMIN_PASSPHRASE = 'modcr2026';
+
+function handleLogin(e){
+  e.preventDefault();
+  const val = document.getElementById('f-pass').value;
+  if(val === ADMIN_PASSPHRASE){
+    localStorage.setItem('modcr_admin_authed', 'true');
+    window.location.href = 'catalogue_admin_v1_sans.html';
+  }else{
+    document.getElementById('loginError').classList.add('show');
+  }
+  return false;
+}
+
+// Already "signed in" — skip straight to the dashboard.
+if(localStorage.getItem('modcr_admin_authed') === 'true'){
+  window.location.href = 'catalogue_admin_v1_sans.html';
+}
+</script>
+</body>
+</html>

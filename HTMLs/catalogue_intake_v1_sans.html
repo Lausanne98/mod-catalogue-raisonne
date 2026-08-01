@@ -168,7 +168,12 @@
 
 <header>
   <div class="header-title">Michele Oka Doner — Work Intake</div>
-  <div class="header-sub"><a href="catalogue_v10_sans.html">← Browse the Works</a></div>
+  <div class="header-sub">
+    <a href="catalogue_admin_v1_sans.html">Dashboard</a> ·
+    <a href="catalogue_admin_manage_v1_sans.html">Manage Works</a> ·
+    <a href="catalogue_v10_sans.html">View Site</a> ·
+    <a href="#" onclick="logOut();return false;">Log Out</a>
+  </div>
 </header>
 
 <main>
@@ -315,8 +320,50 @@
 <div class="save-toast" id="saveToast"></div>
 
 <script>
+if(localStorage.getItem('modcr_admin_authed') !== 'true'){
+  window.location.href = 'catalogue_admin_login_v1_sans.html';
+}
+function logOut(){
+  localStorage.removeItem('modcr_admin_authed');
+  window.location.href = 'catalogue_admin_login_v1_sans.html';
+}
+
+// Same works data as the live catalogue — used to pre-fill the form when
+// arriving via "Edit" from Manage Works (?edit=<id>).
+const worksIndex = [
+  {id:1,  cr:"MOD CR 1",  title:"Tattooed Torso",      date:"1966",    year:1966, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/TattooedTorso1966-icon.png"},
+  {id:13, cr:"MOD CR 13", title:"Ceramic Seeds",        date:"c. 1971", year:1971, medium:"Glazed ceramic",                     tag:"ceramic",      series:"early-clay",           img:"../Entry Images/TwoCeramicSeeds-icon-1.png"},
+  {id:2,  cr:"MOD CR 2",  title:"Germinating Seeds",    date:"c. 1972", year:1972, medium:"Bronze",                             tag:"bronze",       series:"early-clay",           img:"../Entry Images/GerminatingSeeds-icon-223x200.png"},
+  {id:18, cr:"MOD CR 18", title:"Tattooed Relic",       date:"c. 1974", year:1974, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/Tatoed_Relic.jpg"},
+  {id:14, cr:"MOD CR 14", title:"Death Masks",          date:"c. 1975", year:1975, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/DeathMasks-Icon.png"},
+  {id:15, cr:"MOD CR 15", title:"Descending Torsos",    date:"1975",    year:1975, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/DescendingTorsos1975-icon.png"},
+  {id:16, cr:"MOD CR 16", title:"Wings II",             date:"1975",    year:1975, medium:"Raku ceramic",                       tag:"ceramic",      series:"early-clay",           img:"../Entry Images/WaveFigures-Icon.png"},
+  {id:20, cr:"MOD CR 20", title:"Seeds & Pods",         date:"c. 1975", year:1975, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/SeadPods-icon.png"},
+  {id:17, cr:"MOD CR 17", title:"Triads",               date:"c. 1976", year:1976, medium:"Raku ceramic",                       tag:"ceramic",      series:"early-clay",           img:"../Entry Images/Tortoises-icon.png"},
+  {id:21, cr:"MOD CR 21", title:"Tattooed Dolls",       date:"c. 1975", year:1975, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/Totems-icon.png"},
+  {id:19, cr:"MOD CR 19", title:"Figures with Staffs",  date:"c. 1978", year:1978, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/Figures-Icon.png"},
+  {id:3,  cr:"MOD CR 3",  title:"Burning Branches",     date:"1975",    year:1975, medium:"Bronze",                             tag:"bronze",       series:"bronze-works",         img:"../Entry Images/BurningBranches-Icon.png"},
+  {id:4,  cr:"MOD CR 4",  title:"Soul Catchers",        date:"1977",    year:1977, medium:"Bronze",                             tag:"bronze",       series:"bronze-works",         img:"../Entry Images/SoulCatchers_Clay-Icon.png"},
+  {id:5,  cr:"MOD CR 5",  title:"Pictographs",          date:"c. 1979", year:1979, medium:"Graphite and ink on paper",          tag:"drawing",      series:"works-on-paper",       img:"../Entry Images/Pictograph_icon.png"},
+  {id:7,  cr:"MOD CR 7",  title:"Celestial Plaza",      date:"1986",    year:1986, medium:"Bronze — permanent public install.", tag:"installation", series:"public-installations", img:"../Entry Images/AMNH_installation-icon.png"},
+  {id:9,  cr:"MOD CR 9",  title:"Radiant Disk",         date:"1988",    year:1988, medium:"Bronze with patina",                 tag:"bronze",       series:"bronze-works",         img:"../Entry Images/RadiantDiskIceRing.png"},
+  {id:6,  cr:"MOD CR 6",  title:"A Walk on the Beach",  date:"1995",    year:1995, medium:"Bronze — permanent public install.", tag:"installation", series:"public-installations", img:"../Entry Images/PAMM-Michel-Oka-Doner-08_ICON-223x119.png"},
+  {id:10, cr:"MOD CR 10", title:"Blueprint of Eden",    date:"1999",    year:1999, medium:"Cyanotype, natural specimens",       tag:"drawing",      series:"works-on-paper",       img:"../Entry Images/BluePrintOfEden-IconV3-1-213x223.png"},
+  {id:11, cr:"MOD CR 11", title:"Thorn Man",            date:"c. 2000", year:2000, medium:"Bronze with silver",                 tag:"bronze",       series:"bronze-works",         img:"../Entry Images/Thornmen3_studio-photos_Dirk-Bakker-R_iconV2-177x223.png"},
+  {id:8,  cr:"MOD CR 8",  title:"Into the Mysterium",   date:"2003",    year:2003, medium:"Mixed media installation",           tag:"installation", series:"public-installations", img:"../Entry Images/Mysterium-Icon.png"},
+  {id:12, cr:"MOD CR 12", title:"Talisman",             date:"2019",    year:2019, medium:"Bronze — permanent public install.", tag:"installation", series:"public-installations", img:"../Entry Images/Talisman_Icon-142x223.png"},
+  {id:22, cr:"MOD CR 22", title:"Frond Necklace",       date:"Date pending", year:0, medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/FrondNecklace.jpg"},
+  {id:23, cr:"MOD CR 23", title:"Totem Necklace",       date:"Date pending", year:0, medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/TotemNecklace.jpg"},
+  {id:24, cr:"MOD CR 24", title:"Amulet Necklace",      date:"Date pending", year:0, medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/AmuletNecklace-Icon.png"},
+  {id:25, cr:"MOD CR 25", title:"Palm Necklace",        date:"Date pending", year:0, medium:"Gold",          tag:"jewelry", series:"jewelry", img:"../Entry Images/PalmNecklaceGold.jpg"},
+  {id:26, cr:"MOD CR 26", title:"Seed Ring",            date:"Date pending", year:0, medium:"Gold",          tag:"jewelry", series:"jewelry", img:"../Entry Images/SeedRing.jpg"},
+  {id:27, cr:"MOD CR 27", title:"Ceremonial Silver",    date:"Date pending", year:0, medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/CeremonialSilver-Icon.png"},
+  {id:28, cr:"MOD CR 28", title:"Palm Vase",            date:"1999",         year:1999, medium:"Sterling silver", tag:"jewelry", series:"jewelry", img:"../Entry Images/PalmVase1999-Icon.png"},
+];
+
 let batch = [];
 let editingIndex = null;
+let editingExistingId = null; // set when editing a work already published on the site
 let currentPhotos = []; // {name, dataUrl}
 let currentAnnotation = null; // {dataUrl, mimeType}
 let mediaRecorder = null;
@@ -454,6 +501,7 @@ function collectForm(){
     remarks: document.getElementById('f-remarks').value.trim(),
     photos: currentPhotos,
     annotation: currentAnnotation,
+    editingId: editingExistingId,
   };
 }
 function fillForm(entry){
@@ -469,6 +517,7 @@ function fillForm(entry){
   document.getElementById('f-remarks').value = entry.remarks || '';
   currentPhotos = entry.photos ? [...entry.photos] : [];
   currentAnnotation = entry.annotation || null;
+  editingExistingId = entry.editingId || null;
   renderPhotoGrid();
   if(currentAnnotation){
     document.getElementById('voiceAudio').src = currentAnnotation.dataUrl;
@@ -488,6 +537,7 @@ function resetForm(){
   document.getElementById('voicePlaybackWrap').style.display = 'none';
   document.getElementById('voiceStatus').textContent = 'Tap to record';
   editingIndex = null;
+  editingExistingId = null;
   document.getElementById('formTitle').textContent = 'New Work Entry';
   renderBatchList();
 }
@@ -528,11 +578,15 @@ function clearBatch(){
   resetForm();
 }
 
+function loadJSON(key){ try{ return JSON.parse(localStorage.getItem(key) || '[]'); }catch(e){ return []; } }
+
 function exportBatch(){
+  const deletions = loadJSON('modcr_pending_deletions');
   const bundle = {
     exportedAt: new Date().toISOString(),
     source: 'catalogue_intake_v1_sans.html',
     entries: batch,
+    deletions: deletions,
   };
   const blob = new Blob([JSON.stringify(bundle, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -544,7 +598,29 @@ function exportBatch(){
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
-  showToast('Exported ' + batch.length + ' work(s). Send this file back to have it added to the site.');
+  showToast('Exported ' + batch.length + ' work(s)' + (deletions.length?` and ${deletions.length} deletion(s)`:'') + '. Send this file back to have it applied to the site.');
+}
+
+function loadFromQueryString(){
+  const params = new URLSearchParams(location.search);
+  const editId = parseInt(params.get('edit'), 10);
+  if(!editId) return;
+  const existingIdx = batch.findIndex(w => w.editingId === editId);
+  if(existingIdx !== -1){
+    editingIndex = existingIdx;
+    fillForm(batch[existingIdx]);
+    document.getElementById('formTitle').textContent = 'Editing: ' + (batch[existingIdx].title || '(untitled)');
+    return;
+  }
+  const work = worksIndex.find(w => w.id === editId);
+  if(!work){ showToast('Could not find MOD CR ' + editId + '.'); return; }
+  fillForm({
+    title: work.title, date: work.date, medium: work.medium,
+    classification: work.tag, dimensions: '', description: '', provenance: '',
+    exhibitions: '', literature: '', remarks: '', photos: [], annotation: null,
+    editingId: work.id,
+  });
+  document.getElementById('formTitle').textContent = `Editing: ${work.title} (${work.cr})`;
 }
 
 function showToast(msg){
@@ -556,6 +632,7 @@ function showToast(msg){
 }
 
 loadBatch();
+loadFromQueryString();
 </script>
 </body>
 </html>
