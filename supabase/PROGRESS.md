@@ -89,29 +89,51 @@ rule:
   — that's intentional per the versioning rule (never edit a version in
   place); they're simply superseded now.
 
-## Blocked this session — network access
-This cloud environment's egress proxy returned `403` (policy denial) on
-every attempt to reach `kuyyrygvaotsrhbyjyjw.supabase.co`, both for the plain
-REST verification GET and implicitly for any live testing of the new pages.
-The previous session's handoff note said access "was just added... takes
-effect for NEW sessions only" — that either hasn't propagated to this
-environment or this is a different environment than the one it was added to.
-**Concretely still needed, blocked on network access:**
-1. Run the corrected `supabase/schema.sql` (or confirm it already matches —
-   it may not, given the bug found above) and verify the 28-row migration
-   actually lands with valid tags this time.
-2. Create the one admin auth user (Supabase Dashboard → Authentication →
-   Users) so `catalogue_admin_login_v2_sans.html` has something to sign into.
-3. Smoke-test the new pages against the live project: sign in, browse/search/
-   filter Manage Works, add a test work end-to-end (save → photo upload →
-   voice annotation → appears correctly), delete it, and confirm the public
-   catalogue (`catalogue_v11_sans.html`) and entry page
-   (`catalogue_entry_v7_sans.html`) render from the DB with the Early Clay
-   phase live and everything else gated "Coming Soon."
-4. Test on the real GitHub Pages origin, not just locally — PR #2 (subnav/
-   image self-hosting) is still open/unmerged, and this session's branch
-   would need to land there too before GitHub Pages is actually serving any
-   of this.
+## Update — network access confirmed working (this session)
+Network access to `*.supabase.co` now works — the previous session's proxy
+403 is gone. Verified with:
+```
+curl "https://kuyyrygvaotsrhbyjyjw.supabase.co/rest/v1/works?select=cr_number,title,series,tag&order=cr_number" \
+  -H "apikey: sb_publishable_s1HGNRWL1LbiCXzFDK4igg_41mnArJx"
+```
+Response: `404 {"code":"PGRST205", "message":"Could not find the table 'public.works' in the schema cache"}`
+— a real API response (not a network/proxy error), confirming reachability.
+It also confirms `schema.sql` has **not been run yet** against this project
+(no tables exist at all yet, not even a broken `works` with 0 rows).
+
+Also code-reviewed every DB-backed page this session
+(`modcr-client.js`, both admin login/manage/intake v2 pages,
+`catalogue_v11_sans.html`, `catalogue_entry_v7_sans.html`) against the schema
+and CLAUDE.md rules — wiring looks correct: RLS-gated fetch/write helpers,
+phase-gating via live `series.published`, and the ceramic-pre-2000 →
+Early Clay cross-categorization rule are all implemented consistently in
+both the manage-list filter and the public catalogue/entry pages.
+No code changes were needed.
+
+## Still blocked — needs Dashboard/service-role access this session doesn't have
+Two remaining steps are dashboard-only actions that a Claude session
+intentionally cannot perform with just the anon key (the `service_role` key
+is deliberately kept out of Claude's hands, per this file's own policy
+above):
+1. **Run `supabase/schema.sql` in the SQL Editor.** Confirmed above that
+   this hasn't happened yet on this project — currently 0 tables. Safe to
+   run as-is (idempotent).
+2. **Create the one admin auth user** (Dashboard → Authentication → Users
+   → Add user). No user exists yet, so `catalogue_admin_login_v2_sans.html`
+   has nothing to sign into.
+
+**Once those two are done, a session with network access should:**
+- Re-run the `curl` above and confirm 28 rows with valid, non-null-except-
+  MOD-CR-8 `tag` values.
+- Smoke-test sign-in → Manage Works (search/filter) → Intake (add a test
+  work, upload a photo, record a voice annotation, then delete the test
+  work) — needs either a human at the keyboard or test admin credentials
+  handed to the session for browser automation.
+- Confirm `catalogue_v11_sans.html` / `catalogue_entry_v7_sans.html` render
+  live with Early Clay shown and everything else "Coming Soon."
+- Test on the real GitHub Pages origin, not just locally — PR #2 (subnav/
+  image self-hosting) is still open/unmerged, and this branch would need to
+  land there too before GitHub Pages actually serves any of this.
 
 ## Known open items unrelated to backend (don't lose track)
 - MOD CR 8 medium classification still unresolved (now correctly reflected
