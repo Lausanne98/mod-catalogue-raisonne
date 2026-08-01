@@ -1,5 +1,17 @@
 # MOD Catalogue Raisonné — conventions
 
+## Provisional CR numbering
+`cr_number` should ultimately reflect chronological creation order, but the full
+chronology isn't settled yet — many works (e.g. student works) are still to be
+migrated and may need to slot in earlier than anything catalogued so far. Rather
+than assign the next sequential number and have to renumber everything later,
+newly migrated/added works that aren't yet placed in final chronological order
+get provisional numbers starting at **100** (not continuing from the current
+highest number). Numbers below 100 stay reserved for the eventual full
+chronological renumbering, which happens once before the site is officially
+published — CR numbers are expected to be fluid until then, not fixed on
+assignment.
+
 ## Versioning rule
 Live pages are the `.._sans.html` files in `HTMLs/`. When a file needs a meaningful
 change: never edit an existing version in place. Copy it to the next version number
@@ -29,6 +41,21 @@ the "Early Clay" series automatically, in addition to its own assigned series �
 should be implemented as live filter logic (a ceramic work dated pre-2000 shows up
 under the Early Clay filter even if its `series` field is something else), not a
 one-time manual fix, so it keeps applying as new works are added.
+
+**Early Clay is ceramic-only, and it's a period, not just a material.** A work's
+own `series` field must never be `early-clay` unless its medium/tag is `ceramic`
+— bronze, silver, gold, etc. are never clay, regardless of date, subject matter,
+or stylistic kinship with the early ceramic pieces. (MOD CR 2, "Germinating
+Seeds," is bronze but was seeded with `series = early-clay` in the original
+migration — that's a data error to fix, not a precedent to follow.) Ceramic is
+necessary but not sufficient, though: a *post-2000* ceramic work is still
+`tag = ceramic`, but its own `series` should be something other than
+`early-clay` (e.g. `bronze-works`, labeled "Sculpture," or `editions` for a
+limited-edition run) — Early Clay represents the artist's early-period ceramic
+work specifically, not "ceramic at any date." The *only* way a non-directly-
+assigned work should ever appear under the Early Clay filter is the
+cross-categorization rule above (ceramic + pre-2000) — never by setting
+`series = early-clay` directly on a work that isn't both.
 
 ## Known open item
 MOD CR 8 ("Into the Mysterium," mixed media installation) doesn't have a clean single
