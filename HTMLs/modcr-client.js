@@ -97,6 +97,15 @@ async function modcrSaveWork(payload, dbId){
   return data;
 }
 async function modcrDeleteWork(dbId){
+  // Postgres cascade removes the work_photos/work_annotations *rows*, but the
+  // actual uploaded files in Storage are a separate system it can't reach —
+  // clean those up first or they're orphaned (found via live smoke test).
+  const [{ data: photos }, { data: annotations }] = await Promise.all([
+    modcrSupabase.from('work_photos').select('storage_path').eq('work_id', dbId),
+    modcrSupabase.from('work_annotations').select('storage_path').eq('work_id', dbId),
+  ]);
+  if(photos && photos.length) await modcrSupabase.storage.from('work-photos').remove(photos.map(p=>p.storage_path));
+  if(annotations && annotations.length) await modcrSupabase.storage.from('work-audio').remove(annotations.map(a=>a.storage_path));
   const { error } = await modcrSupabase.from('works').delete().eq('id', dbId);
   if(error) throw error;
 }

@@ -110,27 +110,58 @@ Early Clay cross-categorization rule are all implemented consistently in
 both the manage-list filter and the public catalogue/entry pages.
 No code changes were needed.
 
-## Still blocked — needs Dashboard/service-role access this session doesn't have
-Two remaining steps are dashboard-only actions that a Claude session
-intentionally cannot perform with just the anon key (the `service_role` key
-is deliberately kept out of Claude's hands, per this file's own policy
-above):
-1. **Run `supabase/schema.sql` in the SQL Editor.** Confirmed above that
-   this hasn't happened yet on this project — currently 0 tables. Safe to
-   run as-is (idempotent).
-2. **Create the one admin auth user** (Dashboard → Authentication → Users
-   → Add user). No user exists yet, so `catalogue_admin_login_v2_sans.html`
-   has nothing to sign into.
+## Verification complete (this session) — backend confirmed working end-to-end
+The user ran `schema.sql` in the SQL Editor and created the one admin user
+(`atelier@ctmeq.com`) via Dashboard → Authentication → Users. Both steps
+required dashboard/service-role access this session intentionally doesn't
+have, so the user did them manually; everything below was then verified
+independently against the live project:
 
-**Once those two are done, a session with network access should:**
-- Re-run the `curl` above and confirm 28 rows with valid, non-null-except-
-  MOD-CR-8 `tag` values.
-- Smoke-test sign-in → Manage Works (search/filter) → Intake (add a test
-  work, upload a photo, record a voice annotation, then delete the test
-  work) — needs either a human at the keyboard or test admin credentials
-  handed to the session for browser automation.
-- Confirm `catalogue_v11_sans.html` / `catalogue_entry_v7_sans.html` render
-  live with Early Clay shown and everything else "Coming Soon."
+1. **Migration**: `select cr_number, title, series, tag, flag from works
+   order by cr_number;` in the SQL Editor confirmed all 28 rows landed with
+   valid tags — jewelry works correctly show `silver`/`gold` (not the old
+   broken `jewelry` value), MOD CR 8 shows `tag = NULL` with its flag, MOD
+   CR 6 shows its icon-mismatch flag. The REST endpoint
+   (`GET .../rest/v1/works?select=...`) returns 12 rows through the public
+   anon key — correct, not a bug: RLS is filtering to the published
+   `early-clay` series plus the cross-categorized pre-2000 ceramics, exactly
+   as designed since only Early Clay is live so far.
+2. **Auth**: real password sign-in verified working
+   (`catalogue_admin_login_v2_sans.html` → `signInWithPassword` →
+   redirects to the dashboard).
+3. **Full smoke test**, driven with Playwright against the live project
+   (local static server for the HTML, real Supabase backend, fake-mic
+   device for the recorder, a local npm-installed copy of
+   `@supabase/supabase-js` in place of the CDN script — see note below):
+   sign in → Manage Works loads all 28 works, search and material-filter
+   both work correctly → Intake: created a test work, uploaded a real photo
+   (appeared in the grid), recorded a voice annotation with a synthetic
+   mic device (uploaded and appeared in the list), deleted the test work →
+   confirmed removed from Manage Works → public catalogue confirmed
+   showing Early Clay live and everything else "Coming Soon," with the
+   deleted test work correctly absent → entry page for MOD CR 1 confirmed
+   rendering live title/data from the DB.
+4. **Bug found and fixed during the smoke test**: `modcrDeleteWork` in
+   `modcr-client.js` only deleted the `works` row. Postgres cascade cleans
+   up the `work_photos`/`work_annotations` *rows*, but the actual uploaded
+   files in the `work-photos`/`work-audio` Storage buckets are a separate
+   system cascade can't reach — they were left orphaned after every delete.
+   Confirmed via `storage.list()` after the first test-work deletion (files
+   still present), fixed `modcrDeleteWork` to look up and remove the
+   associated storage objects before deleting the row, then re-ran the full
+   create → photo → annotation → delete cycle and confirmed both buckets
+   come back empty afterward.
+
+**Note on jsdelivr for local testing**: `cdn.jsdelivr.net` (where every page
+loads `@supabase/supabase-js` from) is blocked by this session's org egress
+policy — confirmed via `curl` (403 on CONNECT), not worked around. For the
+Playwright smoke test only, the same package version was installed from the
+always-allowed npm registry and served locally in place of the CDN request;
+the actual page/repo files still reference the CDN as before and were not
+changed. This has no bearing on production — GitHub Pages visitors load the
+CDN script directly and aren't subject to this session's sandboxed policy.
+
+**Still open, unrelated to backend correctness**:
 - Test on the real GitHub Pages origin, not just locally — PR #2 (subnav/
   image self-hosting) is still open/unmerged, and this branch would need to
   land there too before GitHub Pages actually serves any of this.
