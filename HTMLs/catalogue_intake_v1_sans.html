@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work Intake — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0ede8;
+    --sand2:  #e8e4de;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #e2dfda;
+    --rulelg: #eeecea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f5f2;
+    --red:    #a83232;
+    --green:  #3f6b3f;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--sand);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif; font-weight: 400;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title {
+    font-family: 'Inter', sans-serif; font-weight: 400; letter-spacing: 0.14em;
+    text-transform: uppercase; font-size: 12px; color: var(--ink);
+  }
+  .header-sub {
+    font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light);
+    margin-left: auto;
+  }
+  .header-sub a { color: var(--light); text-decoration: none; }
+  .header-sub a:hover { color: var(--ink); }
+
+  main { max-width: 1080px; margin: 0 auto; padding: 32px 20px 96px; display: grid; grid-template-columns: 260px 1fr; gap: 28px; align-items: start; }
+  @media(max-width: 800px) { main { grid-template-columns: 1fr; padding: 20px 14px 96px; } }
+
+  /* ── Batch sidebar ── */
+  .batch-panel {
+    background: var(--white); border: 1px solid var(--rule); position: sticky; top: 78px;
+  }
+  .batch-head {
+    padding: 16px 18px; border-bottom: 1px solid var(--rule);
+    font-family: 'Inter', sans-serif; font-size: 9px; letter-spacing: .16em; font-weight: 500;
+    text-transform: uppercase; color: var(--light); display: flex; justify-content: space-between; align-items: center;
+  }
+  .batch-list { list-style: none; max-height: 340px; overflow-y: auto; }
+  .batch-item {
+    padding: 10px 18px; border-bottom: 1px solid var(--rulelg); cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px;
+  }
+  .batch-item:hover { background: var(--hover); }
+  .batch-item.active { background: var(--sand); font-weight: 500; }
+  .batch-item .bi-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .batch-item .bi-del { color: var(--light); font-size: 14px; line-height: 1; padding: 2px 4px; }
+  .batch-item .bi-del:hover { color: var(--red); }
+  .batch-empty { padding: 18px; font-size: 12.5px; color: var(--light); font-style: italic; }
+  .batch-actions { padding: 16px 18px; border-top: 1px solid var(--rule); display: flex; flex-direction: column; gap: 8px; }
+
+  /* ── Form ── */
+  .intake-form { background: var(--white); border: 1px solid var(--rule); padding: 32px; }
+  @media(max-width: 800px) { .intake-form { padding: 20px; } }
+  .form-head { margin-bottom: 24px; }
+  .form-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .form-head p { font-size: 12.5px; color: var(--mid); }
+
+  .f-section { margin-bottom: 32px; padding-bottom: 28px; border-bottom: 1px solid var(--rulelg); }
+  .f-section:last-of-type { border-bottom: none; }
+  .f-section-head {
+    font-family: 'Inter', sans-serif; font-size: 9px; letter-spacing: .18em; font-weight: 500;
+    text-transform: uppercase; color: var(--mid); margin-bottom: 16px;
+  }
+  .f-section-hint { font-size: 11.5px; color: var(--light); margin-top: -10px; margin-bottom: 16px; font-style: italic; }
+
+  .f-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media(max-width: 560px) { .f-row { grid-template-columns: 1fr; } }
+  .f-field { display: flex; flex-direction: column; gap: 6px; }
+  .f-field.full { grid-column: 1 / -1; }
+  .f-label {
+    font-family: 'Inter', sans-serif; font-size: 9.5px; letter-spacing: .1em; font-weight: 500;
+    text-transform: uppercase; color: var(--light);
+  }
+  .f-label .opt { text-transform: none; letter-spacing: 0; font-weight: 400; }
+  input[type=text], input[type=number], select, textarea {
+    font-family: 'Inter', sans-serif; font-size: 14px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 9px 11px;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--goldlt); }
+  textarea { resize: vertical; min-height: 72px; line-height: 1.55; }
+
+  /* ── Photos ── */
+  .photo-input-wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .photo-btn {
+    font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    background: var(--ink); color: var(--white); border: none; padding: 10px 18px; cursor: pointer;
+  }
+  .photo-btn:hover { background: var(--gold); }
+  .photo-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .photo-thumb { position: relative; width: 84px; height: 84px; border: 1px solid var(--rule); }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-thumb .pt-del {
+    position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--red); color: var(--white); border: none; cursor: pointer; font-size: 12px; line-height: 1;
+  }
+
+  /* ── Voice annotation ── */
+  .voice-panel { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .mic-btn {
+    width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--ink); background: var(--white);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: background .2s, border-color .2s;
+  }
+  .mic-btn svg { width: 20px; height: 20px; }
+  .mic-btn.recording { background: var(--red); border-color: var(--red); animation: pulse 1.4s infinite; }
+  .mic-btn.recording svg { fill: var(--white); stroke: var(--white); }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(168,50,50,.35);} 50%{box-shadow:0 0 0 10px rgba(168,50,50,0);} }
+  .voice-status { font-size: 12.5px; color: var(--mid); }
+  .voice-status .rec-time { font-variant-numeric: tabular-nums; color: var(--red); font-weight: 500; }
+  .voice-playback { display: flex; align-items: center; gap: 10px; }
+  .voice-playback audio { height: 32px; }
+  .voice-clear { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--light); background: none; border: none; cursor: pointer; text-decoration: underline; }
+  .voice-clear:hover { color: var(--red); }
+  .mic-unsupported { font-size: 12px; color: var(--light); font-style: italic; }
+
+  /* ── Actions ── */
+  .form-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+  .btn {
+    font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    padding: 12px 22px; cursor: pointer; border: 1px solid var(--ink); background: var(--white); color: var(--ink);
+    transition: background .18s, color .18s;
+  }
+  .btn:hover { background: var(--ink); color: var(--white); }
+  .btn.primary { background: var(--ink); color: var(--white); }
+  .btn.primary:hover { background: var(--gold); border-color: var(--gold); }
+  .btn.ghost { border-color: var(--rule); color: var(--mid); }
+  .btn.ghost:hover { background: var(--sand); color: var(--ink); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn:disabled:hover { background: var(--white); color: var(--ink); }
+
+  .save-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--white); padding: 12px 22px; font-size: 12.5px;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200;
+  }
+  .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--rule); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">Michele Oka Doner — Work Intake</div>
+  <div class="header-sub">
+    <a href="catalogue_admin_v1_sans.html">Dashboard</a> ·
+    <a href="catalogue_admin_manage_v1_sans.html">Manage Works</a> ·
+    <a href="catalogue_v10_sans.html">View Site</a> ·
+    <a href="#" onclick="logOut();return false;">Log Out</a>
+  </div>
+</header>
+
+<main>
+  <!-- Batch sidebar -->
+  <div class="batch-panel">
+    <div class="batch-head"><span>This session</span><span id="batchCount">0</span></div>
+    <ul class="batch-list" id="batchList">
+      <li class="batch-empty">No works added yet. Fill out the form and select "Save to Batch."</li>
+    </ul>
+    <div class="batch-actions">
+      <button class="btn primary" id="exportBtn" onclick="exportBatch()" disabled>Export All (.json)</button>
+      <button class="btn ghost" id="clearBatchBtn" onclick="clearBatch()" disabled>Clear Session</button>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="intake-form">
+    <div class="form-head">
+      <h1 id="formTitle">New Work Entry</h1>
+      <p>Fill in what you know — leave anything blank you're not sure of. Exhibition history and publications only appear on the work's page once they're filled in here.</p>
+    </div>
+
+    <!-- Basic info -->
+    <div class="f-section">
+      <div class="f-section-head">Basic Information</div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-title">Title</label>
+          <input type="text" id="f-title" placeholder="e.g. Frond Necklace">
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field">
+          <label class="f-label" for="f-date">Date <span class="opt">(year or "c. 19XX")</span></label>
+          <input type="text" id="f-date" placeholder="e.g. 1999 or c. 1975">
+        </div>
+        <div class="f-field">
+          <label class="f-label" for="f-medium">Material / Medium</label>
+          <input type="text" id="f-medium" placeholder="e.g. Sterling silver">
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field">
+          <label class="f-label" for="f-classification">Classification</label>
+          <select id="f-classification">
+            <option value="">Select…</option>
+            <option value="ceramic">Ceramic</option>
+            <option value="bronze">Bronze</option>
+            <option value="jewelry">Jewelry</option>
+            <option value="drawing">Works on Paper</option>
+            <option value="installation">Installation</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="f-field">
+          <label class="f-label" for="f-dimensions">Dimensions <span class="opt">(optional)</span></label>
+          <input type="text" id="f-dimensions" placeholder="e.g. 8 × 5 × 5 in.">
+        </div>
+      </div>
+    </div>
+
+    <!-- Description / provenance / remarks -->
+    <div class="f-section">
+      <div class="f-section-head">Description &amp; History</div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-description">Description <span class="opt">(optional)</span></label>
+          <textarea id="f-description" placeholder="What is this work, and what should someone know about it?"></textarea>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-provenance">Provenance <span class="opt">(optional)</span></label>
+          <textarea id="f-provenance" placeholder="Ownership history — one line each, e.g. &quot;1975 — the artist's collection&quot;"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exhibition history / publications -->
+    <div class="f-section">
+      <div class="f-section-head">Exhibition History &amp; Publications</div>
+      <div class="f-section-hint">Leave blank if this work hasn't been exhibited or published yet — the section simply won't appear on its page.</div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-exhibitions">Exhibition History <span class="opt">(one per line — year, venue, exhibition title)</span></label>
+          <textarea id="f-exhibitions" placeholder="1994 — Cranbrook Academy of Art Museum — A Lifetime of Accumulation"></textarea>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-literature">Publications / Literature <span class="opt">(one per line)</span></label>
+          <textarea id="f-literature" placeholder="Smith, Roberta. &quot;The Forces of Nature.&quot; The New York Times, 1994."></textarea>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-remarks">Remarks <span class="opt">(optional)</span></label>
+          <textarea id="f-remarks" placeholder="Anything else worth noting for the record."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Photos -->
+    <div class="f-section">
+      <div class="f-section-head">Photos</div>
+      <div class="photo-input-wrap">
+        <label class="photo-btn">
+          Add Photo(s)
+          <input type="file" id="f-photos" accept="image/*" capture="environment" multiple style="display:none">
+        </label>
+        <span class="mic-unsupported">On mobile, this opens your camera or photo library.</span>
+      </div>
+      <div class="photo-grid" id="photoGrid"></div>
+    </div>
+
+    <!-- Voice annotation -->
+    <div class="f-section">
+      <div class="f-section-head">Verbal Annotation</div>
+      <div class="f-section-hint">Record a note in your own words — it'll show as a small mic icon next to "Annotation" on the work's page.</div>
+      <div class="voice-panel" id="voicePanel">
+        <button class="mic-btn" id="micBtn" onclick="toggleRecording()" title="Record annotation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <rect x="9" y="2" width="6" height="12" rx="3"/>
+            <path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/>
+          </svg>
+        </button>
+        <div class="voice-status" id="voiceStatus">Tap to record</div>
+      </div>
+      <div id="voicePlaybackWrap" style="display:none;margin-top:12px;">
+        <div class="voice-playback">
+          <audio id="voiceAudio" controls></audio>
+          <button class="voice-clear" onclick="clearRecording()">Remove</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn primary" onclick="saveToBatch()">Save to Batch</button>
+      <button class="btn ghost" onclick="resetForm()">Clear Form</button>
+    </div>
+  </div>
+</main>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script>
+if(localStorage.getItem('modcr_admin_authed') !== 'true'){
+  window.location.href = 'catalogue_admin_login_v1_sans.html';
+}
+function logOut(){
+  localStorage.removeItem('modcr_admin_authed');
+  window.location.href = 'catalogue_admin_login_v1_sans.html';
+}
+
+// Same works data as the live catalogue — used to pre-fill the form when
+// arriving via "Edit" from Manage Works (?edit=<id>).
+const worksIndex = [
+  {id:1,  cr:"MOD CR 1",  title:"Tattooed Torso",      date:"1966",    year:1966, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/TattooedTorso1966-icon.png"},
+  {id:13, cr:"MOD CR 13", title:"Ceramic Seeds",        date:"c. 1971", year:1971, medium:"Glazed ceramic",                     tag:"ceramic",      series:"early-clay",           img:"../Entry Images/TwoCeramicSeeds-icon-1.png"},
+  {id:2,  cr:"MOD CR 2",  title:"Germinating Seeds",    date:"c. 1972", year:1972, medium:"Bronze",                             tag:"bronze",       series:"early-clay",           img:"../Entry Images/GerminatingSeeds-icon-223x200.png"},
+  {id:18, cr:"MOD CR 18", title:"Tattooed Relic",       date:"c. 1974", year:1974, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/Tatoed_Relic.jpg"},
+  {id:14, cr:"MOD CR 14", title:"Death Masks",          date:"c. 1975", year:1975, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/DeathMasks-Icon.png"},
+  {id:15, cr:"MOD CR 15", title:"Descending Torsos",    date:"1975",    year:1975, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/DescendingTorsos1975-icon.png"},
+  {id:16, cr:"MOD CR 16", title:"Wings II",             date:"1975",    year:1975, medium:"Raku ceramic",                       tag:"ceramic",      series:"early-clay",           img:"../Entry Images/WaveFigures-Icon.png"},
+  {id:20, cr:"MOD CR 20", title:"Seeds & Pods",         date:"c. 1975", year:1975, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/SeadPods-icon.png"},
+  {id:17, cr:"MOD CR 17", title:"Triads",               date:"c. 1976", year:1976, medium:"Raku ceramic",                       tag:"ceramic",      series:"early-clay",           img:"../Entry Images/Tortoises-icon.png"},
+  {id:21, cr:"MOD CR 21", title:"Tattooed Dolls",       date:"c. 1975", year:1975, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/Totems-icon.png"},
+  {id:19, cr:"MOD CR 19", title:"Figures with Staffs",  date:"c. 1978", year:1978, medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/Figures-Icon.png"},
+  {id:3,  cr:"MOD CR 3",  title:"Burning Branches",     date:"1975",    year:1975, medium:"Bronze",                             tag:"bronze",       series:"bronze-works",         img:"../Entry Images/BurningBranches-Icon.png"},
+  {id:4,  cr:"MOD CR 4",  title:"Soul Catchers",        date:"1977",    year:1977, medium:"Bronze",                             tag:"bronze",       series:"bronze-works",         img:"../Entry Images/SoulCatchers_Clay-Icon.png"},
+  {id:5,  cr:"MOD CR 5",  title:"Pictographs",          date:"c. 1979", year:1979, medium:"Ceramic",                                      tag:"ceramic",         series:"early-clay",                 img:"../Entry Images/Pictograph_icon.png"},
+  {id:7,  cr:"MOD CR 7",  title:"Celestial Plaza",      date:"1986",    year:1986, medium:"Bronze — permanent public install.", tag:"bronze",      series:"public-installations", img:"../Entry Images/AMNH_installation-icon.png"},
+  {id:9,  cr:"MOD CR 9",  title:"Radiant Disk",         date:"1988",    year:1988, medium:"Bronze with patina",                 tag:"bronze",       series:"bronze-works",         img:"../Entry Images/RadiantDiskIceRing.png"},
+  {id:6,  cr:"MOD CR 6",  title:"A Walk on the Beach",  date:"1995",    year:1995, medium:"Bronze — permanent public install.", tag:"bronze",      series:"public-installations", img:"", flag:"icon mismatch — sourced image did not depict this work, removed pending correct image"},
+  {id:10, cr:"MOD CR 10", title:"Blueprint of Eden",    date:"1999",    year:1999, medium:"Cyanotype, natural specimens",       tag:"paper",           series:"works-on-paper",       img:"../Entry Images/BluePrintOfEden-IconV3-1-213x223.png"},
+  {id:11, cr:"MOD CR 11", title:"Thorn Man",            date:"c. 2000", year:2000, medium:"Bronze with silver",                 tag:"bronze",       series:"bronze-works",         img:"../Entry Images/Thornmen3_studio-photos_Dirk-Bakker-R_iconV2-177x223.png"},
+  {id:8,  cr:"MOD CR 8",  title:"Into the Mysterium",   date:"2003",    year:2003, medium:"Mixed media installation",           tag:"installation", series:"public-installations", img:"../Entry Images/Mysterium-Icon.png"},
+  {id:12, cr:"MOD CR 12", title:"Talisman",             date:"2019",    year:2019, medium:"Bronze — permanent public install.", tag:"bronze",      series:"public-installations", img:"../Entry Images/Talisman_Icon-142x223.png"},
+  {id:22, cr:"MOD CR 22", title:"Frond Necklace",       date:"Date pending", year:0, medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/FrondNecklace.jpg"},
+  {id:23, cr:"MOD CR 23", title:"Totem Necklace",       date:"Date pending", year:0, medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/TotemNecklace.jpg"},
+  {id:24, cr:"MOD CR 24", title:"Amulet Necklace",      date:"Date pending", year:0, medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/AmuletNecklace-Icon.png"},
+  {id:25, cr:"MOD CR 25", title:"Palm Necklace",        date:"Date pending", year:0, medium:"Gold",          tag:"jewelry", series:"jewelry", img:"../Entry Images/PalmNecklaceGold.jpg"},
+  {id:26, cr:"MOD CR 26", title:"Seed Ring",            date:"Date pending", year:0, medium:"Gold",          tag:"jewelry", series:"jewelry", img:"../Entry Images/SeedRing.jpg"},
+  {id:27, cr:"MOD CR 27", title:"Ceremonial Silver",    date:"Date pending", year:0, medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/CeremonialSilver-Icon.png"},
+  {id:28, cr:"MOD CR 28", title:"Palm Vase",            date:"1999",         year:1999, medium:"Sterling silver", tag:"jewelry", series:"jewelry", img:"../Entry Images/PalmVase1999-Icon.png"},
+];
+
+let batch = [];
+let editingIndex = null;
+let editingExistingId = null; // set when editing a work already published on the site
+let currentPhotos = []; // {name, dataUrl}
+let currentAnnotation = null; // {dataUrl, mimeType}
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordStartTime = null;
+let recordTimerInterval = null;
+
+// ---- Persistence (localStorage keeps a work-in-progress session from being lost) ----
+function loadBatch(){
+  try{
+    const raw = localStorage.getItem('modcr_intake_batch');
+    if(raw) batch = JSON.parse(raw);
+  }catch(e){ batch = []; }
+  renderBatchList();
+}
+function persistBatch(){
+  try{ localStorage.setItem('modcr_intake_batch', JSON.stringify(batch)); }catch(e){
+    // localStorage quota exceeded (large photos/audio) — batch still works in-memory this session
+    console.warn('Could not persist batch to localStorage (likely quota):', e);
+  }
+}
+
+function renderBatchList(){
+  const list = document.getElementById('batchList');
+  document.getElementById('batchCount').textContent = batch.length;
+  document.getElementById('exportBtn').disabled = batch.length === 0;
+  document.getElementById('clearBatchBtn').disabled = batch.length === 0;
+  if(batch.length === 0){
+    list.innerHTML = '<li class="batch-empty">No works added yet. Fill out the form and select "Save to Batch."</li>';
+    return;
+  }
+  list.innerHTML = batch.map((w,i)=>`
+    <li class="batch-item ${i===editingIndex?'active':''}" onclick="editEntry(${i})">
+      <span class="bi-title">${w.title || '(untitled)'}</span>
+      <button class="bi-del" onclick="event.stopPropagation();deleteEntry(${i})" title="Remove">✕</button>
+    </li>`).join('');
+}
+
+function readFileAsDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---- Photos ----
+document.getElementById('f-photos').addEventListener('change', async (e)=>{
+  const files = Array.from(e.target.files || []);
+  for(const file of files){
+    const dataUrl = await readFileAsDataURL(file);
+    currentPhotos.push({name: file.name, dataUrl});
+  }
+  e.target.value = '';
+  renderPhotoGrid();
+});
+function renderPhotoGrid(){
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = currentPhotos.map((p,i)=>`
+    <div class="photo-thumb">
+      <img src="${p.dataUrl}" alt="${p.name}">
+      <button class="pt-del" onclick="removePhoto(${i})" title="Remove">✕</button>
+    </div>`).join('');
+}
+function removePhoto(i){ currentPhotos.splice(i,1); renderPhotoGrid(); }
+
+// ---- Voice annotation ----
+// Recording requires the page to be served over HTTPS (or localhost) — getUserMedia
+// is blocked by browsers on plain file:// pages and on http:// origins.
+const micSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+if(!micSupported){
+  document.getElementById('voiceStatus').innerHTML =
+    'Recording isn\'t available here — this page needs to be opened over a secure (https://) connection for microphone access to work.';
+  document.getElementById('micBtn').disabled = true;
+}
+
+async function toggleRecording(){
+  if(!micSupported) return;
+  if(mediaRecorder && mediaRecorder.state === 'recording'){
+    mediaRecorder.stop();
+    return;
+  }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    recordedChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+    mediaRecorder = mimeType ? new MediaRecorder(stream,{mimeType}) : new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => { if(e.data.size>0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = async ()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      clearInterval(recordTimerInterval);
+      const blob = new Blob(recordedChunks, {type: mediaRecorder.mimeType || 'audio/webm'});
+      const dataUrl = await new Promise(res=>{
+        const r = new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(blob);
+      });
+      currentAnnotation = {dataUrl, mimeType: mediaRecorder.mimeType || 'audio/webm'};
+      document.getElementById('micBtn').classList.remove('recording');
+      document.getElementById('voiceStatus').textContent = 'Tap to re-record';
+      document.getElementById('voiceAudio').src = dataUrl;
+      document.getElementById('voicePlaybackWrap').style.display = 'block';
+    };
+    mediaRecorder.start();
+    document.getElementById('micBtn').classList.add('recording');
+    document.getElementById('voicePlaybackWrap').style.display = 'none';
+    recordStartTime = Date.now();
+    recordTimerInterval = setInterval(()=>{
+      const secs = Math.floor((Date.now()-recordStartTime)/1000);
+      const m = String(Math.floor(secs/60)).padStart(2,'0');
+      const s = String(secs%60).padStart(2,'0');
+      document.getElementById('voiceStatus').innerHTML = `Recording… <span class="rec-time">${m}:${s}</span>`;
+    }, 250);
+  }catch(err){
+    document.getElementById('voiceStatus').textContent = 'Microphone access was blocked or unavailable: ' + err.message;
+  }
+}
+function clearRecording(){
+  currentAnnotation = null;
+  document.getElementById('voicePlaybackWrap').style.display = 'none';
+  document.getElementById('voiceStatus').textContent = 'Tap to record';
+}
+
+// ---- Form <-> entry object ----
+function collectForm(){
+  return {
+    title: document.getElementById('f-title').value.trim(),
+    date: document.getElementById('f-date').value.trim(),
+    medium: document.getElementById('f-medium').value.trim(),
+    classification: document.getElementById('f-classification').value,
+    dimensions: document.getElementById('f-dimensions').value.trim(),
+    description: document.getElementById('f-description').value.trim(),
+    provenance: document.getElementById('f-provenance').value.trim(),
+    exhibitions: document.getElementById('f-exhibitions').value.trim(),
+    literature: document.getElementById('f-literature').value.trim(),
+    remarks: document.getElementById('f-remarks').value.trim(),
+    photos: currentPhotos,
+    annotation: currentAnnotation,
+    editingId: editingExistingId,
+  };
+}
+function fillForm(entry){
+  document.getElementById('f-title').value = entry.title || '';
+  document.getElementById('f-date').value = entry.date || '';
+  document.getElementById('f-medium').value = entry.medium || '';
+  document.getElementById('f-classification').value = entry.classification || '';
+  document.getElementById('f-dimensions').value = entry.dimensions || '';
+  document.getElementById('f-description').value = entry.description || '';
+  document.getElementById('f-provenance').value = entry.provenance || '';
+  document.getElementById('f-exhibitions').value = entry.exhibitions || '';
+  document.getElementById('f-literature').value = entry.literature || '';
+  document.getElementById('f-remarks').value = entry.remarks || '';
+  currentPhotos = entry.photos ? [...entry.photos] : [];
+  currentAnnotation = entry.annotation || null;
+  editingExistingId = entry.editingId || null;
+  renderPhotoGrid();
+  if(currentAnnotation){
+    document.getElementById('voiceAudio').src = currentAnnotation.dataUrl;
+    document.getElementById('voicePlaybackWrap').style.display = 'block';
+    document.getElementById('voiceStatus').textContent = 'Tap to re-record';
+  }else{
+    document.getElementById('voicePlaybackWrap').style.display = 'none';
+    document.getElementById('voiceStatus').textContent = 'Tap to record';
+  }
+}
+function resetForm(){
+  document.querySelectorAll('#f-title,#f-date,#f-medium,#f-dimensions,#f-description,#f-provenance,#f-exhibitions,#f-literature,#f-remarks').forEach(el=>el.value='');
+  document.getElementById('f-classification').value = '';
+  currentPhotos = [];
+  currentAnnotation = null;
+  renderPhotoGrid();
+  document.getElementById('voicePlaybackWrap').style.display = 'none';
+  document.getElementById('voiceStatus').textContent = 'Tap to record';
+  editingIndex = null;
+  editingExistingId = null;
+  document.getElementById('formTitle').textContent = 'New Work Entry';
+  renderBatchList();
+}
+
+function saveToBatch(){
+  const entry = collectForm();
+  if(!entry.title){
+    showToast('Add a title before saving.');
+    return;
+  }
+  if(editingIndex !== null){
+    batch[editingIndex] = entry;
+  }else{
+    batch.push(entry);
+  }
+  persistBatch();
+  renderBatchList();
+  showToast(editingIndex !== null ? 'Entry updated in batch.' : 'Saved to batch.');
+  resetForm();
+}
+function editEntry(i){
+  editingIndex = i;
+  fillForm(batch[i]);
+  document.getElementById('formTitle').textContent = 'Editing: ' + (batch[i].title || '(untitled)');
+  renderBatchList();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function deleteEntry(i){
+  batch.splice(i,1);
+  if(editingIndex === i){ resetForm(); }
+  persistBatch();
+  renderBatchList();
+}
+function clearBatch(){
+  if(!confirm('Clear all ' + batch.length + ' saved work(s) from this session? This cannot be undone.')) return;
+  batch = [];
+  localStorage.removeItem('modcr_intake_batch');
+  resetForm();
+}
+
+function loadJSON(key){ try{ return JSON.parse(localStorage.getItem(key) || '[]'); }catch(e){ return []; } }
+
+function exportBatch(){
+  const deletions = loadJSON('modcr_pending_deletions');
+  const bundle = {
+    exportedAt: new Date().toISOString(),
+    source: 'catalogue_intake_v1_sans.html',
+    entries: batch,
+    deletions: deletions,
+  };
+  const blob = new Blob([JSON.stringify(bundle, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `modcr-intake-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Exported ' + batch.length + ' work(s)' + (deletions.length?` and ${deletions.length} deletion(s)`:'') + '. Send this file back to have it applied to the site.');
+}
+
+function loadFromQueryString(){
+  const params = new URLSearchParams(location.search);
+  const editId = parseInt(params.get('edit'), 10);
+  if(!editId) return;
+  const existingIdx = batch.findIndex(w => w.editingId === editId);
+  if(existingIdx !== -1){
+    editingIndex = existingIdx;
+    fillForm(batch[existingIdx]);
+    document.getElementById('formTitle').textContent = 'Editing: ' + (batch[existingIdx].title || '(untitled)');
+    return;
+  }
+  const work = worksIndex.find(w => w.id === editId);
+  if(!work){ showToast('Could not find MOD CR ' + editId + '.'); return; }
+  fillForm({
+    title: work.title, date: work.date, medium: work.medium,
+    classification: work.tag, dimensions: '', description: '', provenance: '',
+    exhibitions: '', literature: '', remarks: '', photos: [], annotation: null,
+    editingId: work.id,
+  });
+  document.getElementById('formTitle').textContent = `Editing: ${work.title} (${work.cr})`;
+}
+
+function showToast(msg){
+  const t = document.getElementById('saveToast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+loadBatch();
+loadFromQueryString();
+</script>
+</body>
+</html>
