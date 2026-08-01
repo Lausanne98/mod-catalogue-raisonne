@@ -301,18 +301,7 @@ footer{background:var(--sand2);color:var(--mid);padding:44px 40px 28px;border-to
       </div>
     </div>
     <div class="filter-row-2">
-      <select class="fsel" id="seriesSelect" onchange="selectSeries(this.value)">
-        <option value="">Series</option>
-        <option value="early-clay">Early Clay</option>
-        <option value="jewelry">Jewelry</option>
-        <option value="works-on-paper">Works on Paper</option>
-        <option value="public-installations">Public Works</option>
-        <option value="commissions">Commissions</option>
-        <option value="bronze-works">Sculpture</option>
-        <option value="fables">Fables</option>
-        <option value="editions">Editions</option>
-        <option value="publications">Publications</option>
-      </select>
+      <select class="fsel" id="seriesSelect" onchange="selectSeries(this.value)"></select>
       <select class="fsel" onchange="filterByTag(this.value)">
         <option value="">Medium</option>
         <option value="paper">Paper</option>
@@ -551,11 +540,39 @@ const works = [
   {id:28, cr:"MOD CR 28", title:"Palm Vase",            date:"1999",         year:1999, medium:"Sterling silver", tag:"jewelry", series:"jewelry", img:"../Entry Images/PalmVase1999-Icon.png"},
 ];
 
-let filtered=[...works],currentMode='grid',activeTag='',activeDecade='',activeSeries='';
+// Data entry is rolling out in phases over the next ~2 years, starting with
+// Early Clay. Only series listed here are publicly browsable; the rest show
+// in the Series filter as disabled "Coming Soon" until their phase arrives.
+// To advance a phase: add its slug to PUBLISHED_SERIES — the dropdown and
+// filtering update automatically, no other edits needed. See CLAUDE.md.
+const PUBLISHED_SERIES = ['early-clay'];
+const SERIES_OPTIONS = [
+  {value:'early-clay',           label:'Early Clay'},
+  {value:'jewelry',              label:'Jewelry'},
+  {value:'works-on-paper',       label:'Works on Paper'},
+  {value:'public-installations', label:'Public Works'},
+  {value:'commissions',          label:'Commissions'},
+  {value:'bronze-works',         label:'Sculpture'},
+  {value:'fables',               label:'Fables'},
+  {value:'editions',             label:'Editions'},
+  {value:'publications',         label:'Publications'},
+];
+function isPublished(w){
+  return PUBLISHED_SERIES.includes(w.series) || (PUBLISHED_SERIES.includes('early-clay') && w.tag==='ceramic' && w.year<2000);
+}
+function renderSeriesOptions(){
+  const sel = document.getElementById('seriesSelect');
+  sel.innerHTML = `<option value="">Series</option>` + SERIES_OPTIONS.map(s=>{
+    const live = PUBLISHED_SERIES.includes(s.value);
+    return `<option value="${s.value}" ${live?'':'disabled'}>${s.label}${live?'':' (Coming Soon)'}</option>`;
+  }).join('');
+}
+let filtered=works.filter(isPublished),currentMode='grid',activeTag='',activeDecade='',activeSeries='';
 let carSlides=[],carIdx=0,carTimer=null;
 
 document.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('totalCount').textContent=works.length+'+';
+  renderSeriesOptions();
+  document.getElementById('totalCount').textContent=works.filter(isPublished).length+'+';
   renderGrid(filtered);updateCount(filtered.length);
 });
 
@@ -649,6 +666,7 @@ function filterWorks(){
   const yf=parseInt(document.getElementById('advYearFrom')?.value)||0;
   const yt=parseInt(document.getElementById('advYearTo')?.value)||9999;
   filtered=works.filter(w=>{
+    if(!isPublished(w))return false;
     if(q&&!(w.title.toLowerCase().includes(q)||w.medium.toLowerCase().includes(q)||w.date.includes(q)||w.cr.toLowerCase().includes(q)))return false;
     if(qn&&!w.cr.toLowerCase().includes(qn))return false;
     if(activeTag&&w.tag!==activeTag)return false;

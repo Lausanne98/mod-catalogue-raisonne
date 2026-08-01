@@ -789,12 +789,19 @@ const seriesLabels = {
 };
 const FULL_ENTRY_ID = 2; // MODCR 2 is the only work with a fully written entry so far
 
+// Data entry rolls out in phases (see CLAUDE.md) — only these series are
+// publicly viewable so far. Keep in sync with catalogue_v10_sans.html.
+const PUBLISHED_SERIES = ['early-clay'];
+function isPublished(w){
+  return PUBLISHED_SERIES.includes(w.series) || (PUBLISHED_SERIES.includes('early-clay') && w.tag==='ceramic' && w.year<2000);
+}
+
 const params = new URLSearchParams(location.search);
 const requestedId = parseInt(params.get('id'), 10) || FULL_ENTRY_ID;
 const work = worksIndex.find(w => w.id === requestedId);
 
 function prevNextHTML(id){
-  const sorted = [...worksIndex].sort((a,b)=>a.id-b.id);
+  const sorted = worksIndex.filter(isPublished).sort((a,b)=>a.id-b.id);
   const idx = sorted.findIndex(w=>w.id===id);
   const prev = sorted[idx-1], next = sorted[idx+1];
   return `
@@ -807,6 +814,13 @@ if (!work) {
   document.querySelector('.entry-body').innerHTML = `
     <div class="breadcrumb"><a href="catalogue_v10_sans.html">Browse the Works</a><span>/</span><span>Not found</span></div>
     <h1 class="work-title" style="font-size:22px;font-style:normal;">This work isn't in the catalogue yet.</h1>
+    <p style="margin-top:16px;"><a href="catalogue_v10_sans.html">← Back to Browse the Works</a></p>`;
+} else if (!isPublished(work)) {
+  document.title = `Coming Soon — Michele Oka Doner: A Catalogue Raisonné`;
+  document.querySelector('.entry-body').innerHTML = `
+    <div class="breadcrumb"><a href="catalogue_v10_sans.html">Browse the Works</a><span>/</span><span>Coming Soon</span></div>
+    <h1 class="work-title" style="font-size:22px;font-style:normal;">This section of the catalogue isn't public yet.</h1>
+    <p style="margin-top:16px;color:var(--mid);">"${work.title}" (${work.cr}) belongs to the ${seriesLabels[work.series]||work.series} series, which is being added in a later phase.</p>
     <p style="margin-top:16px;"><a href="catalogue_v10_sans.html">← Back to Browse the Works</a></p>`;
 } else if (work.id !== FULL_ENTRY_ID) {
   // Minimal entry: only the verified catalogue fields exist for this work.
@@ -855,9 +869,12 @@ if (!work) {
   document.querySelector('.prev-next').outerHTML = `<div class="prev-next">${prevNextHTML(work.id)}</div>`;
 }
 
-// Set access date
-document.getElementById('accessDate').textContent =
-  new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+// Set access date (element may not exist — the "not found" and "coming soon"
+// states replace .entry-body entirely without a citation block)
+const accessDateEl = document.getElementById('accessDate');
+if(accessDateEl){
+  accessDateEl.textContent = new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+}
 
 // Thumbnail switcher
 function setMain(thumb, url) {
