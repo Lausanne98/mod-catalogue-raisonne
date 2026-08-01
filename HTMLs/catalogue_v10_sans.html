@@ -171,9 +171,85 @@ footer{background:var(--sand2);color:var(--mid);padding:44px 40px 28px;border-to
 @media(max-width:900px){nav,.tb-quick{display:none;}
 .footer-grid{grid-template-columns:1fr 1fr;}
 .ctx-3col{grid-template-columns:1fr;}}
+
+/* ═══ TERMS GATE ═══ */
+.terms-overlay{position:fixed;inset:0;z-index:1000;background:rgba(17,17,17,.55);display:flex;align-items:center;justify-content:center;padding:24px;}
+.terms-overlay.hidden{display:none;}
+.terms-modal{background:var(--white);max-width:640px;width:100%;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.terms-head{padding:24px 28px 16px;border-bottom:1px solid var(--rule);}
+.terms-head h2{font-family:'Inter',sans-serif;font-weight:300;font-size:19px;letter-spacing:-.01em;color:var(--ink);}
+.terms-draft-flag{margin-top:8px;font-size:10.5px;letter-spacing:.04em;color:#a05a2c;background:#fdf3e9;border:1px solid #eccca3;padding:6px 10px;font-weight:500;}
+.terms-body{padding:20px 28px;overflow-y:auto;font-size:12.5px;line-height:1.75;color:var(--mid);flex:1;}
+.terms-body h3{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.06em;font-weight:500;text-transform:uppercase;color:var(--ink);margin:18px 0 6px;}
+.terms-body h3:first-child{margin-top:0;}
+.terms-body p{margin-bottom:10px;}
+.terms-body .allcaps{font-size:11.5px;}
+.terms-foot{padding:16px 28px 22px;border-top:1px solid var(--rule);display:flex;justify-content:flex-end;}
+.terms-btn{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:12px 24px;background:var(--ink);color:var(--white);border:none;cursor:pointer;transition:background .18s;}
+.terms-btn:hover{background:var(--gold);}
+.terms-btn.ready{background:var(--gold);}
 </style>
 </head>
 <body>
+
+<!-- ═══ TERMS GATE ═══
+     DRAFT placeholder text modeled structurally on the terms/conditions gate
+     pattern used by other catalogue raisonné sites. NOT reviewed or approved
+     legal language — replace before this is treated as a real legal gate.
+     Bracketed [PLACEHOLDER] items need counsel's input, not an invented value. -->
+<div class="terms-overlay" id="termsOverlay">
+  <div class="terms-modal">
+    <div class="terms-head">
+      <h2>Catalogue Terms &amp; Conditions</h2>
+      <div class="terms-draft-flag">DRAFT — placeholder text, not reviewed by counsel. Do not treat as final.</div>
+    </div>
+    <div class="terms-body" id="termsBody">
+      <p>These Terms and Conditions ("Terms") govern your use of the digital publication "Michele Oka Doner: A Catalogue Raisonné" (the "Catalogue Raisonné"), available through this site (the "Site"), published by the Michele Oka Doner Studio ("Studio," "we," "us," or "our").</p>
+      <p>By accessing or using the Site, you agree to be bound by these Terms. If you do not agree, you may not access the Site or any Content described below.</p>
+
+      <h3>Reliance on Information Posted</h3>
+      <p>Content on the Site is provided for general informational purposes only. We make no representation or warranty as to the accuracy, completeness, or usefulness of any Content. Any reliance you place on such Content is at your own risk, and we disclaim all liability arising from that reliance.</p>
+      <p>The Catalogue Raisonné is a work in progress and is subject to revision as new research, provenance, and exhibition history emerge.</p>
+
+      <h3>Inclusions in the Catalogue Raisonné (or Lack Thereof)</h3>
+      <p class="allcaps">Neither the Studio nor the artist authenticates artworks, and inclusion of a work in the Catalogue Raisonné is not a warranty or guarantee of that work's authenticity or provenance. Likewise, a work's absence from the Catalogue Raisonné does not mean it is not by Michele Oka Doner.</p>
+
+      <h3>Copyright &amp; Trademark</h3>
+      <p>All Content on the Site — including images of artworks, text, photographs, and the selection and arrangement of materials — is protected by copyright and owned by the Studio, the artist, or their respective licensors, except where otherwise noted.</p>
+
+      <h3>Permitted Uses</h3>
+      <p>Subject to these Terms, you may access and view the Site for personal, non-commercial, educational, and research purposes only. Any other use requires prior written permission — contact [PLACEHOLDER: permissions contact email].</p>
+
+      <h3>Prohibited Uses</h3>
+      <p>You may not: download or reproduce images of artworks beyond ordinary browser caching; remove or alter copyright or attribution notices; modify, translate, or create derivative works from the Site; use automated tools (scrapers, bots, crawlers) to extract Content; or use any Content to train artificial intelligence models or systems. You may not attempt to gain unauthorized access to the Site or interfere with its operation.</p>
+
+      <h3>Third-Party Content and Links</h3>
+      <p>The Site may link to third-party websites we do not control and are not responsible for. Inclusion of a link is not an endorsement.</p>
+
+      <h3>Disclaimers</h3>
+      <p class="allcaps">The Site and its Content are provided "as is" and "as available," without warranties of any kind, express or implied, including merchantability or fitness for a particular purpose.</p>
+
+      <h3>Limitation of Liability</h3>
+      <p class="allcaps">To the maximum extent permitted by law, the Studio and its affiliates are not liable for any indirect, incidental, consequential, or punitive damages arising from your use of the Site. [PLACEHOLDER: aggregate liability cap, if any, to be set with counsel.]</p>
+
+      <h3>Reporting Infringing Material</h3>
+      <p>If you believe Content on this Site infringes a copyright you hold, contact [PLACEHOLDER: designated agent name and contact] with the information required to identify the work and the claimed infringement.</p>
+
+      <h3>Changes to These Terms</h3>
+      <p>We may update these Terms from time to time by posting a revised version here. Continued use of the Site after an update constitutes acceptance of the revised Terms.</p>
+
+      <h3>Governing Law</h3>
+      <p>These Terms are governed by the laws of [PLACEHOLDER: governing state/jurisdiction], without regard to conflict-of-law principles.</p>
+
+      <h3>Contact</h3>
+      <p>Questions about these Terms may be directed to <a href="mailto:info@micheleokadoner.com" style="color:var(--gold);">info@micheleokadoner.com</a>.</p>
+    </div>
+    <div class="terms-foot">
+      <button class="terms-btn" id="termsBtn" onclick="handleTermsBtn()">Scroll to Bottom</button>
+    </div>
+  </div>
+</div>
+
 
 <header>
   <div class="sig-wrap" onclick="window.open('https://micheleokadoner.com','_blank')">
@@ -627,6 +703,30 @@ function toggleAdv(){
   i.textContent=p.classList.toggle('open')?'−':'+';
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('searchBar').classList.remove('open');});
+
+// ── Terms gate ──
+(function(){
+  const TERMS_KEY='modcr_terms_accepted';
+  const overlay=document.getElementById('termsOverlay');
+  const body=document.getElementById('termsBody');
+  const btn=document.getElementById('termsBtn');
+  if(!overlay) return;
+  if(localStorage.getItem(TERMS_KEY)==='true'){ overlay.classList.add('hidden'); return; }
+  function atBottom(){ return body.scrollHeight-body.scrollTop-body.clientHeight < 12; }
+  function updateBtn(){
+    if(atBottom()){ btn.textContent='Accept Terms & Conditions'; btn.classList.add('ready'); }
+  }
+  body.addEventListener('scroll', updateBtn);
+  window.handleTermsBtn=function(){
+    if(btn.classList.contains('ready')){
+      localStorage.setItem(TERMS_KEY,'true');
+      overlay.classList.add('hidden');
+    }else{
+      body.scrollTo({top:body.scrollHeight,behavior:'smooth'});
+    }
+  };
+  updateBtn(); // in case content is short enough to already be "at bottom"
+})();
 </script>
 </body>
 </html>
