@@ -78,6 +78,15 @@ async function modcrSetPrimaryPhoto(dbId, photoId){
   const { error } = await modcrSupabase.from('work_photos').update({ is_primary: true }).eq('id', photoId);
   if(error) throw error;
 }
+async function modcrUpdatePhotoCaption(photoId, caption){
+  const { error } = await modcrSupabase.from('work_photos').update({ caption: caption || null }).eq('id', photoId);
+  if(error) throw error;
+}
+async function modcrReorderPhotos(orderedPhotoIds){
+  await Promise.all(orderedPhotoIds.map((id, i) =>
+    modcrSupabase.from('work_photos').update({ sort_order: i }).eq('id', id)
+  ));
+}
 async function modcrDeleteAnnotation(annotationId, storagePath){
   await modcrSupabase.storage.from('work-audio').remove([storagePath]);
   const { error } = await modcrSupabase.from('work_annotations').delete().eq('id', annotationId);
