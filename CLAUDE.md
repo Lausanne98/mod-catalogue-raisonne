@@ -30,6 +30,16 @@ should be implemented as live filter logic (a ceramic work dated pre-2000 shows 
 under the Early Clay filter even if its `series` field is something else), not a
 one-time manual fix, so it keeps applying as new works are added.
 
+**Early Clay is ceramic-only.** A work's own `series` field must never be
+`early-clay` unless its medium/tag is `ceramic` — bronze, silver, gold, etc. are
+never clay, regardless of date, subject matter, or stylistic kinship with the
+early ceramic pieces. The *only* way a non-directly-assigned work should ever
+appear under the Early Clay filter is the cross-categorization rule above (ceramic
++ pre-2000) — never by setting `series = early-clay` on a work whose medium isn't
+ceramic. (MOD CR 2, "Germinating Seeds," is bronze but was seeded with
+`series = early-clay` in the original migration — that's a data error to fix, not
+a precedent to follow.)
+
 ## Known open item
 MOD CR 8 ("Into the Mysterium," mixed media installation) doesn't have a clean single
 Medium value in the taxonomy above — flagged for a real decision rather than guessed.
