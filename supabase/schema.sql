@@ -234,3 +234,28 @@ insert into works (cr_number, title, date_display, year, medium, tag, series, le
   (27, 'Ceremonial Silver', 'Date pending', null, 'Silver', 'silver', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/CeremonialSilver-Icon.png', null),
   (28, 'Palm Vase', '1999', 1999, 'Sterling silver', 'silver', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/PalmVase1999-Icon.png', null)
 on conflict (cr_number) do nothing;
+
+-- ═══ MIGRATE ADDITIONAL CERAMIC WORKS FROM LEGACY SITE ═══
+-- Pulled from micheleokadoner.com/clay/, cross-checked against the 28 works above to
+-- exclude duplicates, and against exhibition/documentation entries per CLAUDE.md's
+-- legacy-media rules. Each candidate's image was independently viewed to verify it
+-- plausibly depicts the claimed ceramic work before inclusion (one exhibition entry
+-- and one bronze-mislabeled entry, "Bouverie Audubon," were excluded on this basis).
+-- Several entries carry a flag for further curatorial review (bundled group works,
+-- name similarity to an existing entry, or no verifiable image/medium confirmation).
+insert into works (cr_number, title, date_display, year, medium, tag, series, legacy_image_url, flag) values
+  (29, 'Wave Torsos', 'c. 1969', 1969, 'Clay', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2022/03/WaveTorsos.jpg', null),
+  (30, 'Caio', '2008', 2008, 'Iron-glazed porcelain', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/09/Caio-Consumed-by-Fire-2ViewsMOD.jpg', null),
+  (31, 'Disarming Images', '1985', 1985, 'Clay', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/09/DisarmingImages-Icon.png', null),
+  (32, 'Labyrinth', '1977', 1977, 'Handmade basalt clay', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/06/Labyrinth1977-icon_lighter-copy_no-bg_REFINED_COLOR-155x146.jpg', null),
+  (33, 'Telchine, Gaia, Rhea & Ur', 'c. 2009–2010', 2010, 'Earthenware (Nymphenburg Porcelain Manufactory)', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/02/Telchine.jpg', 'Legacy page bundles four named pieces (Telchine, Gaia, Rhea, Ur) under one photo/entry — may need splitting into separate catalogue works.'),
+  (34, 'Tribe', 'c. 1982', 1982, 'Clay', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/01/TribeDB.jpg', null),
+  (35, 'Scapula', '1977', 1977, 'Raku', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2017/12/Scalpula_PorcelainSculptureMODoner-f-2.jpg', null),
+  (36, 'Radiant Site', '1990', 1990, 'Gold-luster Pewabic ceramic tile (MTA installation)', 'ceramic', 'early-clay', null, 'Image URL from legacy site was truncated/unconfirmed during research — needs sourcing before display.'),
+  (37, 'Tattooed Torsos', '1968', 1968, 'Clay ("Six Totems")', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/01/Tatooed-Toros-68.jpg', 'Name closely echoes MOD CR 1 "Tattooed Torso" (1966) — appears distinct per date/description (a group of six totems vs. a single 1966 piece) but flagged for curatorial confirmation it isn''t a duplicate.'),
+  (38, 'Burial Pieces', 'c. 1974–1975', 1975, 'Raku, high-fired porcelain, smoked stoneware (group work)', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2017/12/Burial-Pieces-Master-2.jpg', 'Group photo names ~8 sub-pieces; some (Triad, Descending Torso, Wings II) overlap existing MOD CR 15/16/17 — needs curatorial review on whether to split into individual works.'),
+  (39, 'Fe', '2010', 2010, null, 'ceramic', 'early-clay', null, 'No image or explicit medium confirmation found on the legacy site — classified ceramic per curatorial direction; needs source verification.'),
+  (40, 'Early Torsos', 'c. 1967', 1967, null, 'ceramic', 'early-clay', null, 'Bundles several named sub-works (Wave Figures, Coiled Figure, Early Figures, Open Mouth); no image found; likely overlaps with Wave Torsos/Tribe — needs curatorial review.'),
+  (41, 'One Fluid Stroke', '2014', 2014, 'Ceramic ("Fifty Plates" — 50 unique numbered plates)', 'ceramic', 'early-clay', null, 'No photo found on the legacy site to verify — medium confirmed as ceramic via page text only.'),
+  (42, 'Fossil & Volcanic Bowl', '1964', 1964, 'Clay (two bowls: "Fossil Bowl" and "Volcanic Bowl")', 'ceramic', 'early-clay', null, 'No image found; may represent two separate bowls bundled as one legacy entry — needs curatorial review.')
+on conflict (cr_number) do nothing;
