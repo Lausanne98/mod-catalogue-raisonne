@@ -33,3 +33,21 @@ one-time manual fix, so it keeps applying as new works are added.
 ## Known open item
 MOD CR 8 ("Into the Mysterium," mixed media installation) doesn't have a clean single
 Medium value in the taxonomy above — flagged for a real decision rather than guessed.
+
+## Pulling media from the legacy site (micheleokadoner.com)
+The legacy WordPress media library is not a reliable 1:1 source of "icon = this work's
+photo, title = this work's name." Two failure modes found so far, both from MOD CR 6:
+
+1. **Exhibition icons aren't works.** If a legacy entry is tagged "exhibition," it is
+   documentation of a show, not a standalone catalogued work — skip it when pulling
+   new works. (Future idea, not built: have Claude scan the works listed in a given
+   exhibition and try to pair them with existing work entries under an "Exhibitions"
+   field on those entries — a real feature, but a separate task from intake.)
+2. **Icon/title mismatches happen.** An image can be sourced correctly from the media
+   library but simply not depict the work its title claims (pulled from a different,
+   unrelated body of work). Before attaching a legacy-site image to a work record,
+   verify the image actually depicts that work — don't assume filename/title proximity
+   means they match. If a work's `img` can't be verified, leave it unset (renders as a
+   text placeholder, per existing fallback behavior) rather than showing a wrong photo.
+   A work with a suspected mismatch should carry a `flag` field describing the issue so
+   it surfaces in the admin Manage Works view instead of silently shipping bad data.
