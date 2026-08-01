@@ -207,7 +207,7 @@ create policy "work_audio_admin_delete" on storage.objects for delete
 insert into works (cr_number, title, date_display, year, medium, tag, series, legacy_image_url, flag) values
   (1, 'Tattooed Torso', '1966', 1966, 'Ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/TattooedTorso1966-icon.png', null),
   (13, 'Ceramic Seeds', 'c. 1971', 1971, 'Glazed ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/TwoCeramicSeeds-icon-1.png', null),
-  (2, 'Germinating Seeds', 'c. 1972', 1972, 'Bronze', 'bronze', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/GerminatingSeeds-icon-223x200.png', null),
+  (2, 'Germinating Seeds', 'c. 1972', 1972, 'Bronze', 'bronze', 'bronze-works', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/GerminatingSeeds-icon-223x200.png', null),
   (18, 'Tattooed Relic', 'c. 1974', 1974, 'Ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Tatoed_Relic.jpg', null),
   (14, 'Death Masks', 'c. 1975', 1975, 'Ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/DeathMasks-Icon.png', null),
   (15, 'Descending Torsos', '1975', 1975, 'Ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/DescendingTorsos1975-icon.png', null),
