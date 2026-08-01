@@ -77,9 +77,13 @@ create table if not exists work_photos (
   storage_path  text not null,                   -- path within the work-photos bucket
   is_primary    boolean not null default false,
   caption       text,
+  sort_order    integer not null default 0,      -- user-controlled display order (drag to reorder)
   created_at    timestamptz not null default now()
 );
 create index if not exists work_photos_work_id_idx on work_photos(work_id);
+
+-- Self-healing: add sort_order to a work_photos table created before this column existed.
+alter table work_photos add column if not exists sort_order integer not null default 0;
 
 -- ═══ VOICE ANNOTATIONS ═══
 create table if not exists work_annotations (

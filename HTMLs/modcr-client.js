@@ -40,9 +40,13 @@ function modcrAdaptWork(row){
 }
 
 async function modcrFetchWorks(){
+  // Chronological by default — cr_number is a provisional/administrative id, not
+  // necessarily creation order (see CLAUDE.md "Provisional CR numbering"). Undated
+  // works (year is null) sort last.
   const { data, error } = await modcrSupabase
     .from('works')
     .select('*, work_photos(storage_path,is_primary)')
+    .order('year', { ascending: true, nullsFirst: false })
     .order('cr_number');
   if(error) throw error;
   return data.map(modcrAdaptWork);
@@ -51,8 +55,9 @@ async function modcrFetchWorks(){
 async function modcrFetchWorkByCrNumber(crNumber){
   const { data, error } = await modcrSupabase
     .from('works')
-    .select('*, work_photos(id,storage_path,is_primary), work_annotations(id,storage_path,duration_seconds)')
+    .select('*, work_photos(id,storage_path,is_primary,caption,sort_order), work_annotations(id,storage_path,duration_seconds)')
     .eq('cr_number', crNumber)
+    .order('sort_order', { referencedTable: 'work_photos' })
     .maybeSingle();
   if(error) throw error;
   if(!data) return null;
