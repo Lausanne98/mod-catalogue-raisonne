@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work Intake — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0ede8;
+    --sand2:  #e8e4de;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #e2dfda;
+    --rulelg: #eeecea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f5f2;
+    --red:    #a83232;
+    --green:  #3f6b3f;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--sand);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif; font-weight: 400;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title {
+    font-family: 'Inter', sans-serif; font-weight: 400; letter-spacing: 0.14em;
+    text-transform: uppercase; font-size: 12px; color: var(--ink);
+  }
+  .header-sub {
+    font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light);
+    margin-left: auto;
+  }
+  .header-sub a, .header-sub button {
+    color: var(--light); text-decoration: none; font-family: 'Inter', sans-serif; font-size: 10px;
+    letter-spacing: .08em; text-transform: uppercase; background: none; border: none; cursor: pointer;
+  }
+  .header-sub a:hover, .header-sub button:hover { color: var(--ink); }
+
+  main { max-width: 780px; margin: 0 auto; padding: 32px 20px 96px; }
+
+  .intake-form { background: var(--white); border: 1px solid var(--rule); padding: 32px; }
+  @media(max-width: 800px) { .intake-form { padding: 20px; } }
+  .form-head { margin-bottom: 24px; }
+  .form-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .form-head p { font-size: 12.5px; color: var(--mid); }
+  .save-state { font-size: 11.5px; margin-top: 8px; }
+  .save-state.saved { color: var(--green); }
+  .save-state.unsaved { color: var(--light); font-style: italic; }
+
+  .f-section { margin-bottom: 32px; padding-bottom: 28px; border-bottom: 1px solid var(--rulelg); }
+  .f-section:last-of-type { border-bottom: none; }
+  .f-section-head {
+    font-family: 'Inter', sans-serif; font-size: 9px; letter-spacing: .18em; font-weight: 500;
+    text-transform: uppercase; color: var(--mid); margin-bottom: 16px;
+  }
+  .f-section-hint { font-size: 11.5px; color: var(--light); margin-top: -10px; margin-bottom: 16px; font-style: italic; }
+
+  .f-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media(max-width: 560px) { .f-row { grid-template-columns: 1fr; } }
+  .f-field { display: flex; flex-direction: column; gap: 6px; }
+  .f-field.full { grid-column: 1 / -1; }
+  .f-label {
+    font-family: 'Inter', sans-serif; font-size: 9.5px; letter-spacing: .1em; font-weight: 500;
+    text-transform: uppercase; color: var(--light);
+  }
+  .f-label .opt { text-transform: none; letter-spacing: 0; font-weight: 400; }
+  input[type=text], input[type=number], select, textarea {
+    font-family: 'Inter', sans-serif; font-size: 14px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 9px 11px;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--goldlt); }
+  textarea { resize: vertical; min-height: 72px; line-height: 1.55; }
+
+  /* ── Photos ── */
+  .photo-input-wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .photo-btn {
+    font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    background: var(--ink); color: var(--white); border: none; padding: 10px 18px; cursor: pointer;
+  }
+  .photo-btn:hover { background: var(--gold); }
+  .photo-btn.disabled { background: var(--light); pointer-events: none; }
+  .photo-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .photo-thumb { position: relative; width: 84px; height: 84px; border: 1px solid var(--rule); }
+  .photo-thumb.primary { border: 2px solid var(--gold); }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-thumb .pt-del {
+    position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--red); color: var(--white); border: none; cursor: pointer; font-size: 12px; line-height: 1;
+  }
+  .photo-thumb .pt-primary {
+    position: absolute; bottom: 0; left: 0; right: 0; font-size: 8.5px; letter-spacing: .06em; text-transform: uppercase;
+    background: rgba(0,0,0,.6); color: var(--white); border: none; padding: 3px; cursor: pointer;
+  }
+
+  /* ── Voice annotation ── */
+  .voice-panel { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .mic-btn {
+    width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--ink); background: var(--white);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: background .2s, border-color .2s;
+  }
+  .mic-btn svg { width: 20px; height: 20px; }
+  .mic-btn.recording { background: var(--red); border-color: var(--red); animation: pulse 1.4s infinite; }
+  .mic-btn.recording svg { fill: var(--white); stroke: var(--white); }
+  .mic-btn:disabled { opacity: .4; cursor: not-allowed; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(168,50,50,.35);} 50%{box-shadow:0 0 0 10px rgba(168,50,50,0);} }
+  .voice-status { font-size: 12.5px; color: var(--mid); }
+  .voice-status .rec-time { font-variant-numeric: tabular-nums; color: var(--red); font-weight: 500; }
+  .annotation-list { list-style: none; margin-top: 10px; }
+  .annotation-list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--rulelg); }
+  .annotation-list audio { height: 32px; flex: 1; }
+  .voice-clear { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--light); background: none; border: none; cursor: pointer; text-decoration: underline; }
+  .voice-clear:hover { color: var(--red); }
+  .mic-unsupported { font-size: 12px; color: var(--light); font-style: italic; }
+
+  /* ── Actions ── */
+  .form-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+  .btn {
+    font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    padding: 12px 22px; cursor: pointer; border: 1px solid var(--ink); background: var(--white); color: var(--ink);
+    transition: background .18s, color .18s;
+  }
+  .btn:hover { background: var(--ink); color: var(--white); }
+  .btn.primary { background: var(--ink); color: var(--white); }
+  .btn.primary:hover { background: var(--gold); border-color: var(--gold); }
+  .btn.danger { border-color: var(--red); color: var(--red); }
+  .btn.danger:hover { background: var(--red); color: var(--white); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn:disabled:hover { background: var(--white); color: var(--ink); }
+
+  .save-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--white); padding: 12px 22px; font-size: 12.5px;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200;
+  }
+  .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .save-toast.error { background: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">Michele Oka Doner — Work Intake</div>
+  <div class="header-sub">
+    <a href="catalogue_admin_v3_sans.html">Dashboard</a> ·
+    <a href="catalogue_admin_manage_v3_sans.html">Manage Works</a> ·
+    <a href="catalogue_v12_sans.html">View Site</a> ·
+    <button onclick="modcrLogOut('catalogue_admin_login_v3_sans.html')">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="intake-form">
+    <div class="form-head">
+      <h1 id="formTitle">New Work Entry</h1>
+      <p>Fill in what you know — leave anything blank you're not sure of. Save the work first to attach photos or a voice annotation.</p>
+      <div class="save-state unsaved" id="saveState">Not yet saved to the catalogue.</div>
+    </div>
+
+    <!-- Basic info -->
+    <div class="f-section">
+      <div class="f-section-head">Basic Information</div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-title">Title</label>
+          <input type="text" id="f-title" placeholder="e.g. Frond Necklace">
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field">
+          <label class="f-label" for="f-cr">MOD CR Number</label>
+          <input type="number" id="f-cr" min="1" step="1">
+        </div>
+        <div class="f-field">
+          <label class="f-label" for="f-series">Series</label>
+          <select id="f-series"><option value="">Select…</option></select>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field">
+          <label class="f-label" for="f-date">Date <span class="opt">(year or "c. 19XX")</span></label>
+          <input type="text" id="f-date" placeholder="e.g. 1999 or c. 1975">
+        </div>
+        <div class="f-field">
+          <label class="f-label" for="f-year">Year <span class="opt">(numeric, for decade filtering — optional)</span></label>
+          <input type="number" id="f-year" placeholder="e.g. 1975">
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field">
+          <label class="f-label" for="f-medium">Material / Medium <span class="opt">(descriptive text)</span></label>
+          <input type="text" id="f-medium" placeholder="e.g. Sterling silver">
+        </div>
+        <div class="f-field">
+          <label class="f-label" for="f-classification">Medium Classification <span class="opt">(filter value — leave blank if unclear)</span></label>
+          <select id="f-classification">
+            <option value="">Undecided / none</option>
+            <option value="paper">Paper</option>
+            <option value="ceramic">Ceramic</option>
+            <option value="bronze">Bronze</option>
+            <option value="gold">Gold</option>
+            <option value="silver">Silver</option>
+            <option value="diamonds">Diamonds</option>
+            <option value="stone">Stone</option>
+            <option value="organic-material">Organic Material</option>
+            <option value="glass">Glass</option>
+            <option value="steel">Steel</option>
+            <option value="canvas">Canvas</option>
+            <option value="painting">Painting</option>
+            <option value="photography">Photography</option>
+            <option value="video">Video</option>
+          </select>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-dimensions">Dimensions <span class="opt">(optional)</span></label>
+          <input type="text" id="f-dimensions" placeholder="e.g. 8 × 5 × 5 in.">
+        </div>
+      </div>
+    </div>
+
+    <!-- Description / provenance / remarks -->
+    <div class="f-section">
+      <div class="f-section-head">Description &amp; History</div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-description">Description <span class="opt">(optional)</span></label>
+          <textarea id="f-description" placeholder="What is this work, and what should someone know about it?"></textarea>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-provenance">Provenance <span class="opt">(optional)</span></label>
+          <textarea id="f-provenance" placeholder="Ownership history — one line each, e.g. &quot;1975 — the artist's collection&quot;"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exhibition history / publications -->
+    <div class="f-section">
+      <div class="f-section-head">Exhibition History &amp; Publications</div>
+      <div class="f-section-hint">Leave blank if this work hasn't been exhibited or published yet — the section simply won't appear on its page.</div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-exhibitions">Exhibition History <span class="opt">(one per line — year, venue, exhibition title)</span></label>
+          <textarea id="f-exhibitions" placeholder="1994 — Cranbrook Academy of Art Museum — A Lifetime of Accumulation"></textarea>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-literature">Publications / Literature <span class="opt">(one per line)</span></label>
+          <textarea id="f-literature" placeholder="Smith, Roberta. &quot;The Forces of Nature.&quot; The New York Times, 1994."></textarea>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-remarks">Remarks <span class="opt">(optional)</span></label>
+          <textarea id="f-remarks" placeholder="Anything else worth noting for the record."></textarea>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-flag">Data-Quality Flag <span class="opt">(optional — surfaces on the admin dashboard)</span></label>
+          <input type="text" id="f-flag" placeholder="e.g. icon mismatch — image needs verification">
+        </div>
+      </div>
+    </div>
+
+    <!-- Photos -->
+    <div class="f-section">
+      <div class="f-section-head">Photos</div>
+      <div class="photo-input-wrap">
+        <label class="photo-btn" id="photoBtnLabel">
+          Add Photo(s)
+          <input type="file" id="f-photos" accept="image/*" capture="environment" multiple style="display:none" disabled>
+        </label>
+        <span class="mic-unsupported" id="photoHint">Save the work first to attach photos.</span>
+      </div>
+      <div class="photo-grid" id="photoGrid"></div>
+    </div>
+
+    <!-- Voice annotation -->
+    <div class="f-section">
+      <div class="f-section-head">Verbal Annotation</div>
+      <div class="f-section-hint">Record a note in your own words — it'll show as a small mic icon next to "Annotation" on the work's page.</div>
+      <div class="voice-panel" id="voicePanel">
+        <button class="mic-btn" id="micBtn" onclick="toggleRecording()" title="Record annotation" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <rect x="9" y="2" width="6" height="12" rx="3"/>
+            <path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/>
+          </svg>
+        </button>
+        <div class="voice-status" id="voiceStatus">Save the work first to record an annotation.</div>
+      </div>
+      <ul class="annotation-list" id="annotationList"></ul>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn primary" onclick="saveWork()" id="saveBtn">Save Work</button>
+      <button class="btn" onclick="location.href='catalogue_intake_v3_sans.html'">New Entry</button>
+      <button class="btn danger" onclick="deleteCurrentWork()" id="deleteBtn" style="display:none;">Delete This Work</button>
+    </div>
+  </div>
+</main>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="modcr-client.js"></script>
+<script>
+let currentDbId = null;
+let currentCr = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordStartTime = null;
+let recordTimerInterval = null;
+
+function showToast(msg, isError){
+  const t = document.getElementById('saveToast');
+  t.textContent = msg;
+  t.classList.toggle('error', !!isError);
+  t.classList.add('show');
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(()=>t.classList.remove('show'), 3800);
+}
+
+async function populateSeriesSelect(){
+  const series = await modcrFetchSeries();
+  const sel = document.getElementById('f-series');
+  sel.innerHTML = '<option value="">Select…</option>' +
+    series.map(s => `<option value="${s.slug}">${s.label}</option>`).join('');
+}
+
+function collectPayload(){
+  const cr = parseInt(document.getElementById('f-cr').value, 10);
+  const year = document.getElementById('f-year').value ? parseInt(document.getElementById('f-year').value, 10) : null;
+  return {
+    cr_number: cr,
+    title: document.getElementById('f-title').value.trim(),
+    series: document.getElementById('f-series').value || null,
+    date_display: document.getElementById('f-date').value.trim() || null,
+    year,
+    medium: document.getElementById('f-medium').value.trim() || null,
+    tag: document.getElementById('f-classification').value || null,
+    dimensions: document.getElementById('f-dimensions').value.trim() || null,
+    description: document.getElementById('f-description').value.trim() || null,
+    provenance: document.getElementById('f-provenance').value.trim() || null,
+    exhibitions: document.getElementById('f-exhibitions').value.trim() || null,
+    literature: document.getElementById('f-literature').value.trim() || null,
+    remarks: document.getElementById('f-remarks').value.trim() || null,
+    flag: document.getElementById('f-flag').value.trim() || null,
+  };
+}
+
+function fillForm(work){
+  document.getElementById('f-title').value = work.title || '';
+  document.getElementById('f-cr').value = work.id || '';
+  document.getElementById('f-series').value = work.series || '';
+  document.getElementById('f-date').value = work.date || '';
+  document.getElementById('f-year').value = work.year || '';
+  document.getElementById('f-medium').value = work.medium || '';
+  document.getElementById('f-classification').value = work.tag || '';
+  document.getElementById('f-dimensions').value = work.dimensions || '';
+  document.getElementById('f-description').value = work.description || '';
+  document.getElementById('f-provenance').value = work.provenance || '';
+  document.getElementById('f-exhibitions').value = work.exhibitions || '';
+  document.getElementById('f-literature').value = work.literature || '';
+  document.getElementById('f-remarks').value = work.remarks || '';
+  document.getElementById('f-flag').value = work.flag || '';
+}
+
+function enablePhotoAndVoice(){
+  const photoInput = document.getElementById('f-photos');
+  photoInput.disabled = false;
+  document.getElementById('photoBtnLabel').classList.remove('disabled');
+  document.getElementById('photoHint').textContent = 'On mobile, this opens your camera or photo library.';
+  document.getElementById('micBtn').disabled = !micSupported;
+  document.getElementById('voiceStatus').textContent = micSupported ? 'Tap to record' :
+    'Recording isn\'t available here — this page needs to be opened over a secure (https://) connection for microphone access to work.';
+}
+
+function markSaved(){
+  const el = document.getElementById('saveState');
+  el.textContent = 'Saved to the catalogue (' + new Date().toLocaleTimeString() + ').';
+  el.classList.remove('unsaved');
+  el.classList.add('saved');
+  document.getElementById('deleteBtn').style.display = 'inline-block';
+}
+
+async function saveWork(){
+  const payload = collectPayload();
+  if(!payload.title){ showToast('Add a title before saving.', true); return; }
+  if(!payload.cr_number){ showToast('Add a MOD CR number before saving.', true); return; }
+  if(!payload.series){ showToast('Select a series before saving.', true); return; }
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try{
+    const saved = await modcrSaveWork(payload, currentDbId);
+    currentDbId = saved.id;
+    currentCr = saved.cr_number;
+    document.getElementById('formTitle').textContent = 'Editing: ' + saved.title + ' (MOD CR ' + saved.cr_number + ')';
+    markSaved();
+    enablePhotoAndVoice();
+    showToast('Work saved.');
+    history.replaceState(null, '', 'catalogue_intake_v3_sans.html?edit=' + saved.cr_number);
+  }catch(e){
+    showToast('Could not save: ' + e.message, true);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Save Work';
+  }
+}
+
+async function deleteCurrentWork(){
+  if(!currentDbId) return;
+  if(!confirm('Delete this work from the catalogue? This cannot be undone.')) return;
+  try{
+    await modcrDeleteWork(currentDbId);
+    window.location.href = 'catalogue_admin_manage_v3_sans.html';
+  }catch(e){
+    showToast('Could not delete: ' + e.message, true);
+  }
+}
+
+// ---- Photos ----
+function renderPhotoGrid(photos){
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = (photos||[]).map(p => `
+    <div class="photo-thumb ${p.is_primary?'primary':''}">
+      <img src="${modcrPhotoUrl(p.storage_path)}" alt="">
+      <button class="pt-del" onclick="removePhoto('${p.id}','${p.storage_path.replace(/'/g,"\\'")}')" title="Remove">✕</button>
+      ${p.is_primary?'':`<button class="pt-primary" onclick="makePrimary('${p.id}')">Make Primary</button>`}
+    </div>`).join('');
+}
+async function reloadPhotos(){
+  const work = await modcrFetchWorkByCrNumber(currentCr);
+  renderPhotoGrid(work.photos);
+}
+document.getElementById('f-photos').addEventListener('change', async (e)=>{
+  const files = Array.from(e.target.files || []);
+  if(!currentDbId){ showToast('Save the work before adding photos.', true); return; }
+  for(const file of files){
+    try{
+      const existing = document.querySelectorAll('.photo-thumb').length;
+      await modcrUploadPhoto(currentDbId, file, existing === 0);
+    }catch(err){
+      showToast('Photo upload failed: ' + err.message, true);
+    }
+  }
+  e.target.value = '';
+  await reloadPhotos();
+});
+async function removePhoto(id, storagePath){
+  if(!confirm('Remove this photo?')) return;
+  try{
+    await modcrDeletePhoto(id, storagePath);
+    await reloadPhotos();
+  }catch(e){
+    showToast('Could not remove photo: ' + e.message, true);
+  }
+}
+async function makePrimary(id){
+  try{
+    await modcrSetPrimaryPhoto(currentDbId, id);
+    await reloadPhotos();
+  }catch(e){
+    showToast('Could not update: ' + e.message, true);
+  }
+}
+
+// ---- Voice annotation ----
+// Recording requires the page to be served over HTTPS (or localhost) — getUserMedia
+// is blocked by browsers on plain file:// pages and on http:// origins.
+const micSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+
+function renderAnnotationList(annotations){
+  const list = document.getElementById('annotationList');
+  list.innerHTML = (annotations||[]).map(a => `
+    <li>
+      <audio controls src="${modcrAudioUrl(a.storage_path)}"></audio>
+      <button class="voice-clear" onclick="removeAnnotation('${a.id}','${a.storage_path.replace(/'/g,"\\'")}')">Remove</button>
+    </li>`).join('');
+}
+async function reloadAnnotations(){
+  const work = await modcrFetchWorkByCrNumber(currentCr);
+  renderAnnotationList(work.annotations);
+}
+async function removeAnnotation(id, storagePath){
+  if(!confirm('Remove this annotation?')) return;
+  try{
+    await modcrDeleteAnnotation(id, storagePath);
+    await reloadAnnotations();
+  }catch(e){
+    showToast('Could not remove annotation: ' + e.message, true);
+  }
+}
+
+async function toggleRecording(){
+  if(!micSupported || !currentDbId) return;
+  if(mediaRecorder && mediaRecorder.state === 'recording'){
+    mediaRecorder.stop();
+    return;
+  }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    recordedChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+    mediaRecorder = mimeType ? new MediaRecorder(stream,{mimeType}) : new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => { if(e.data.size>0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = async ()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      clearInterval(recordTimerInterval);
+      const durationSeconds = Math.round((Date.now()-recordStartTime)/1000);
+      const blob = new Blob(recordedChunks, {type: mediaRecorder.mimeType || 'audio/webm'});
+      document.getElementById('micBtn').classList.remove('recording');
+      document.getElementById('voiceStatus').textContent = 'Uploading…';
+      try{
+        await modcrUploadAnnotation(currentDbId, blob, mediaRecorder.mimeType || 'audio/webm', durationSeconds);
+        await reloadAnnotations();
+        document.getElementById('voiceStatus').textContent = 'Tap to record another';
+      }catch(err){
+        showToast('Annotation upload failed: ' + err.message, true);
+        document.getElementById('voiceStatus').textContent = 'Tap to record';
+      }
+    };
+    mediaRecorder.start();
+    document.getElementById('micBtn').classList.add('recording');
+    recordStartTime = Date.now();
+    recordTimerInterval = setInterval(()=>{
+      const secs = Math.floor((Date.now()-recordStartTime)/1000);
+      const m = String(Math.floor(secs/60)).padStart(2,'0');
+      const s = String(secs%60).padStart(2,'0');
+      document.getElementById('voiceStatus').innerHTML = `Recording… <span class="rec-time">${m}:${s}</span>`;
+    }, 250);
+  }catch(err){
+    document.getElementById('voiceStatus').textContent = 'Microphone access was blocked or unavailable: ' + err.message;
+  }
+}
+
+async function loadFromQueryString(){
+  const params = new URLSearchParams(location.search);
+  const editCr = parseInt(params.get('edit'), 10);
+  if(!editCr){
+    try{
+      const all = await modcrFetchWorks();
+      const maxCr = all.reduce((m,w)=>Math.max(m,w.id),0);
+      document.getElementById('f-cr').value = maxCr + 1;
+    }catch(e){ /* leave blank if this fails — not fatal */ }
+    return;
+  }
+  const work = await modcrFetchWorkByCrNumber(editCr);
+  if(!work){ showToast('Could not find MOD CR ' + editCr + '.', true); return; }
+  currentDbId = work.dbId;
+  currentCr = work.id;
+  fillForm(work);
+  document.getElementById('formTitle').textContent = `Editing: ${work.title} (${work.cr})`;
+  markSaved();
+  enablePhotoAndVoice();
+  renderPhotoGrid(work.photos);
+  renderAnnotationList(work.annotations);
+}
+
+(async function(){
+  await modcrRequireAuth('catalogue_admin_login_v3_sans.html');
+  await populateSeriesSelect();
+  await loadFromQueryString();
+})();
+</script>
+</body>
+</html>
