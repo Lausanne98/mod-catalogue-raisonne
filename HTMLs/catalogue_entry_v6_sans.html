@@ -153,7 +153,10 @@
     font-style: italic; line-height: 1.15; color: var(--ink); margin-bottom: 4px;
   }
   .work-date {
-    font-family: 'Inter', sans-serif; font-size: 12px; color: var(--mid); margin-bottom: 28px; font-weight: 400;
+    font-family: 'Inter', sans-serif; font-size: 12px; color: var(--mid); margin-bottom: 4px; font-weight: 400;
+  }
+  .work-medium {
+    font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ink); margin-bottom: 28px; font-weight: 400;
   }
 
   .data-table { width: 100%; border-top: 1px solid var(--rule); }
@@ -508,11 +511,12 @@
         <div class="cr-num">MODCR 2 &nbsp;·&nbsp; Early Clay Series</div>
         <h1 class="work-title">Germinating Seeds</h1>
         <div class="work-date">c. 1972</div>
+        <div class="work-medium">Bronze</div>
 
         <div class="data-table">
           <div class="data-row">
-            <div class="d-lbl">Medium</div>
-            <div class="d-val">Bronze</div>
+            <div class="d-lbl">Category</div>
+            <div class="d-val">Early Clay</div>
           </div>
           <div class="data-row">
             <div class="d-lbl">Dimensions</div>
@@ -761,14 +765,14 @@ const worksIndex = [
   {id:19, cr:"MOD CR 19", title:"Figures with Staffs",  date:"c. 1978", medium:"Ceramic",                            tag:"ceramic",      series:"early-clay",           img:"../Entry Images/Figures-Icon.png"},
   {id:3,  cr:"MOD CR 3",  title:"Burning Branches",     date:"1975",    medium:"Bronze",                             tag:"bronze",       series:"bronze-works",         img:"../Entry Images/BurningBranches-Icon.png"},
   {id:4,  cr:"MOD CR 4",  title:"Soul Catchers",        date:"1977",    medium:"Bronze",                             tag:"bronze",       series:"bronze-works",         img:"../Entry Images/SoulCatchers_Clay-Icon.png"},
-  {id:5,  cr:"MOD CR 5",  title:"Pictographs",          date:"c. 1979", medium:"Graphite and ink on paper",          tag:"drawing",      series:"works-on-paper",       img:"../Entry Images/Pictograph_icon.png"},
-  {id:7,  cr:"MOD CR 7",  title:"Celestial Plaza",      date:"1986",    medium:"Bronze — permanent public install.", tag:"installation", series:"public-installations", img:"../Entry Images/AMNH_installation-icon.png"},
+  {id:5,  cr:"MOD CR 5",  title:"Pictographs",          date:"c. 1979", medium:"Graphite and ink on paper",          tag:"paper",           series:"works-on-paper",       img:"../Entry Images/Pictograph_icon.png"},
+  {id:7,  cr:"MOD CR 7",  title:"Celestial Plaza",      date:"1986",    medium:"Bronze — permanent public install.", tag:"bronze",      series:"public-installations", img:"../Entry Images/AMNH_installation-icon.png"},
   {id:9,  cr:"MOD CR 9",  title:"Radiant Disk",         date:"1988",    medium:"Bronze with patina",                 tag:"bronze",       series:"bronze-works",         img:"../Entry Images/RadiantDiskIceRing.png"},
-  {id:6,  cr:"MOD CR 6",  title:"A Walk on the Beach",  date:"1995",    medium:"Bronze — permanent public install.", tag:"installation", series:"public-installations", img:"../Entry Images/PAMM-Michel-Oka-Doner-08_ICON-223x119.png"},
-  {id:10, cr:"MOD CR 10", title:"Blueprint of Eden",    date:"1999",    medium:"Cyanotype, natural specimens",       tag:"drawing",      series:"works-on-paper",       img:"../Entry Images/BluePrintOfEden-IconV3-1-213x223.png"},
+  {id:6,  cr:"MOD CR 6",  title:"A Walk on the Beach",  date:"1995",    medium:"Bronze — permanent public install.", tag:"bronze",      series:"public-installations", img:"../Entry Images/PAMM-Michel-Oka-Doner-08_ICON-223x119.png"},
+  {id:10, cr:"MOD CR 10", title:"Blueprint of Eden",    date:"1999",    medium:"Cyanotype, natural specimens",       tag:"paper",           series:"works-on-paper",       img:"../Entry Images/BluePrintOfEden-IconV3-1-213x223.png"},
   {id:11, cr:"MOD CR 11", title:"Thorn Man",            date:"c. 2000", medium:"Bronze with silver",                 tag:"bronze",       series:"bronze-works",         img:"../Entry Images/Thornmen3_studio-photos_Dirk-Bakker-R_iconV2-177x223.png"},
   {id:8,  cr:"MOD CR 8",  title:"Into the Mysterium",   date:"2003",    medium:"Mixed media installation",           tag:"installation", series:"public-installations", img:"../Entry Images/Mysterium-Icon.png"},
-  {id:12, cr:"MOD CR 12", title:"Talisman",             date:"2019",    medium:"Bronze — permanent public install.", tag:"installation", series:"public-installations", img:"../Entry Images/Talisman_Icon-142x223.png"},
+  {id:12, cr:"MOD CR 12", title:"Talisman",             date:"2019",    medium:"Bronze — permanent public install.", tag:"bronze",      series:"public-installations", img:"../Entry Images/Talisman_Icon-142x223.png"},
   {id:22, cr:"MOD CR 22", title:"Frond Necklace",       date:"Date pending", medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/FrondNecklace.jpg"},
   {id:23, cr:"MOD CR 23", title:"Totem Necklace",       date:"Date pending", medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/TotemNecklace.jpg"},
   {id:24, cr:"MOD CR 24", title:"Amulet Necklace",      date:"Date pending", medium:"Silver",        tag:"jewelry", series:"jewelry", img:"../Entry Images/AmuletNecklace-Icon.png"},
@@ -778,9 +782,9 @@ const worksIndex = [
   {id:28, cr:"MOD CR 28", title:"Palm Vase",            date:"1999",         medium:"Sterling silver", tag:"jewelry", series:"jewelry", img:"../Entry Images/PalmVase1999-Icon.png"},
 ];
 const seriesLabels = {
-  "early-clay":"Early Clay", "bronze-works":"Bronze Works",
-  "works-on-paper":"Works on Paper", "public-installations":"Public Installations",
-  "jewelry":"Jewelry",
+  "early-clay":"Early Clay", "bronze-works":"Sculpture",
+  "works-on-paper":"Works on Paper", "public-installations":"Public Works",
+  "jewelry":"Jewelry", "commissions":"Commissions", "fables":"Fables",
 };
 const FULL_ENTRY_ID = 2; // MODCR 2 is the only work with a fully written entry so far
 
@@ -814,13 +818,14 @@ if (!work) {
   document.querySelector('.cr-num').textContent = `${work.cr} · ${seriesLabels[work.series]||''}`;
   document.querySelector('.work-title').textContent = work.title;
   document.querySelector('.work-date').textContent = work.date;
+  document.querySelector('.work-medium').textContent = work.medium;
   document.querySelector('.classification-tag').textContent = work.medium;
   document.getElementById('mainImg').src = work.img;
   document.getElementById('mainImg').alt = work.title;
   document.querySelector('.thumb-row').remove();
   document.querySelector('.img-credit').remove();
   document.querySelector('.data-table').innerHTML =
-    `<div class="data-row"><div class="d-lbl">Medium</div><div class="d-val">${work.medium}</div></div>`;
+    `<div class="data-row"><div class="d-lbl">Category</div><div class="d-val">${seriesLabels[work.series]||'—'}</div></div>`;
   document.querySelector('.subnav .sn-label').nextElementSibling.innerHTML =
     `<li><a href="#section-image" class="active">Image</a></li><li><a href="#section-citation">How to Cite</a></li>`;
   document.querySelectorAll('.subnav .sn-label')[1].nextElementSibling.innerHTML =
