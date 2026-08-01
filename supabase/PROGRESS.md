@@ -3,62 +3,119 @@
 ## Project
 - Supabase project URL: `https://kuyyrygvaotsrhbyjyjw.supabase.co`
 - Publishable (anon) key: `sb_publishable_s1HGNRWL1LbiCXzFDK4igg_41mnArJx`
-  (safe to be public — this is the client-side key by design; access control
+  (safe to be public — this is the client-side key by design — access control
   is enforced by the RLS policies in `schema.sql`, not by keeping this secret)
 - The `service_role` secret key was never shared with Claude and must stay
   that way — full unrestricted DB access, private only.
 
-## Status
-- `supabase/schema.sql` has been written, committed, and the user ran it in
-  the Supabase SQL Editor. **Not yet independently verified** — first thing
-  a new session should do is confirm the tables and 28-work migration
-  actually landed (GET `{url}/rest/v1/works?select=cr_number,title,series`
-  with the `apikey` header set to the key above; expect 28 rows).
-- Network access to `*.supabase.co` was just added to this session's cloud
-  environment (env named `micheleokadoner.com`) — takes effect for NEW
-  sessions only, not retroactively.
+## Status as of this session
+- **`supabase/schema.sql` had a real bug found and fixed this session**: the
+  28-work migration used `tag='jewelry'` for the 7 jewelry works and
+  `tag='installation'` for MOD CR 8 — neither value is in the `tag` check
+  constraint. Because the migration is one multi-row `INSERT`, a single
+  constraint violation would have aborted the *entire* insert transactionally
+  — so if the user ran the original file, `works` is almost certainly still
+  empty (0 rows) even though `series` (a separate statement) landed fine.
+  Fixed: jewelry rows now use their real medium (`silver`/`gold`); MOD CR 8's
+  `tag` is left `NULL` (column is now nullable) with a `flag` explaining the
+  taxonomy is genuinely undecided — consistent with CLAUDE.md's "flagged for
+  a real decision, not guessed" note, which the original migration violated.
+  The file also gained a self-healing `ALTER TABLE` block so re-running it
+  fixes a table that was already created under the old, broken constraint.
+- Also fixed: the public RLS read policies (`works`, `work_photos`,
+  `work_annotations`) only checked whether a row's *own* series was
+  published. That silently defeats the cross-categorization rule in
+  CLAUDE.md (a ceramic work dated before 2000 should be visible under Early
+  Clay regardless of its own series' publish state) — Postgres would filter
+  the row out before any client-side JS ever saw it. All three policies now
+  also allow the row through when it's a pre-2000 ceramic work and
+  `early-clay` is published.
+- **Not yet independently verified against the live project** — this
+  session's cloud environment could not reach `*.supabase.co` (proxy
+  returned 403 policy-denial on every attempt; see "Blocked this session"
+  below). **First thing a new session with working network access should
+  do**: paste the current `supabase/schema.sql` into the Supabase SQL
+  Editor and run it (safe to re-run), then confirm with
+  `GET {url}/rest/v1/works?select=cr_number,title,series,tag` (`apikey`
+  header set to the key above) — expect 28 rows this time, tags included.
 
-## What's built so far (this session, all on branch `claude/file-contents-review-isefql`)
-See `CLAUDE.md` for full project conventions (versioning rule, taxonomy,
-cross-categorization rule, legacy-site pull protocol). In short: a full
-static-HTML catalogue site (browse, entry pages, terms gate) plus an admin
-suite (login, dashboard, Manage Works, intake form with photo/mic capture)
-that currently reads/writes a hardcoded JS array and localStorage — no real
-persistence yet. GitHub Pages is live at
-https://lausanne98.github.io/mod-catalogue-raisonne/ (currently serving
-`main`, which does NOT have this branch's work — PR #2 is open, unmerged).
+## What's built so far
+All on branch `claude/file-contents-review-isefql` / `claude/mod-cr-backend-build-suwvdp`.
+See `CLAUDE.md` for full project conventions.
 
-## Remaining backend work (the ~20-40 hr estimate)
-1. Verify the schema migration (see Status above).
-2. Real authentication: replace the placeholder client-side passphrase gate
-   (`catalogue_admin_login_v1_sans.html`) with real Supabase Auth
-   (email/password is simplest for a single admin user — create that one
-   user via Supabase dashboard → Authentication → Users → Add user, don't
-   build public signup).
-3. Rewrite `catalogue_admin_manage_v1_sans.html` and
-   `catalogue_intake_v1_sans.html` to read/write the `works` table via the
-   Supabase JS client instead of the hardcoded array + localStorage —
-   including real Edit/Delete (no more "export JSON, integrate later").
-4. Wire photo uploads (intake form) to the `work-photos` Storage bucket and
-   `work_photos` table instead of embedding base64 in the JSON export.
-5. Wire voice annotations similarly to `work-audio` / `work_annotations`.
-6. Update `catalogue_v10_sans.html` and `catalogue_entry_v6_sans.html`
-   (public pages) to read from the `works`/`series` tables via the public
-   REST API instead of the hardcoded array — `PUBLISHED_SERIES` phase-gating
-   logic should come from `series.published` in the DB at that point, not a
-   hardcoded JS array, so toggling a phase live is a database update, not a
-   code deploy.
-7. Decide what happens to the five duplicated hardcoded `works` arrays
-   currently spread across `catalogue_v10_sans.html`,
-   `catalogue_entry_v6_sans.html`, `catalogue_admin_v1_sans.html`,
-   `catalogue_admin_manage_v1_sans.html`, `catalogue_intake_v1_sans.html` —
-   once the DB is the source of truth, these should be deleted, not kept in
-   sync by hand.
-8. Test end-to-end on GitHub Pages (not just locally) before considering
-   this phase done — Supabase calls need to work from that real origin.
+**This session** wired the whole site to Supabase for real, per the phase-1
+plan below — new versioned pages, old ones left untouched per the versioning
+rule:
+- `HTMLs/modcr-client.js` — new shared module: one Supabase client, work/series
+  fetchers, auth helpers, storage upload/delete helpers. Every DB-backed page
+  loads `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2` then this file,
+  instead of five copies of the same hardcoded `works` array.
+- `catalogue_admin_login_v2_sans.html` — real Supabase Auth (email/password)
+  replacing the client-side passphrase gate. **No user has been created yet**
+  — do that via Supabase Dashboard → Authentication → Users → Add user
+  (single admin user, no public signup) before this login page can work.
+- `catalogue_admin_v2_sans.html` — dashboard: real auth gate, stat tiles and
+  a "Flagged for Review" list both computed from live `works` data instead of
+  a hardcoded array. Dropped the old "pending changes / export JSON" panel —
+  no longer needed now that intake writes straight to the DB.
+- `catalogue_admin_manage_v2_sans.html` — list/search/filter reads `works`
+  live; Delete is a real `DELETE` (with confirm), not a "mark pending."
+  Material filter options are now derived from whatever tags actually exist
+  in the data instead of a stale hardcoded list.
+- `catalogue_intake_v2_sans.html` — full rewrite. "Save Work" does a real
+  insert/update against `works` (now also collects `cr_number` and `series`,
+  which the old form never captured — both are required, not-null columns).
+  Photos upload to the `work-photos` bucket + `work_photos` rows (with a
+  primary-photo toggle); voice annotations upload to `work-audio` +
+  `work_annotations`, both gated until the work has been saved once (a
+  `work_id` foreign key has to exist first). No more base64-in-JSON-export.
+- `catalogue_v11_sans.html` and `catalogue_entry_v7_sans.html` — public
+  pages now fetch `works` + `series` from Supabase on load instead of a
+  hardcoded array; `PUBLISHED_SERIES` is gone — phase-gating reads
+  `series.published` live, so toggling a phase is a database update, not a
+  code deploy, as originally planned. The curatorial `SERIES` narrative
+  object (carousel images, overview text, exhibition/press citations) stays
+  hardcoded in `catalogue_v11_sans.html` — there's no schema for that content
+  and PROGRESS.md never asked for it to move.
+- `catalogue_chronology_v7_sans.html` and `mod_bio_v12_sans.html` — trivial
+  version bumps, only to fix now-stale nav links to `catalogue_v10_sans.html`
+  (same pattern as PR #2). Nothing else in either file changed.
+- `index.html` updated to redirect to `catalogue_v11_sans.html`.
+- The five duplicated hardcoded `works` arrays are gone from every *new*
+  page. The old versions (`catalogue_v10_sans.html`,
+  `catalogue_entry_v6_sans.html`, `catalogue_admin_v1_sans.html`,
+  `catalogue_admin_manage_v1_sans.html`, `catalogue_intake_v1_sans.html`,
+  `catalogue_admin_login_v1_sans.html`) are untouched and still self-contained
+  — that's intentional per the versioning rule (never edit a version in
+  place); they're simply superseded now.
+
+## Blocked this session — network access
+This cloud environment's egress proxy returned `403` (policy denial) on
+every attempt to reach `kuyyrygvaotsrhbyjyjw.supabase.co`, both for the plain
+REST verification GET and implicitly for any live testing of the new pages.
+The previous session's handoff note said access "was just added... takes
+effect for NEW sessions only" — that either hasn't propagated to this
+environment or this is a different environment than the one it was added to.
+**Concretely still needed, blocked on network access:**
+1. Run the corrected `supabase/schema.sql` (or confirm it already matches —
+   it may not, given the bug found above) and verify the 28-row migration
+   actually lands with valid tags this time.
+2. Create the one admin auth user (Supabase Dashboard → Authentication →
+   Users) so `catalogue_admin_login_v2_sans.html` has something to sign into.
+3. Smoke-test the new pages against the live project: sign in, browse/search/
+   filter Manage Works, add a test work end-to-end (save → photo upload →
+   voice annotation → appears correctly), delete it, and confirm the public
+   catalogue (`catalogue_v11_sans.html`) and entry page
+   (`catalogue_entry_v7_sans.html`) render from the DB with the Early Clay
+   phase live and everything else gated "Coming Soon."
+4. Test on the real GitHub Pages origin, not just locally — PR #2 (subnav/
+   image self-hosting) is still open/unmerged, and this session's branch
+   would need to land there too before GitHub Pages is actually serving any
+   of this.
 
 ## Known open items unrelated to backend (don't lose track)
-- MOD CR 8 medium classification still unresolved.
+- MOD CR 8 medium classification still unresolved (now correctly reflected
+  as `tag = NULL` + a `flag` in the DB, not guessed).
 - Pictographs medium description needs the real source text.
 - Full image-mismatch audit of the other 27 works (like MOD CR 6) not done yet.
 - Legal terms text is still a placeholder draft, needs attorney review.

@@ -34,6 +34,15 @@ one-time manual fix, so it keeps applying as new works are added.
 MOD CR 8 ("Into the Mysterium," mixed media installation) doesn't have a clean single
 Medium value in the taxonomy above — flagged for a real decision rather than guessed.
 
+## Backend
+Works and series data now live in Supabase (see `supabase/schema.sql` and
+`supabase/PROGRESS.md` for connection details and status). `HTMLs/modcr-client.js`
+is the single shared client — every DB-backed page loads the Supabase CDN
+script then this file, rather than duplicating client setup or a hardcoded
+`works` array per page. It isn't a `.._sans.html` page, so the versioning
+rule above doesn't apply to it directly — but it's shared by every admin and
+public page, so treat changes to it as touching all of them at once.
+
 ## Pulling media from the legacy site (micheleokadoner.com)
 The legacy WordPress media library is not a reliable 1:1 source of "icon = this work's
 photo, title = this work's name." Two failure modes found so far, both from MOD CR 6:

@@ -35,11 +35,11 @@ create table if not exists works (
   date_display text,                             -- e.g. "c. 1975", "Date pending"
   year         integer,                          -- null if genuinely unknown
   medium       text,                             -- descriptive free text, e.g. "Raku ceramic"
-  tag          text not null check (tag in (
-                 'paper','ceramic','bronze','gold','silver','diamonds','stone',
-                 'organic-material','glass','steel','canvas','painting',
-                 'photography','video'
-               )),
+  tag          text check (tag in (               -- nullable: a work with no clean single
+                 'paper','ceramic','bronze','gold','silver','diamonds','stone', -- Medium value
+                 'organic-material','glass','steel','canvas','painting',        -- (see CLAUDE.md
+                 'photography','video'                                          -- "Known open item")
+               )),                                                              -- stays unset, not guessed
   series       text not null references series(slug),
   dimensions   text,
   description  text,
@@ -57,6 +57,18 @@ create table if not exists works (
 
 create index if not exists works_series_idx on works(series);
 create index if not exists works_tag_idx on works(tag);
+
+-- Self-healing for a table created by an earlier, buggy version of this script
+-- (tag was `not null` and the check list didn't cover every value actually used
+-- in the migration below — 'jewelry' and 'installation' — which would have made
+-- the works insert fail as a whole). Safe to re-run: no-ops once already fixed.
+alter table works alter column tag drop not null;
+alter table works drop constraint if exists works_tag_check;
+alter table works add constraint works_tag_check check (tag in (
+  'paper','ceramic','bronze','gold','silver','diamonds','stone',
+  'organic-material','glass','steel','canvas','painting',
+  'photography','video'
+));
 
 -- ═══ MEDIA (photos — a work can have several; one marked primary) ═══
 create table if not exists work_photos (
@@ -100,6 +112,14 @@ drop policy if exists "works_public_read" on works;
 create policy "works_public_read" on works for select
   using (
     exists (select 1 from series s where s.slug = works.series and s.published = true)
+    -- Cross-categorization rule (see CLAUDE.md): a ceramic work dated before 2000
+    -- is publicly visible once Early Clay is published, even if its own series
+    -- isn't published yet — must be enforced here too, or RLS would hide the row
+    -- from anon reads before the client-side filter logic ever sees it.
+    or (
+      works.tag = 'ceramic' and works.year < 2000
+      and exists (select 1 from series s where s.slug = 'early-clay' and s.published = true)
+    )
     or auth.role() = 'authenticated'
   );
 
@@ -118,7 +138,11 @@ create policy "photos_public_read" on work_photos for select
   using (
     exists (
       select 1 from works w join series s on s.slug = w.series
-      where w.id = work_photos.work_id and (s.published = true or auth.role() = 'authenticated')
+      where w.id = work_photos.work_id and (
+        s.published = true
+        or (w.tag = 'ceramic' and w.year < 2000 and exists (select 1 from series es where es.slug = 'early-clay' and es.published = true))
+        or auth.role() = 'authenticated'
+      )
     )
   );
 drop policy if exists "photos_admin_write" on work_photos;
@@ -130,7 +154,11 @@ create policy "annotations_public_read" on work_annotations for select
   using (
     exists (
       select 1 from works w join series s on s.slug = w.series
-      where w.id = work_annotations.work_id and (s.published = true or auth.role() = 'authenticated')
+      where w.id = work_annotations.work_id and (
+        s.published = true
+        or (w.tag = 'ceramic' and w.year < 2000 and exists (select 1 from series es where es.slug = 'early-clay' and es.published = true))
+        or auth.role() = 'authenticated'
+      )
     )
   );
 drop policy if exists "annotations_admin_write" on work_annotations;
@@ -196,13 +224,13 @@ insert into works (cr_number, title, date_display, year, medium, tag, series, le
   (6, 'A Walk on the Beach', '1995', 1995, 'Bronze — permanent public install.', 'bronze', 'public-installations', null, 'icon mismatch — sourced image did not depict this work, removed pending correct image'),
   (10, 'Blueprint of Eden', '1999', 1999, 'Cyanotype, natural specimens', 'paper', 'works-on-paper', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/BluePrintOfEden-IconV3-1-213x223.png', null),
   (11, 'Thorn Man', 'c. 2000', 2000, 'Bronze with silver', 'bronze', 'bronze-works', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Thornmen3_studio-photos_Dirk-Bakker-R_iconV2-177x223.png', null),
-  (8, 'Into the Mysterium', '2003', 2003, 'Mixed media installation', 'installation', 'public-installations', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Mysterium-Icon.png', null),
+  (8, 'Into the Mysterium', '2003', 2003, 'Mixed media installation', null, 'public-installations', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Mysterium-Icon.png', 'Medium classification undecided — mixed media installation, no clean single Medium value in the taxonomy (see CLAUDE.md known open item)'),
   (12, 'Talisman', '2019', 2019, 'Bronze — permanent public install.', 'bronze', 'public-installations', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Talisman_Icon-142x223.png', null),
-  (22, 'Frond Necklace', 'Date pending', null, 'Silver', 'jewelry', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/FrondNecklace.jpg', null),
-  (23, 'Totem Necklace', 'Date pending', null, 'Silver', 'jewelry', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/TotemNecklace.jpg', null),
-  (24, 'Amulet Necklace', 'Date pending', null, 'Silver', 'jewelry', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/AmuletNecklace-Icon.png', null),
-  (25, 'Palm Necklace', 'Date pending', null, 'Gold', 'jewelry', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/PalmNecklaceGold.jpg', null),
-  (26, 'Seed Ring', 'Date pending', null, 'Gold', 'jewelry', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/SeedRing.jpg', null),
-  (27, 'Ceremonial Silver', 'Date pending', null, 'Silver', 'jewelry', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/CeremonialSilver-Icon.png', null),
-  (28, 'Palm Vase', '1999', 1999, 'Sterling silver', 'jewelry', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/PalmVase1999-Icon.png', null)
+  (22, 'Frond Necklace', 'Date pending', null, 'Silver', 'silver', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/FrondNecklace.jpg', null),
+  (23, 'Totem Necklace', 'Date pending', null, 'Silver', 'silver', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/TotemNecklace.jpg', null),
+  (24, 'Amulet Necklace', 'Date pending', null, 'Silver', 'silver', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/AmuletNecklace-Icon.png', null),
+  (25, 'Palm Necklace', 'Date pending', null, 'Gold', 'gold', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/PalmNecklaceGold.jpg', null),
+  (26, 'Seed Ring', 'Date pending', null, 'Gold', 'gold', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/SeedRing.jpg', null),
+  (27, 'Ceremonial Silver', 'Date pending', null, 'Silver', 'silver', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/CeremonialSilver-Icon.png', null),
+  (28, 'Palm Vase', '1999', 1999, 'Sterling silver', 'silver', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/PalmVase1999-Icon.png', null)
 on conflict (cr_number) do nothing;
