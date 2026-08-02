@@ -48,8 +48,8 @@ create table if not exists works (
   medium       text,                             -- descriptive free text, e.g. "Raku ceramic"
   tag          text check (tag in (               -- nullable: a work with no clean single
                  'paper','ceramic','bronze','gold','silver','diamonds','stone', -- Medium value
-                 'organic-material','glass','steel','canvas','painting',        -- (see CLAUDE.md
-                 'photography','video'                                          -- "Known open item")
+                 'concrete','organic-material','glass','steel','canvas',        -- (see CLAUDE.md
+                 'painting','photography','video'                              -- "Known open item")
                )),                                                              -- stays unset, not guessed
   series       text not null references series(slug),
   secondary_series text references series(slug),  -- optional: work also belongs under a
@@ -81,7 +81,7 @@ create index if not exists works_tag_idx on works(tag);
 alter table works alter column tag drop not null;
 alter table works drop constraint if exists works_tag_check;
 alter table works add constraint works_tag_check check (tag in (
-  'paper','ceramic','bronze','gold','silver','diamonds','stone',
+  'paper','ceramic','bronze','gold','silver','diamonds','stone','concrete',
   'organic-material','glass','steel','canvas','painting',
   'photography','video'
 ));

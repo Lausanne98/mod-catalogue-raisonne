@@ -37,11 +37,14 @@ the `_sans` suffix. Superseded versions eventually move to `Archive/`.
 Every catalogued work has two independent classifications, filterable separately:
 
 **Medium** (material) — a fixed, closed list: paper, ceramic, bronze, gold, silver,
-diamonds, stone, organic material, glass, steel, canvas, painting, photography,
-video. `medium` (free text, e.g. "Raku ceramic", "Bronze with silver") is the
-descriptive label shown on the work's page; the `tag` field is the *filter* value
-and must be one of this list — it's a `check` constraint in the schema, not meant
-to grow.
+diamonds, stone, concrete, organic material, glass, steel, canvas, painting,
+photography, video. `medium` (free text, e.g. "Raku ceramic", "Bronze with silver")
+is the descriptive label shown on the work's page; the `tag` field is the *filter*
+value and must be one of this list — it's a `check` constraint in the schema, not
+meant to grow. (`concrete` was added to the list rather than approximated as
+`stone` once it turned up as a recurring material across several works, e.g.
+"Another Sun" — a genuinely new value still requires deliberately adding it here
+and to the schema's check constraint, not silent reuse of the nearest existing tag.)
 
 **Series** (category) — open-ended, meant to grow. Unlike Medium, this is not a
 fixed short list — it's whatever rows exist in the `series` table, and adding a
