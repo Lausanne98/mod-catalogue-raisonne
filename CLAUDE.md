@@ -12,6 +12,20 @@ chronological renumbering, which happens once before the site is officially
 published — CR numbers are expected to be fluid until then, not fixed on
 assignment.
 
+**Within the 100+ block itself, numbers must still be assigned in chronological
+(by-year) order** — 100 is the earliest-dated work in that block, and each
+subsequent number is the next-earliest, going up. This is not optional or
+"eventually" — it applies every time a new work is added to the block, not just
+once at the end. Do not assign the next sequential number by migration/discovery
+order (e.g. "whatever I processed first") — sort by `year` first. Ties (same
+year) can be broken arbitrarily, but a work from a later year must never get a
+lower number than a work from an earlier year. A work with no known year at all
+goes at the very end of the block (after every dated work), since it can't be
+placed chronologically. Whenever a new work is added to the 100+ block, re-check
+whether it needs to be inserted in the middle (shifting later numbers up) rather
+than just appended at the end — appending only happens to be correct if the new
+work is in fact the latest-dated one so far.
+
 ## Versioning rule
 Live pages are the `.._sans.html` files in `HTMLs/`. When a file needs a meaningful
 change: never edit an existing version in place. Copy it to the next version number
@@ -105,3 +119,20 @@ from documentation of the work being made — foundry, patina, studio-process sh
 "Process" nav item and section on the entry page) when a work actually has a photo
 tagged that way. Process photos are excluded from primary/featured-image selection —
 they document the work, they aren't a candidate to represent it.
+
+## Don't repeat a work's series/category on the entry page
+Requested multiple times, previously lost between sessions — now the rule, not a
+one-off fix. A work's series (e.g. "Early Clay") appears in exactly **one** place
+on the entry page: the `cr-num` header line ("MOD CR 5 · Early Clay"). It must not
+be repeated anywhere else on the page — not as a "Category" row in a metadata
+table, not in a sidebar. (The entry page has no left sidebar at all — see
+"Entry page layout" below — so there's no second, navigation-link copy of it
+either anymore.) If a future redesign adds any kind of metadata table or nav
+element back, do not add a Category/Series field to it.
+
+## Entry page layout
+No left sidebar/subnav. Text lives only above the image (the breadcrumb) and to
+its right (title, date, medium, classification, any metadata) — nothing on the
+image's left. This was a deliberate layout decision (requested multiple times),
+not an oversight — don't reintroduce a left column of nav links, section
+jump-links, series links, or a print button when editing this page.
