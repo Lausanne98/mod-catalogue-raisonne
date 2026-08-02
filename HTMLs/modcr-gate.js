@@ -20,5 +20,5 @@ function modcrGrantPreviewAccess(){
 function modcrRequirePreviewAccess(){
   if(modcrHasPreviewAccess()) return;
   const here = location.pathname.split('/').pop() + location.search;
-  location.replace('preview_gate_v9_sans.html?return=' + encodeURIComponent(here));
+  location.replace('preview_gate_v10_sans.html?return=' + encodeURIComponent(here));
 }
