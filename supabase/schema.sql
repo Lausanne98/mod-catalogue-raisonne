@@ -41,6 +41,11 @@ create table if not exists works (
                  'photography','video'                                          -- "Known open item")
                )),                                                              -- stays unset, not guessed
   series       text not null references series(slug),
+  secondary_series text references series(slug),  -- optional: work also belongs under a
+                                                    -- second series filter (e.g. a jewelry
+                                                    -- piece that's also part of a limited
+                                                    -- edition run), in addition to its
+                                                    -- primary `series` above.
   dimensions   text,
   description  text,
   provenance   text,
@@ -70,6 +75,9 @@ alter table works add constraint works_tag_check check (tag in (
   'photography','video'
 ));
 
+-- Self-healing: add secondary_series to a works table created before this column existed.
+alter table works add column if not exists secondary_series text references series(slug);
+
 -- ═══ MEDIA (photos — a work can have several; one marked primary) ═══
 create table if not exists work_photos (
   id            uuid primary key default gen_random_uuid(),
@@ -78,9 +86,17 @@ create table if not exists work_photos (
   is_primary    boolean not null default false,
   caption       text,
   sort_order    integer not null default 0,      -- user-controlled display order (drag to reorder)
+  photo_type    text not null default 'work' check (photo_type in ('work','process')),
   created_at    timestamptz not null default now()
 );
 create index if not exists work_photos_work_id_idx on work_photos(work_id);
+
+-- Self-healing: add photo_type to a work_photos table created before this column
+-- existed. Most works will never have a 'process' photo — that's the point, it's
+-- an optional category that only shows on the entry page when actually populated.
+alter table work_photos add column if not exists photo_type text not null default 'work';
+alter table work_photos drop constraint if exists work_photos_photo_type_check;
+alter table work_photos add constraint work_photos_photo_type_check check (photo_type in ('work','process'));
 
 -- Self-healing: add sort_order to a work_photos table created before this column existed.
 alter table work_photos add column if not exists sort_order integer not null default 0;
@@ -116,6 +132,14 @@ drop policy if exists "works_public_read" on works;
 create policy "works_public_read" on works for select
   using (
     exists (select 1 from series s where s.slug = works.series and s.published = true)
+    -- A work with a secondary_series is visible once *either* of its two series
+    -- is published — same idea as the cross-categorization rule below, but for an
+    -- explicit second assignment (e.g. a jewelry piece that's also an edition)
+    -- rather than an automatic material+date rule.
+    or (
+      works.secondary_series is not null
+      and exists (select 1 from series s where s.slug = works.secondary_series and s.published = true)
+    )
     -- Cross-categorization rule (see CLAUDE.md): a ceramic work dated before 2000
     -- is publicly visible once Early Clay is published, even if its own series
     -- isn't published yet — must be enforced here too, or RLS would hide the row
@@ -144,6 +168,7 @@ create policy "photos_public_read" on work_photos for select
       select 1 from works w join series s on s.slug = w.series
       where w.id = work_photos.work_id and (
         s.published = true
+        or (w.secondary_series is not null and exists (select 1 from series ss where ss.slug = w.secondary_series and ss.published = true))
         or (w.tag = 'ceramic' and w.year < 2000 and exists (select 1 from series es where es.slug = 'early-clay' and es.published = true))
         or auth.role() = 'authenticated'
       )
@@ -160,6 +185,7 @@ create policy "annotations_public_read" on work_annotations for select
       select 1 from works w join series s on s.slug = w.series
       where w.id = work_annotations.work_id and (
         s.published = true
+        or (w.secondary_series is not null and exists (select 1 from series ss where ss.slug = w.secondary_series and ss.published = true))
         or (w.tag = 'ceramic' and w.year < 2000 and exists (select 1 from series es where es.slug = 'early-clay' and es.published = true))
         or auth.role() = 'authenticated'
       )
@@ -267,5 +293,22 @@ insert into works (cr_number, title, date_display, year, medium, tag, series, le
   (110, 'Fe', '2010', 2010, null, 'ceramic', 'bronze-works', null, 'No image or explicit medium confirmation found on the legacy site — classified ceramic per curatorial direction; needs source verification.'),
   (111, 'Early Torsos', 'c. 1967', 1967, null, 'ceramic', 'early-clay', null, 'Bundles several named sub-works (Wave Figures, Coiled Figure, Early Figures, Open Mouth); no image found; likely overlaps with Wave Torsos/Tribe — needs curatorial review.'),
   (112, 'One Fluid Stroke', '2014', 2014, 'Ceramic ("Fifty Plates" — 50 unique numbered plates)', 'ceramic', 'editions', null, 'No photo found on the legacy site to verify — medium confirmed as ceramic via page text only.'),
-  (113, 'Fossil & Volcanic Bowl', '1964', 1964, 'Clay (two bowls: "Fossil Bowl" and "Volcanic Bowl")', 'ceramic', 'early-clay', null, 'No image found; may represent two separate bowls bundled as one legacy entry — needs curatorial review.')
+  (113, 'Fossil & Volcanic Bowl', '1964', 1964, 'Clay (two bowls: "Fossil Bowl" and "Volcanic Bowl")', 'ceramic', 'early-clay', null, 'No image found; may represent two separate bowls bundled as one legacy entry — needs curatorial review.'),
+  (114, 'Prophecy', 'Date pending', null, 'Bronze', 'bronze', 'public-installations', 'https://micheleokadoner.com/wp-content/uploads/2021/07/Prophesy_Icon_bw.png', null)
 on conflict (cr_number) do nothing;
+
+-- Frond Necklace is also part of a limited-edition run, in addition to being jewelry.
+update works set secondary_series = 'editions' where cr_number = 22;
+
+-- Prophecy (MOD CR 114) has a verified process photo — "Patina at Talix," the artist
+-- applying patina at the Talix foundry — self-hosted (uploaded to the work-photos
+-- bucket) rather than linked to the legacy site, matching how new intake works.
+-- No natural unique key on work_photos to use "on conflict", so guard with NOT EXISTS
+-- instead to keep this safe to re-run.
+insert into work_photos (work_id, storage_path, photo_type, caption)
+select w.id, w.id || '/patina-at-talix.jpg', 'process', 'Patina at Talix'
+from works w
+where w.cr_number = 114
+and not exists (
+  select 1 from work_photos wp where wp.work_id = w.id and wp.storage_path = w.id || '/patina-at-talix.jpg'
+);
