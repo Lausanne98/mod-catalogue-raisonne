@@ -36,17 +36,19 @@ the `_sans` suffix. Superseded versions eventually move to `Archive/`.
 ## Work taxonomy
 Every catalogued work has two independent classifications, filterable separately:
 
-**Medium** (material): paper, ceramic, bronze, gold, silver, diamonds, stone,
-organic material, glass, steel, canvas, painting, photography, video.
+**Medium** (material) — a fixed, closed list: paper, ceramic, bronze, gold, silver,
+diamonds, stone, organic material, glass, steel, canvas, painting, photography,
+video. `medium` (free text, e.g. "Raku ceramic", "Bronze with silver") is the
+descriptive label shown on the work's page; the `tag` field is the *filter* value
+and must be one of this list — it's a `check` constraint in the schema, not meant
+to grow.
 
-**Series** (category): early clay, jewelry, works on paper, public works,
-commissions, sculpture, fables.
-
-`medium` (free text, e.g. "Raku ceramic", "Bronze with silver") is the descriptive
-label shown on the work's page. The `tag` field on each work is the *filter* value
-and must be one of the Medium list above. `series` is the filter value for Series
-and must be one of the Series list above (internal slugs may differ from display
-labels for historical reasons — see the `seriesLabels` map in
+**Series** (category) — open-ended, meant to grow. Unlike Medium, this is not a
+fixed short list — it's whatever rows exist in the `series` table, and adding a
+new one is a normal, expected operation, not a schema change. See "Granular named
+series" below for the two tiers this actually contains in practice. `series` on a
+work is the filter value and must match a `series.slug` (internal slugs may differ
+from display labels for historical reasons — see the `seriesLabels` map in
 `catalogue_entry_v6_sans.html` and the `SERIES` object in `catalogue_v10_sans.html`).
 
 ## Cross-categorization rule
@@ -70,6 +72,31 @@ work specifically, not "ceramic at any date." The *only* way a non-directly-
 assigned work should ever appear under the Early Clay filter is the
 cross-categorization rule above (ceramic + pre-2000) — never by setting
 `series = early-clay` directly on a work that isn't both.
+
+## Granular named series
+The `series` table holds two tiers, both real, both filterable the same way —
+there's no schema distinction between them, just a difference in how broad they
+are:
+1. **Broad category buckets**: early-clay, jewelry, works-on-paper,
+   public-installations, commissions, bronze-works ("Sculpture"), fables,
+   editions, publications.
+2. **Granular, named sub-series** — a specific body of work, closer to how
+   Roy Lichtenstein's catalogue raisonné organizes hundreds of works into very
+   specific named series (e.g. "Brushstroke Head [collages]," "Entablature
+   Paintings," "Mirror series [prints]") rather than only broad material
+   buckets. Reference examples added so far: `thorn-men` (Thorn Men),
+   `terrible-chairs` (Terrible Chairs), `talisman-series` (Talisman), `radiant`
+   (Radiant), `pollinators` (Pollinators), `hominim-relics` (Hominim Relics),
+   `tattooed` (Tattooed).
+
+A work's `series` is whichever of these two tiers is more specifically true for
+it — if a named sub-series exists for its body of work (e.g. a Tattooed piece),
+use that rather than the broader bucket it would otherwise fall into. This is
+expected to keep expanding as more of the artist's work gets organized this way;
+adding a new named series is a normal operation (insert a `series` row), not a
+special case. It doesn't replace the cross-categorization rule above — a
+ceramic/pre-2000 work in a granular series (e.g. `tattooed`) still shows under
+the Early Clay filter too, on top of its own more specific series.
 
 ## Known open item
 MOD CR 8 ("Into the Mysterium," mixed media installation) doesn't have a clean single

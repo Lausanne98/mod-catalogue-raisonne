@@ -24,7 +24,18 @@ insert into series (slug, label, published, sort_order) values
   ('bronze-works',          'Sculpture',       false, 6),
   ('fables',                'Fables',          false, 7),
   ('editions',              'Editions',        false, 8),
-  ('publications',          'Publications',    false, 9)
+  ('publications',          'Publications',    false, 9),
+  -- Granular, named sub-series (see CLAUDE.md "Granular named series") — a work's
+  -- own body-of-work grouping, distinct from the broad material/category buckets
+  -- above. A ceramic/pre-2000 work in one of these still cross-categorizes into
+  -- Early Clay per the existing rule regardless of this more specific series.
+  ('thorn-men',             'Thorn Men',        false, 10),
+  ('terrible-chairs',       'Terrible Chairs',  false, 11),
+  ('talisman-series',       'Talisman',         false, 12),
+  ('radiant',               'Radiant',          false, 13),
+  ('pollinators',           'Pollinators',      false, 14),
+  ('hominim-relics',        'Hominim Relics',   false, 15),
+  ('tattooed',              'Tattooed',         false, 16)
 on conflict (slug) do nothing;
 
 -- ═══ WORKS ═══
@@ -235,27 +246,27 @@ create policy "work_audio_admin_delete" on storage.objects for delete
 -- rather than re-uploading into Storage in this pass — new intake uploads going
 -- forward use work_photos + the work-photos bucket properly.
 insert into works (cr_number, title, date_display, year, medium, tag, series, legacy_image_url, flag) values
-  (1, 'Tattooed Torso', '1966', 1966, 'Ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/TattooedTorso1966-icon.png', null),
+  (1, 'Tattooed Torso', '1966', 1966, 'Ceramic', 'ceramic', 'tattooed', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/TattooedTorso1966-icon.png', null),
   (13, 'Ceramic Seeds', 'c. 1971', 1971, 'Glazed ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/TwoCeramicSeeds-icon-1.png', null),
   (2, 'Germinating Seeds', 'c. 1972', 1972, 'Bronze', 'bronze', 'bronze-works', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/GerminatingSeeds-icon-223x200.png', null),
-  (18, 'Tattooed Relic', 'c. 1974', 1974, 'Ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Tatoed_Relic.jpg', null),
+  (18, 'Tattooed Relic', 'c. 1974', 1974, 'Ceramic', 'ceramic', 'tattooed', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Tatoed_Relic.jpg', null),
   (14, 'Death Masks', 'c. 1975', 1975, 'Ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/DeathMasks-Icon.png', null),
   (15, 'Descending Torsos', '1975', 1975, 'Ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/DescendingTorsos1975-icon.png', null),
   (16, 'Wings II', '1975', 1975, 'Raku ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/WaveFigures-Icon.png', null),
   (20, 'Seeds & Pods', 'c. 1975', 1975, 'Ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/SeadPods-icon.png', null),
   (17, 'Triads', 'c. 1976', 1976, 'Raku ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Tortoises-icon.png', null),
-  (21, 'Tattooed Dolls', 'c. 1975', 1975, 'Ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Totems-icon.png', null),
+  (21, 'Tattooed Dolls', 'c. 1975', 1975, 'Ceramic', 'ceramic', 'tattooed', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Totems-icon.png', null),
   (19, 'Figures with Staffs', 'c. 1978', 1978, 'Ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Figures-Icon.png', null),
   (3, 'Burning Branches', '1975', 1975, 'Bronze', 'bronze', 'bronze-works', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/BurningBranches-Icon.png', null),
   (4, 'Soul Catchers', '1977', 1977, 'Bronze', 'bronze', 'bronze-works', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/SoulCatchers_Clay-Icon.png', null),
   (5, 'Pictographs', 'c. 1979', 1979, 'Ceramic', 'ceramic', 'early-clay', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Pictograph_icon.png', null),
   (7, 'Celestial Plaza', '1986', 1986, 'Bronze — permanent public install.', 'bronze', 'public-installations', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/AMNH_installation-icon.png', null),
-  (9, 'Radiant Disk', '1988', 1988, 'Bronze with patina', 'bronze', 'bronze-works', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/RadiantDiskIceRing.png', null),
+  (9, 'Radiant Disk', '1988', 1988, 'Bronze with patina', 'bronze', 'radiant', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/RadiantDiskIceRing.png', null),
   (6, 'A Walk on the Beach', '1995', 1995, 'Bronze — permanent public install.', 'bronze', 'public-installations', null, 'icon mismatch — sourced image did not depict this work, removed pending correct image'),
   (10, 'Blueprint of Eden', '1999', 1999, 'Cyanotype, natural specimens', 'paper', 'works-on-paper', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/BluePrintOfEden-IconV3-1-213x223.png', null),
-  (11, 'Thorn Man', 'c. 2000', 2000, 'Bronze with silver', 'bronze', 'bronze-works', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Thornmen3_studio-photos_Dirk-Bakker-R_iconV2-177x223.png', null),
+  (11, 'Thorn Man', 'c. 2000', 2000, 'Bronze with silver', 'bronze', 'thorn-men', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Thornmen3_studio-photos_Dirk-Bakker-R_iconV2-177x223.png', null),
   (8, 'Into the Mysterium', '2003', 2003, 'Mixed media installation', null, 'public-installations', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Mysterium-Icon.png', 'Medium classification undecided — mixed media installation, no clean single Medium value in the taxonomy (see CLAUDE.md known open item)'),
-  (12, 'Talisman', '2019', 2019, 'Bronze — permanent public install.', 'bronze', 'public-installations', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Talisman_Icon-142x223.png', null),
+  (12, 'Talisman', '2019', 2019, 'Bronze — permanent public install.', 'bronze', 'talisman-series', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/Talisman_Icon-142x223.png', null),
   (22, 'Frond Necklace', 'Date pending', null, 'Silver', 'silver', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/FrondNecklace.jpg', null),
   (23, 'Totem Necklace', 'Date pending', null, 'Silver', 'silver', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/TotemNecklace.jpg', null),
   (24, 'Amulet Necklace', 'Date pending', null, 'Silver', 'silver', 'jewelry', 'https://lausanne98.github.io/mod-catalogue-raisonne/Entry%20Images/AmuletNecklace-Icon.png', null),
@@ -284,14 +295,14 @@ on conflict (cr_number) do nothing;
 insert into works (cr_number, title, date_display, year, medium, tag, series, legacy_image_url, flag) values
   (100, 'Fossil & Volcanic Bowl', '1964', 1964, 'Clay (two bowls: "Fossil Bowl" and "Volcanic Bowl")', 'ceramic', 'early-clay', null, 'No image found; may represent two separate bowls bundled as one legacy entry — needs curatorial review.'),
   (101, 'Early Torsos', 'c. 1967', 1967, null, 'ceramic', 'early-clay', null, 'Bundles several named sub-works (Wave Figures, Coiled Figure, Early Figures, Open Mouth); no image found; likely overlaps with Wave Torsos/Tribe — needs curatorial review.'),
-  (102, 'Tattooed Torsos', '1968', 1968, 'Clay ("Six Totems")', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/01/Tatooed-Toros-68.jpg', 'Name closely echoes MOD CR 1 "Tattooed Torso" (1966) — appears distinct per date/description (a group of six totems vs. a single 1966 piece) but flagged for curatorial confirmation it isn''t a duplicate.'),
+  (102, 'Tattooed Torsos', '1968', 1968, 'Clay ("Six Totems")', 'ceramic', 'tattooed', 'https://micheleokadoner.com/wp-content/uploads/2018/01/Tatooed-Toros-68.jpg', 'Name closely echoes MOD CR 1 "Tattooed Torso" (1966) — appears distinct per date/description (a group of six totems vs. a single 1966 piece) but flagged for curatorial confirmation it isn''t a duplicate.'),
   (103, 'Wave Torsos', 'c. 1969', 1969, 'Clay', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2022/03/WaveTorsos.jpg', null),
   (104, 'Burial Pieces', 'c. 1974–1975', 1975, 'Raku, high-fired porcelain, smoked stoneware (group work)', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2017/12/Burial-Pieces-Master-2.jpg', 'Group photo names ~8 sub-pieces; some (Triad, Descending Torso, Wings II) overlap existing MOD CR 15/16/17 — needs curatorial review on whether to split into individual works.'),
   (105, 'Labyrinth', '1977', 1977, 'Handmade basalt clay', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/06/Labyrinth1977-icon_lighter-copy_no-bg_REFINED_COLOR-155x146.jpg', null),
   (106, 'Scapula', '1977', 1977, 'Raku', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2017/12/Scalpula_PorcelainSculptureMODoner-f-2.jpg', null),
   (107, 'Tribe', 'c. 1982', 1982, 'Clay', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/01/TribeDB.jpg', null),
   (108, 'Disarming Images', '1985', 1985, 'Clay', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/09/DisarmingImages-Icon.png', null),
-  (109, 'Radiant Site', '1990', 1990, 'Gold-luster Pewabic ceramic tile (MTA installation)', 'ceramic', 'early-clay', null, 'Image URL from legacy site was truncated/unconfirmed during research — needs sourcing before display.'),
+  (109, 'Radiant Site', '1990', 1990, 'Gold-luster Pewabic ceramic tile (MTA installation)', 'ceramic', 'radiant', null, 'Image URL from legacy site was truncated/unconfirmed during research — needs sourcing before display.'),
   (110, 'Caio', '2008', 2008, 'Iron-glazed porcelain', 'ceramic', 'bronze-works', 'https://micheleokadoner.com/wp-content/uploads/2018/09/Caio-Consumed-by-Fire-2ViewsMOD.jpg', null),
   (111, 'Telchine, Gaia, Rhea & Ur', 'c. 2009–2010', 2010, 'Earthenware (Nymphenburg Porcelain Manufactory)', 'ceramic', 'bronze-works', 'https://micheleokadoner.com/wp-content/uploads/2018/02/Telchine.jpg', 'Legacy page bundles four named pieces (Telchine, Gaia, Rhea, Ur) under one photo/entry — may need splitting into separate catalogue works.'),
   (112, 'Fe', '2010', 2010, null, 'ceramic', 'bronze-works', null, 'No image or explicit medium confirmation found on the legacy site — classified ceramic per curatorial direction; needs source verification.'),
