@@ -122,11 +122,17 @@ they document the work, they aren't a candidate to represent it.
 
 ## Don't repeat a work's series/category on the entry page
 Requested multiple times, previously lost between sessions — now the rule, not a
-one-off fix. A work's series (e.g. "Early Clay") appears in exactly two places on
-the entry page, each serving a different purpose:
-1. The `cr-num` header line ("MOD CR 5 · Early Clay") — the identifying statement.
-2. The sidebar's "Series" section — a navigation link, not just a label.
-It must **not** also appear a third time as a "Category" row in the metadata
-panel — that repeated the same text with no added information and no functional
-purpose. If a future redesign adds a metadata/data table back, do not add a
-Category/Series field to it; the two placements above are already sufficient.
+one-off fix. A work's series (e.g. "Early Clay") appears in exactly **one** place
+on the entry page: the `cr-num` header line ("MOD CR 5 · Early Clay"). It must not
+be repeated anywhere else on the page — not as a "Category" row in a metadata
+table, not in a sidebar. (The entry page has no left sidebar at all — see
+"Entry page layout" below — so there's no second, navigation-link copy of it
+either anymore.) If a future redesign adds any kind of metadata table or nav
+element back, do not add a Category/Series field to it.
+
+## Entry page layout
+No left sidebar/subnav. Text lives only above the image (the breadcrumb) and to
+its right (title, date, medium, classification, any metadata) — nothing on the
+image's left. This was a deliberate layout decision (requested multiple times),
+not an oversight — don't reintroduce a left column of nav links, section
+jump-links, series links, or a print button when editing this page.
