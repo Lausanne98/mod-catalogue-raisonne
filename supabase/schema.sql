@@ -301,19 +301,27 @@ insert into works (cr_number, title, date_display, year, medium, tag, series, le
   (105, 'Labyrinth', '1977', 1977, 'Handmade basalt clay', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/06/Labyrinth1977-icon_lighter-copy_no-bg_REFINED_COLOR-155x146.jpg', null),
   (106, 'Scapula', '1977', 1977, 'Raku', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2017/12/Scalpula_PorcelainSculptureMODoner-f-2.jpg', null),
   (107, 'Tribe', 'c. 1982', 1982, 'Clay', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/01/TribeDB.jpg', null),
-  (108, 'Disarming Images', '1985', 1985, 'Clay', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/09/DisarmingImages-Icon.png', null),
-  (109, 'Radiant Site', '1990', 1990, 'Gold-luster Pewabic ceramic tile (MTA installation)', 'ceramic', 'radiant', null, 'Image URL from legacy site was truncated/unconfirmed during research — needs sourcing before display.'),
-  (110, 'Caio', '2008', 2008, 'Iron-glazed porcelain', 'ceramic', 'bronze-works', 'https://micheleokadoner.com/wp-content/uploads/2018/09/Caio-Consumed-by-Fire-2ViewsMOD.jpg', null),
-  (111, 'Telchine, Gaia, Rhea & Ur', 'c. 2009–2010', 2010, 'Earthenware (Nymphenburg Porcelain Manufactory)', 'ceramic', 'bronze-works', 'https://micheleokadoner.com/wp-content/uploads/2018/02/Telchine.jpg', 'Legacy page bundles four named pieces (Telchine, Gaia, Rhea, Ur) under one photo/entry — may need splitting into separate catalogue works.'),
-  (112, 'Fe', '2010', 2010, null, 'ceramic', 'bronze-works', null, 'No image or explicit medium confirmation found on the legacy site — classified ceramic per curatorial direction; needs source verification.'),
-  (113, 'One Fluid Stroke', '2014', 2014, 'Ceramic ("Fifty Plates" — 50 unique numbered plates)', 'ceramic', 'editions', null, 'No photo found on the legacy site to verify — medium confirmed as ceramic via page text only.'),
-  (114, 'Prophecy', 'Date pending', null, 'Bronze', 'bronze', 'public-installations', 'https://micheleokadoner.com/wp-content/uploads/2021/07/Prophesy_Icon_bw.png', null)
+  (108, 'Terrible Table', 'c. 1984', 1984, 'Bronze, glass', 'bronze', 'terrible-chairs', 'https://micheleokadoner.com/wp-content/uploads/2017/12/22Terrible-Table22_MODoner_LR-copy.jpg', null),
+  (109, 'Terrible Chair 4', 'c. 1984', 1984, 'Bronze with gold leaf', 'bronze', 'terrible-chairs', 'https://micheleokadoner.com/wp-content/uploads/2017/12/1.-Large-Gold-Terrible-Chair.jpg', null),
+  (110, 'Disarming Images', '1985', 1985, 'Clay', 'ceramic', 'early-clay', 'https://micheleokadoner.com/wp-content/uploads/2018/09/DisarmingImages-Icon.png', null),
+  (111, 'Radiant Site', '1990', 1990, 'Gold-luster Pewabic ceramic tile (MTA installation)', 'ceramic', 'radiant', null, 'Image URL from legacy site was truncated/unconfirmed during research — needs sourcing before display.'),
+  (112, 'Terrible Chairs', '1990', 1990, 'Bronze', 'bronze', 'terrible-chairs', 'https://micheleokadoner.com/wp-content/uploads/2017/12/ThorneChair.jpg', null),
+  (113, 'Caio', '2008', 2008, 'Iron-glazed porcelain', 'ceramic', 'bronze-works', 'https://micheleokadoner.com/wp-content/uploads/2018/09/Caio-Consumed-by-Fire-2ViewsMOD.jpg', null),
+  (114, 'Telchine, Gaia, Rhea & Ur', 'c. 2009–2010', 2010, 'Earthenware (Nymphenburg Porcelain Manufactory)', 'ceramic', 'bronze-works', 'https://micheleokadoner.com/wp-content/uploads/2018/02/Telchine.jpg', 'Legacy page bundles four named pieces (Telchine, Gaia, Rhea, Ur) under one photo/entry — may need splitting into separate catalogue works.'),
+  (115, 'Fe', '2010', 2010, null, 'ceramic', 'bronze-works', null, 'No image or explicit medium confirmation found on the legacy site — classified ceramic per curatorial direction; needs source verification.'),
+  (116, 'One Fluid Stroke', '2014', 2014, 'Ceramic ("Fifty Plates" — 50 unique numbered plates)', 'ceramic', 'editions', null, 'No photo found on the legacy site to verify — medium confirmed as ceramic via page text only.'),
+  (117, 'Apis 1-9 and Queen', '2014', 2014, 'Cast bronze', 'bronze', 'pollinators', 'https://micheleokadoner.com/wp-content/uploads/2017/12/Polinators-f.jpg', 'From the series "The Rise of Plants."'),
+  (118, 'Hominim Relics', '2015', 2015, 'Wax, wood', 'organic-material', 'hominim-relics', 'https://micheleokadoner.com/wp-content/uploads/2017/12/063797_015.jpg', null),
+  (119, 'Prophecy', 'Date pending', null, 'Bronze', 'bronze', 'public-installations', 'https://micheleokadoner.com/wp-content/uploads/2021/07/Prophesy_Icon_bw.png', null)
 on conflict (cr_number) do nothing;
 
 -- Frond Necklace is also part of a limited-edition run, in addition to being jewelry.
 update works set secondary_series = 'editions' where cr_number = 22;
 
--- Prophecy (MOD CR 114) has a verified process photo — "Patina at Talix," the artist
+-- Terrible Table (MOD CR 108) is held in a museum collection.
+update works set provenance = 'Collection of The Art Institute of Chicago.' where cr_number = 108;
+
+-- Prophecy (MOD CR 119) has a verified process photo — "Patina at Talix," the artist
 -- applying patina at the Talix foundry — self-hosted (uploaded to the work-photos
 -- bucket) rather than linked to the legacy site, matching how new intake works.
 -- No natural unique key on work_photos to use "on conflict", so guard with NOT EXISTS
@@ -321,7 +329,7 @@ update works set secondary_series = 'editions' where cr_number = 22;
 insert into work_photos (work_id, storage_path, photo_type, caption)
 select w.id, w.id || '/patina-at-talix.jpg', 'process', 'Patina at Talix'
 from works w
-where w.cr_number = 114
+where w.cr_number = 119
 and not exists (
   select 1 from work_photos wp where wp.work_id = w.id and wp.storage_path = w.id || '/patina-at-talix.jpg'
 );
