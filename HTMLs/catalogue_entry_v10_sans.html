@@ -70,7 +70,10 @@
   /* Centered as a unit on wide viewports (this is how the site originally looked)
      rather than the subnav sitting flush against the left edge with a lopsided
      gap of empty space on the right. */
-  main { margin: 58px auto 0; display: flex; min-height: calc(100vh - 58px); max-width: 1320px; }
+  /* 220px subnav + 960px entry-body (its own internal max-width) = 1180px total —
+     matches main's cap exactly so there's no leftover dead space on the right
+     side of a wide viewport pulling the whole block off-center. */
+  main { margin: 58px auto 0; display: flex; min-height: calc(100vh - 58px); max-width: 1180px; }
 
   /* ── Left subnav ── */
   .subnav {
@@ -176,8 +179,6 @@
   .d-val { font-size: 14px; color: var(--ink); line-height: 1.55; }
   .d-val a { color: var(--gold); text-decoration: none; border-bottom: 1px solid var(--goldlt); }
   .d-val em { font-style: italic; }
-  .category-row { grid-template-columns: 1fr; }
-  .category-val { color: var(--mid); }
 
   .classification-tag {
     display: inline-block; margin-top: 20px;
@@ -526,9 +527,6 @@
         <div class="work-medium">Bronze</div>
 
         <div class="data-table">
-          <div class="data-row category-row">
-            <div class="d-val category-val">Early Clay</div>
-          </div>
           <div class="data-row">
             <div class="d-lbl">Dimensions</div>
             <div class="d-val">
@@ -832,9 +830,11 @@ if (!work) {
   }
   document.querySelector('.thumb-row').remove();
   document.querySelector('.img-credit').remove();
-  const categoryText = [work.series, work.secondarySeries].filter(Boolean).map(s => seriesLabels[s] || s).join(' · ');
-  document.querySelector('.data-table').innerHTML =
-    `<div class="data-row category-row"><div class="d-val category-val">${categoryText || '—'}</div></div>`;
+  // No "Category" row here — the series is already shown in the header line
+  // (cr-num, above) and as a navigation link in the sidebar; a third repeat in
+  // this panel added no information. Remove the whole table for now since
+  // minimal entries have no other populated fields (dimensions, inscriptions, etc.)
+  document.querySelector('.data-table').remove();
   // Process photos (e.g. foundry/patina documentation) are optional and rare —
   // the nav item and section only appear at all when a work actually has one.
   // The list-fetched `work` object has no .photos (modcrFetchWorks doesn't select

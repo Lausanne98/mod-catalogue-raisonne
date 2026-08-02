@@ -119,3 +119,14 @@ from documentation of the work being made — foundry, patina, studio-process sh
 "Process" nav item and section on the entry page) when a work actually has a photo
 tagged that way. Process photos are excluded from primary/featured-image selection —
 they document the work, they aren't a candidate to represent it.
+
+## Don't repeat a work's series/category on the entry page
+Requested multiple times, previously lost between sessions — now the rule, not a
+one-off fix. A work's series (e.g. "Early Clay") appears in exactly two places on
+the entry page, each serving a different purpose:
+1. The `cr-num` header line ("MOD CR 5 · Early Clay") — the identifying statement.
+2. The sidebar's "Series" section — a navigation link, not just a label.
+It must **not** also appear a third time as a "Category" row in the metadata
+panel — that repeated the same text with no added information and no functional
+purpose. If a future redesign adds a metadata/data table back, do not add a
+Category/Series field to it; the two placements above are already sufficient.
