@@ -12,6 +12,20 @@ chronological renumbering, which happens once before the site is officially
 published — CR numbers are expected to be fluid until then, not fixed on
 assignment.
 
+**Within the 100+ block itself, numbers must still be assigned in chronological
+(by-year) order** — 100 is the earliest-dated work in that block, and each
+subsequent number is the next-earliest, going up. This is not optional or
+"eventually" — it applies every time a new work is added to the block, not just
+once at the end. Do not assign the next sequential number by migration/discovery
+order (e.g. "whatever I processed first") — sort by `year` first. Ties (same
+year) can be broken arbitrarily, but a work from a later year must never get a
+lower number than a work from an earlier year. A work with no known year at all
+goes at the very end of the block (after every dated work), since it can't be
+placed chronologically. Whenever a new work is added to the 100+ block, re-check
+whether it needs to be inserted in the middle (shifting later numbers up) rather
+than just appended at the end — appending only happens to be correct if the new
+work is in fact the latest-dated one so far.
+
 ## Versioning rule
 Live pages are the `.._sans.html` files in `HTMLs/`. When a file needs a meaningful
 change: never edit an existing version in place. Copy it to the next version number
