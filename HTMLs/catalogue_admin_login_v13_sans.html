@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Sign In — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0ede8;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #e2dfda;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --red:    #a83232;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--sand); color: var(--ink);
+    font-family: 'Inter', sans-serif; font-weight: 400;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .login-card {
+    background: var(--white); border: 1px solid var(--rule); padding: 40px 36px; width: 100%; max-width: 380px;
+  }
+  .login-head { margin-bottom: 28px; text-align: center; }
+  .login-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 20px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .login-head p { font-size: 12px; color: var(--mid); }
+  .f-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+  .f-label { font-size: 9.5px; letter-spacing: .1em; font-weight: 500; text-transform: uppercase; color: var(--light); }
+  input[type=password], input[type=email] {
+    font-family: 'Inter', sans-serif; font-size: 14px; color: var(--ink);
+    border: 1px solid var(--rule); padding: 10px 12px; width: 100%;
+  }
+  input:focus { outline: none; border-color: var(--goldlt); }
+  .login-btn {
+    width: 100%; font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    padding: 12px; background: var(--ink); color: var(--white); border: none; cursor: pointer; transition: background .18s;
+  }
+  .login-btn:hover { background: var(--gold); }
+  .login-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .login-error { font-size: 12px; color: var(--red); margin-top: 12px; text-align: center; display: none; }
+  .login-error.show { display: block; }
+  .login-back { text-align: center; margin-top: 20px; }
+  .login-back a { font-size: 11px; color: var(--light); text-decoration: none; }
+  .login-back a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="login-head">
+    <h1>Admin Sign In</h1>
+    <p>Michele Oka Doner: A Catalogue Raisonné</p>
+  </div>
+  <form id="loginForm">
+    <div class="f-field">
+      <label class="f-label" for="f-email">Email</label>
+      <input type="email" id="f-email" autocomplete="username" autofocus>
+    </div>
+    <div class="f-field">
+      <label class="f-label" for="f-pass">Password</label>
+      <input type="password" id="f-pass" autocomplete="current-password">
+    </div>
+    <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+    <div class="login-error" id="loginError"></div>
+  </form>
+  <div class="login-back"><a href="catalogue_v22_sans.html">← Back to the Catalogue</a></div>
+</div>
+
+<script src="modcr-gate.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="modcr-client.js"></script>
+<script>
+async function handleLogin(e){
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  errEl.classList.remove('show');
+  const email = document.getElementById('f-email').value.trim();
+  const password = document.getElementById('f-pass').value;
+  btn.disabled = true;
+  btn.textContent = 'Signing In…';
+  const { error } = await modcrSupabase.auth.signInWithPassword({ email, password });
+  btn.disabled = false;
+  btn.textContent = 'Sign In';
+  if(error){
+    errEl.textContent = error.message || "That email/password combination isn't correct.";
+    errEl.classList.add('show');
+    return;
+  }
+  // A signed-in admin has already proven who they are — never make them clear
+  // the separate visitor preview-password gate on top of that.
+  modcrGrantPreviewAccess();
+  window.location.href = 'catalogue_admin_v13_sans.html';
+}
+document.getElementById('loginForm').addEventListener('submit', handleLogin);
+
+// Already signed in — skip straight to the dashboard.
+modcrSupabase.auth.getSession().then(({data:{session}})=>{
+  if(session){
+    modcrGrantPreviewAccess();
+    window.location.href = 'catalogue_admin_v13_sans.html';
+  }
+});
+</script>
+</body>
+</html>
