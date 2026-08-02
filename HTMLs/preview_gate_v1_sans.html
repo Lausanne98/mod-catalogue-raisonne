@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview Access — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0ede8;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #e2dfda;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --red:    #a83232;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--sand); color: var(--ink);
+    font-family: 'Inter', sans-serif; font-weight: 400;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .gate-card {
+    background: var(--white); border: 1px solid var(--rule); padding: 40px 36px; width: 100%; max-width: 380px;
+  }
+  .gate-head { margin-bottom: 28px; text-align: center; }
+  .gate-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 20px; letter-spacing: -.01em; margin-bottom: 8px; }
+  .gate-head p { font-size: 12.5px; color: var(--mid); line-height: 1.6; }
+  .f-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+  .f-label { font-size: 9.5px; letter-spacing: .1em; font-weight: 500; text-transform: uppercase; color: var(--light); }
+  input[type=password] {
+    font-family: 'Inter', sans-serif; font-size: 14px; color: var(--ink);
+    border: 1px solid var(--rule); padding: 10px 12px; width: 100%;
+  }
+  input:focus { outline: none; border-color: var(--goldlt); }
+  .gate-btn {
+    width: 100%; font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    padding: 12px; background: var(--ink); color: var(--white); border: none; cursor: pointer; transition: background .18s;
+  }
+  .gate-btn:hover { background: var(--gold); }
+  .gate-error { font-size: 12px; color: var(--red); margin-top: 12px; text-align: center; display: none; }
+  .gate-error.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="gate-card">
+  <div class="gate-head">
+    <h1>Preview Access</h1>
+    <p>The full Catalogue Raisonné isn't public yet. If you've been given a preview password, enter it below.</p>
+  </div>
+  <form id="gateForm">
+    <div class="f-field">
+      <label class="f-label" for="f-pass">Password</label>
+      <input type="password" id="f-pass" autocomplete="current-password" autofocus>
+    </div>
+    <button type="submit" class="gate-btn" id="gateBtn">Enter</button>
+    <div class="gate-error" id="gateError">That password isn't correct.</div>
+  </form>
+</div>
+
+<script src="modcr-gate.js"></script>
+<script>
+// Only allow redirecting back to another page in this same folder — never an
+// absolute URL or a scheme like javascript:, so the ?return= param from the
+// address bar can't be turned into an open redirect.
+function safeReturnTarget(){
+  const raw = new URLSearchParams(location.search).get('return') || '';
+  if(/^[a-zA-Z0-9_\-]+\.html(\?[^\s]*)?$/.test(raw)) return raw;
+  return 'catalogue_v17_sans.html';
+}
+document.getElementById('gateForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const errEl = document.getElementById('gateError');
+  const entered = document.getElementById('f-pass').value;
+  if(entered === MODCR_PREVIEW_PASSWORD){
+    modcrGrantPreviewAccess();
+    window.location.href = safeReturnTarget();
+  } else {
+    errEl.classList.add('show');
+  }
+});
+
+// Already unlocked this browser — skip straight through.
+if(modcrHasPreviewAccess()){
+  window.location.replace(safeReturnTarget());
+}
+</script>
+</body>
+</html>
