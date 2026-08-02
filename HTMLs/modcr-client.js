@@ -15,7 +15,9 @@ function modcrPhotoUrl(storagePath){
   return modcrSupabase.storage.from('work-photos').getPublicUrl(storagePath).data.publicUrl;
 }
 function modcrAdaptWork(row){
-  const photos = row.work_photos || [];
+  // 'process' photos (e.g. a foundry/patina shot) are documentation, not candidates
+  // for the work's main/featured image — only 'work' photos can be primary.
+  const photos = (row.work_photos || []).filter(p => (p.photo_type || 'work') === 'work');
   const primary = photos.find(p=>p.is_primary) || photos[0];
   const img = primary ? modcrPhotoUrl(primary.storage_path) : (row.legacy_image_url || '');
   return {
@@ -28,6 +30,7 @@ function modcrAdaptWork(row){
     medium: row.medium || '',
     tag: row.tag || '',
     series: row.series,
+    secondarySeries: row.secondary_series || null,
     dimensions: row.dimensions || '',
     description: row.description || '',
     provenance: row.provenance || '',
@@ -45,7 +48,7 @@ async function modcrFetchWorks(){
   // works (year is null) sort last.
   const { data, error } = await modcrSupabase
     .from('works')
-    .select('*, work_photos(storage_path,is_primary)')
+    .select('*, work_photos(storage_path,is_primary,photo_type)')
     .order('year', { ascending: true, nullsFirst: false })
     .order('cr_number');
   if(error) throw error;
@@ -55,7 +58,7 @@ async function modcrFetchWorks(){
 async function modcrFetchWorkByCrNumber(crNumber){
   const { data, error } = await modcrSupabase
     .from('works')
-    .select('*, work_photos(id,storage_path,is_primary,caption,sort_order), work_annotations(id,storage_path,duration_seconds)')
+    .select('*, work_photos(id,storage_path,is_primary,caption,sort_order,photo_type), work_annotations(id,storage_path,duration_seconds)')
     .eq('cr_number', crNumber)
     .order('sort_order', { referencedTable: 'work_photos' })
     .maybeSingle();
@@ -80,6 +83,10 @@ async function modcrSetPrimaryPhoto(dbId, photoId){
 }
 async function modcrUpdatePhotoCaption(photoId, caption){
   const { error } = await modcrSupabase.from('work_photos').update({ caption: caption || null }).eq('id', photoId);
+  if(error) throw error;
+}
+async function modcrSetPhotoType(photoId, photoType){
+  const { error } = await modcrSupabase.from('work_photos').update({ photo_type: photoType }).eq('id', photoId);
   if(error) throw error;
 }
 async function modcrReorderPhotos(orderedPhotoIds){

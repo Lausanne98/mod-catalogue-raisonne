@@ -87,3 +87,21 @@ photo, title = this work's name." Two failure modes found so far, both from MOD 
    text placeholder, per existing fallback behavior) rather than showing a wrong photo.
    A work with a suspected mismatch should carry a `flag` field describing the issue so
    it surfaces in the admin Manage Works view instead of silently shipping bad data.
+
+## Secondary series (dual categorization)
+A work can optionally belong to a second series in addition to its primary one —
+e.g. a jewelry piece that's also part of a limited-edition run. Use `works.secondary_series`
+(nullable, references `series.slug`) for this rather than changing the primary `series`,
+since the work still belongs under its original category too. It's visible under either
+series' filter once *either* one is published (enforced in the RLS policies, not just
+client-side). This is a general-purpose, manually-assigned second category — different
+from the ceramic+pre-2000 cross-categorization rule above, which is an automatic rule
+based on medium and date rather than an explicit editorial assignment.
+
+## Process photos
+`work_photos.photo_type` distinguishes an ordinary work photo (`'work'`, the default)
+from documentation of the work being made — foundry, patina, studio-process shots
+(`'process'`). Most works will never have one; it's optional and only shows up (as a
+"Process" nav item and section on the entry page) when a work actually has a photo
+tagged that way. Process photos are excluded from primary/featured-image selection —
+they document the work, they aren't a candidate to represent it.
