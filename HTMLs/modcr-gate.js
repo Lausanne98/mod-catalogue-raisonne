@@ -6,8 +6,7 @@
 // Clay) — this is a friction gate for casual visitors, not the real access
 // control, so a plain client-side check is intentional, not an oversight.
 //
-// CHANGE THIS before sharing the link with anyone:
-const MODCR_PREVIEW_PASSWORD = 'earlyclay-preview';
+const MODCR_PREVIEW_PASSWORD = 'Clay45';
 
 function modcrHasPreviewAccess(){
   return localStorage.getItem('modcr_preview_access') === 'true';
