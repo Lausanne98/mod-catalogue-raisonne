@@ -36,15 +36,21 @@ the `_sans` suffix. Superseded versions eventually move to `Archive/`.
 ## Work taxonomy
 Every catalogued work has two independent classifications, filterable separately:
 
-**Medium** (material) — a fixed, closed list: paper, ceramic, bronze, gold, silver,
-diamonds, stone, concrete, organic material, glass, steel, canvas, painting,
-photography, video. `medium` (free text, e.g. "Raku ceramic", "Bronze with silver")
-is the descriptive label shown on the work's page; the `tag` field is the *filter*
-value and must be one of this list — it's a `check` constraint in the schema, not
-meant to grow. (`concrete` was added to the list rather than approximated as
-`stone` once it turned up as a recurring material across several works, e.g.
-"Another Sun" — a genuinely new value still requires deliberately adding it here
-and to the schema's check constraint, not silent reuse of the nearest existing tag.)
+**Medium** (material) — a deliberately curated list, managed from the admin
+**Manage Materials** page (add/remove a material there): paper, ceramic, bronze,
+gold, silver, diamonds, stone, concrete, organic material, glass, steel, canvas,
+painting, photography, video. `medium` (free text, e.g. "Raku ceramic", "Bronze
+with silver") is the descriptive label shown on the work's page; the `tag` field
+is the *filter* value and must match a `materials.slug` row — enforced by a
+foreign key in the schema (`works.tag references materials(slug)`), not a hardcoded
+check constraint, so a new material added via Manage Materials is automatically a
+valid tag. It's still not the same as Series, though: Series is meant to grow
+routinely as new bodies of work get organized; Medium changes rarely and
+deliberately — a genuinely new material (like `concrete`, added once it turned up
+as a recurring material across several works, e.g. "Another Sun") should still be
+a considered addition, not silent reuse of the nearest existing tag. Deleting a
+material still in use by a work fails (the foreign key blocks it) rather than
+silently orphaning that work's tag.
 
 **Series** (category) — open-ended, meant to grow. Unlike Medium, this is not a
 fixed short list — it's whatever rows exist in the `series` table, and adding a

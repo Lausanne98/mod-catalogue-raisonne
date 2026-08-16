@@ -38,6 +38,36 @@ insert into series (slug, label, published, sort_order) values
   ('tattooed',              'Tattooed',         false, 16)
 on conflict (slug) do nothing;
 
+-- ═══ MATERIALS (Medium/tag reference table) ═══
+-- Was originally a hardcoded CHECK constraint on works.tag, deliberately kept
+-- fixed/rarely-changing per CLAUDE.md's Medium taxonomy. Converted to a real
+-- table so it can be managed from admin (Manage Materials) the same way
+-- Series is — add/remove a material there instead of a code change. Kept
+-- alphabetically ordered by label; unlike series it has no published/
+-- sort_order concept, since there's no "coming soon" phase for a material.
+create table if not exists materials (
+  slug   text primary key,
+  label  text not null
+);
+
+insert into materials (slug, label) values
+  ('paper',            'Paper'),
+  ('ceramic',           'Ceramic'),
+  ('bronze',            'Bronze'),
+  ('gold',              'Gold'),
+  ('silver',            'Silver'),
+  ('diamonds',          'Diamonds'),
+  ('stone',             'Stone'),
+  ('concrete',          'Concrete'),
+  ('organic-material',  'Organic Material'),
+  ('glass',             'Glass'),
+  ('steel',             'Steel'),
+  ('canvas',            'Canvas'),
+  ('painting',          'Painting'),
+  ('photography',       'Photography'),
+  ('video',              'Video')
+on conflict (slug) do nothing;
+
 -- ═══ WORKS ═══
 create table if not exists works (
   id           uuid primary key default gen_random_uuid(),
@@ -46,11 +76,9 @@ create table if not exists works (
   date_display text,                             -- e.g. "c. 1975", "Date pending"
   year         integer,                          -- null if genuinely unknown
   medium       text,                             -- descriptive free text, e.g. "Raku ceramic"
-  tag          text check (tag in (               -- nullable: a work with no clean single
-                 'paper','ceramic','bronze','gold','silver','diamonds','stone', -- Medium value
-                 'concrete','organic-material','glass','steel','canvas',        -- (see CLAUDE.md
-                 'painting','photography','video'                              -- "Known open item")
-               )),                                                              -- stays unset, not guessed
+  tag          text references materials(slug),  -- nullable: a work with no clean single Medium
+                                                    -- value (see CLAUDE.md "Known open item")
+                                                    -- stays unset, not guessed
   series       text not null references series(slug),
   secondary_series text references series(slug),  -- optional: work also belongs under a
                                                     -- second series filter (e.g. a jewelry
@@ -75,16 +103,14 @@ create index if not exists works_series_idx on works(series);
 create index if not exists works_tag_idx on works(tag);
 
 -- Self-healing for a table created by an earlier, buggy version of this script
--- (tag was `not null` and the check list didn't cover every value actually used
--- in the migration below — 'jewelry' and 'installation' — which would have made
--- the works insert fail as a whole). Safe to re-run: no-ops once already fixed.
+-- (tag was `not null`). Safe to re-run: no-ops once already fixed.
 alter table works alter column tag drop not null;
+-- Self-healing: tag was originally a CHECK constraint against a hardcoded list
+-- (see the materials table above) — replaced with a real foreign key so a
+-- material added later via Manage Materials is automatically a valid tag.
 alter table works drop constraint if exists works_tag_check;
-alter table works add constraint works_tag_check check (tag in (
-  'paper','ceramic','bronze','gold','silver','diamonds','stone','concrete',
-  'organic-material','glass','steel','canvas','painting',
-  'photography','video'
-));
+alter table works drop constraint if exists works_tag_fkey;
+alter table works add constraint works_tag_fkey foreign key (tag) references materials(slug);
 
 -- Self-healing: add secondary_series to a works table created before this column existed.
 alter table works add column if not exists secondary_series text references series(slug);
@@ -145,6 +171,7 @@ create index if not exists work_annotations_work_id_idx on work_annotations(work
 -- Public (anon) visitors can read only works whose series is published.
 -- Authenticated (the admin, once real auth is wired up) can read/write everything.
 alter table series enable row level security;
+alter table materials enable row level security;
 alter table works enable row level security;
 alter table work_photos enable row level security;
 alter table work_annotations enable row level security;
@@ -155,6 +182,15 @@ create policy "series_public_read" on series for select
 
 drop policy if exists "series_admin_write" on series;
 create policy "series_admin_write" on series for all
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+drop policy if exists "materials_public_read" on materials;
+create policy "materials_public_read" on materials for select
+  using (true); -- everyone needs the full list to populate filter/intake dropdowns
+
+drop policy if exists "materials_admin_write" on materials;
+create policy "materials_admin_write" on materials for all
   using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
 

@@ -126,6 +126,24 @@ async function modcrDeleteSeries(slug){
   if(error) throw error;
 }
 
+// ---- Materials admin (add/remove a Medium value) ----
+async function modcrFetchMaterials(){
+  const { data, error } = await modcrSupabase.from('materials').select('*').order('label');
+  if(error) throw error;
+  return data;
+}
+async function modcrAddMaterial(slug, label){
+  const { data, error } = await modcrSupabase.from('materials').insert({ slug, label }).select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrDeleteMaterial(slug){
+  // No cascade on purpose — deleting a material still used by works should
+  // fail loudly (FK violation) rather than silently blanking their tag.
+  const { error } = await modcrSupabase.from('materials').delete().eq('slug', slug);
+  if(error) throw error;
+}
+
 function modcrSeriesPhotoUrl(storagePath){
   return modcrSupabase.storage.from('series-photos').getPublicUrl(storagePath).data.publicUrl;
 }
