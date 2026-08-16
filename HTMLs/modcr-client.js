@@ -1,6 +1,8 @@
 // MOD Catalogue Raisonné — shared Supabase client + data helpers.
 // Loaded by every DB-backed page after the Supabase UMD CDN script:
-//   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+//   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+// Pinned to an exact version, not a floating @2 tag — bump deliberately and
+// test, rather than silently picking up whatever's newest on every page load.
 //   <script src="modcr-client.js"></script>
 // The publishable (anon) key below is safe to ship client-side by design —
 // access control is enforced by the RLS policies in supabase/schema.sql, not
