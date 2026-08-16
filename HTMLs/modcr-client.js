@@ -107,6 +107,108 @@ async function modcrFetchSeries(){
   return data;
 }
 
+// ---- Series admin (create/edit/delete a series, and manage its carousel photos) ----
+async function modcrSaveSeries(payload, isNew){
+  if(isNew){
+    const { data, error } = await modcrSupabase.from('series').insert(payload).select().single();
+    if(error) throw error;
+    return data;
+  }
+  const { slug, ...rest } = payload;
+  const { data, error } = await modcrSupabase.from('series').update(rest).eq('slug', slug).select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrDeleteSeries(slug){
+  // No cascade on purpose — deleting a series that works still reference should
+  // fail loudly (FK violation) rather than silently orphan those works.
+  const { error } = await modcrSupabase.from('series').delete().eq('slug', slug);
+  if(error) throw error;
+}
+
+function modcrSeriesPhotoUrl(storagePath){
+  return modcrSupabase.storage.from('series-photos').getPublicUrl(storagePath).data.publicUrl;
+}
+async function modcrFetchSeriesPhotos(seriesSlug){
+  const { data, error } = await modcrSupabase
+    .from('series_photos').select('*').eq('series', seriesSlug).order('sort_order');
+  if(error) throw error;
+  return data;
+}
+async function modcrUploadSeriesPhoto(seriesSlug, file, photoType){
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${seriesSlug}/${crypto.randomUUID()}.${ext}`;
+  const { error: upErr } = await modcrSupabase.storage.from('series-photos').upload(path, file, { upsert: false });
+  if(upErr) throw upErr;
+  const { data, error } = await modcrSupabase.from('series_photos')
+    .insert({ series: seriesSlug, storage_path: path, photo_type: photoType || 'work' })
+    .select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrDeleteSeriesPhoto(photoId, storagePath){
+  await modcrSupabase.storage.from('series-photos').remove([storagePath]);
+  const { error } = await modcrSupabase.from('series_photos').delete().eq('id', photoId);
+  if(error) throw error;
+}
+async function modcrUpdateSeriesPhotoCaption(photoId, caption){
+  const { error } = await modcrSupabase.from('series_photos').update({ caption: caption || null }).eq('id', photoId);
+  if(error) throw error;
+}
+async function modcrSetSeriesPhotoType(photoId, photoType){
+  const { error } = await modcrSupabase.from('series_photos').update({ photo_type: photoType }).eq('id', photoId);
+  if(error) throw error;
+}
+async function modcrReorderSeriesPhotos(orderedPhotoIds){
+  await Promise.all(orderedPhotoIds.map((id, i) =>
+    modcrSupabase.from('series_photos').update({ sort_order: i }).eq('id', id)
+  ));
+}
+
+// ---- Chronology admin ----
+function modcrChronologyPhotoUrl(storagePath){
+  return modcrSupabase.storage.from('chronology-photos').getPublicUrl(storagePath).data.publicUrl;
+}
+async function modcrFetchChronologyDecades(){
+  const { data, error } = await modcrSupabase.from('chronology_decades').select('*').order('decade');
+  if(error) throw error;
+  return data;
+}
+async function modcrSaveChronologyDecade(decade, subtitle){
+  const { data, error } = await modcrSupabase.from('chronology_decades')
+    .upsert({ decade, subtitle: subtitle || null }).select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrFetchChronologyEvents(){
+  const { data, error } = await modcrSupabase
+    .from('chronology_events').select('*').order('year').order('sort_order');
+  if(error) throw error;
+  return data;
+}
+async function modcrSaveChronologyEvent(payload, id){
+  if(id){
+    const { data, error } = await modcrSupabase.from('chronology_events').update(payload).eq('id', id).select().single();
+    if(error) throw error;
+    return data;
+  }
+  const { data, error } = await modcrSupabase.from('chronology_events').insert(payload).select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrDeleteChronologyEvent(id, storagePath){
+  if(storagePath) await modcrSupabase.storage.from('chronology-photos').remove([storagePath]);
+  const { error } = await modcrSupabase.from('chronology_events').delete().eq('id', id);
+  if(error) throw error;
+}
+async function modcrUploadChronologyPhoto(eventId, file){
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${eventId}/${crypto.randomUUID()}.${ext}`;
+  const { error: upErr } = await modcrSupabase.storage.from('chronology-photos').upload(path, file, { upsert: false });
+  if(upErr) throw upErr;
+  return path;
+}
+
 // ---- Admin write helpers (require an authenticated session — enforced by RLS) ----
 async function modcrSaveWork(payload, dbId){
   if(dbId){
