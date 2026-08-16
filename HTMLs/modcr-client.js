@@ -31,6 +31,7 @@ function modcrAdaptWork(row){
     tag: row.tag || '',
     series: row.series,
     secondarySeries: row.secondary_series || null,
+    published: !!row.published,
     dimensions: row.dimensions || '',
     description: row.description || '',
     provenance: row.provenance || '',

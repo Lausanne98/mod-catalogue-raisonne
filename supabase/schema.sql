@@ -89,6 +89,25 @@ alter table works add constraint works_tag_check check (tag in (
 -- Self-healing: add secondary_series to a works table created before this column existed.
 alter table works add column if not exists secondary_series text references series(slug);
 
+-- Self-healing: per-work draft/published state, independent of series.published.
+-- Saving the intake form only ever writes a draft (published defaults false);
+-- a work only becomes publicly visible once explicitly published from the admin,
+-- AND its series is also published. Backfill only runs the one time the column
+-- is actually added — everything already in the catalogue before this feature
+-- existed was already effectively live, so it must not be retroactively hidden.
+-- Re-running this block after that first time is a no-op, same as the rest of
+-- this file.
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_name = 'works' and column_name = 'published'
+  ) then
+    alter table works add column published boolean not null default false;
+    update works set published = true;
+  end if;
+end $$;
+
 -- ═══ MEDIA (photos — a work can have several; one marked primary) ═══
 create table if not exists work_photos (
   id            uuid primary key default gen_random_uuid(),
@@ -142,24 +161,32 @@ create policy "series_admin_write" on series for all
 drop policy if exists "works_public_read" on works;
 create policy "works_public_read" on works for select
   using (
-    exists (select 1 from series s where s.slug = works.series and s.published = true)
-    -- A work with a secondary_series is visible once *either* of its two series
-    -- is published — same idea as the cross-categorization rule below, but for an
-    -- explicit second assignment (e.g. a jewelry piece that's also an edition)
-    -- rather than an automatic material+date rule.
+    auth.role() = 'authenticated'
+    -- Anonymous visitors additionally require the work itself to be published —
+    -- a per-work draft/publish state, independent of series.published below.
+    -- A draft is invisible to the public no matter how its series is set.
     or (
-      works.secondary_series is not null
-      and exists (select 1 from series s where s.slug = works.secondary_series and s.published = true)
+      works.published = true
+      and (
+        exists (select 1 from series s where s.slug = works.series and s.published = true)
+        -- A work with a secondary_series is visible once *either* of its two series
+        -- is published — same idea as the cross-categorization rule below, but for an
+        -- explicit second assignment (e.g. a jewelry piece that's also an edition)
+        -- rather than an automatic material+date rule.
+        or (
+          works.secondary_series is not null
+          and exists (select 1 from series s where s.slug = works.secondary_series and s.published = true)
+        )
+        -- Cross-categorization rule (see CLAUDE.md): a ceramic work dated before 2000
+        -- is publicly visible once Early Clay is published, even if its own series
+        -- isn't published yet — must be enforced here too, or RLS would hide the row
+        -- from anon reads before the client-side filter logic ever sees it.
+        or (
+          works.tag = 'ceramic' and works.year < 2000
+          and exists (select 1 from series s where s.slug = 'early-clay' and s.published = true)
+        )
+      )
     )
-    -- Cross-categorization rule (see CLAUDE.md): a ceramic work dated before 2000
-    -- is publicly visible once Early Clay is published, even if its own series
-    -- isn't published yet — must be enforced here too, or RLS would hide the row
-    -- from anon reads before the client-side filter logic ever sees it.
-    or (
-      works.tag = 'ceramic' and works.year < 2000
-      and exists (select 1 from series s where s.slug = 'early-clay' and s.published = true)
-    )
-    or auth.role() = 'authenticated'
   );
 
 drop policy if exists "works_admin_write" on works;
@@ -178,10 +205,15 @@ create policy "photos_public_read" on work_photos for select
     exists (
       select 1 from works w join series s on s.slug = w.series
       where w.id = work_photos.work_id and (
-        s.published = true
-        or (w.secondary_series is not null and exists (select 1 from series ss where ss.slug = w.secondary_series and ss.published = true))
-        or (w.tag = 'ceramic' and w.year < 2000 and exists (select 1 from series es where es.slug = 'early-clay' and es.published = true))
-        or auth.role() = 'authenticated'
+        auth.role() = 'authenticated'
+        or (
+          w.published = true
+          and (
+            s.published = true
+            or (w.secondary_series is not null and exists (select 1 from series ss where ss.slug = w.secondary_series and ss.published = true))
+            or (w.tag = 'ceramic' and w.year < 2000 and exists (select 1 from series es where es.slug = 'early-clay' and es.published = true))
+          )
+        )
       )
     )
   );
@@ -195,10 +227,15 @@ create policy "annotations_public_read" on work_annotations for select
     exists (
       select 1 from works w join series s on s.slug = w.series
       where w.id = work_annotations.work_id and (
-        s.published = true
-        or (w.secondary_series is not null and exists (select 1 from series ss where ss.slug = w.secondary_series and ss.published = true))
-        or (w.tag = 'ceramic' and w.year < 2000 and exists (select 1 from series es where es.slug = 'early-clay' and es.published = true))
-        or auth.role() = 'authenticated'
+        auth.role() = 'authenticated'
+        or (
+          w.published = true
+          and (
+            s.published = true
+            or (w.secondary_series is not null and exists (select 1 from series ss where ss.slug = w.secondary_series and ss.published = true))
+            or (w.tag = 'ceramic' and w.year < 2000 and exists (select 1 from series es where es.slug = 'early-clay' and es.published = true))
+          )
+        )
       )
     )
   );
