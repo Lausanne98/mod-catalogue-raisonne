@@ -243,6 +243,75 @@ drop policy if exists "annotations_admin_write" on work_annotations;
 create policy "annotations_admin_write" on work_annotations for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- ═══ SERIES CAROUSEL PHOTOS ("Image Gallery" in the browse page's Overview
+-- panel) — previously a hardcoded JS object with base64 images embedded
+-- directly in the browse page; now a real per-series photo set, editable
+-- from Manage Series instead of a code change. ═══
+create table if not exists series_photos (
+  id           uuid primary key default gen_random_uuid(),
+  series       text not null references series(slug),
+  storage_path text not null,
+  caption      text,
+  photo_type   text not null default 'work' check (photo_type in ('work','process','context','press')),
+  sort_order   integer not null default 0,
+  created_at   timestamptz not null default now()
+);
+create index if not exists series_photos_series_idx on series_photos(series);
+
+alter table series_photos enable row level security;
+drop policy if exists "series_photos_public_read" on series_photos;
+create policy "series_photos_public_read" on series_photos for select
+  using (
+    auth.role() = 'authenticated'
+    or exists (select 1 from series s where s.slug = series_photos.series and s.published = true)
+  );
+drop policy if exists "series_photos_admin_write" on series_photos;
+create policy "series_photos_admin_write" on series_photos for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- ═══ CHRONOLOGY — previously hand-written static HTML on the chronology
+-- page (every event, every decade, hardcoded), now database-backed and
+-- editable from a Manage Chronology admin page. Grouped by decade (with an
+-- optional curatorial subtitle per decade, e.g. "Origins & Formation") and,
+-- within a decade, by individual dated events — a flexible date label
+-- ("October 27, 1923", "Fall 1968", just "1975") rather than a fixed
+-- calendar date, since chronology sources are often exactly that loose. ═══
+create table if not exists chronology_decades (
+  decade    integer primary key,   -- e.g. 1940 for the 1940s
+  subtitle  text                   -- e.g. "Origins & Formation"; optional
+);
+
+create table if not exists chronology_events (
+  id                  uuid primary key default gen_random_uuid(),
+  year                integer not null,
+  date_label          text not null,   -- e.g. "October 27, 1923", "Fall 1968", "1975"
+  description         text not null,
+  photo_storage_path  text,
+  photo_caption       text,
+  photo_credit        text,            -- e.g. "Photo: Jordan Doner" — kept separate from
+                                        -- the caption since it's a distinct citation line
+  sort_order          integer not null default 0,
+  published           boolean not null default false,
+  created_at          timestamptz not null default now()
+);
+create index if not exists chronology_events_year_idx on chronology_events(year);
+
+alter table chronology_decades enable row level security;
+drop policy if exists "chronology_decades_public_read" on chronology_decades;
+create policy "chronology_decades_public_read" on chronology_decades for select
+  using (true); -- just curatorial subtitles, no sensitivity in showing them pre-launch
+drop policy if exists "chronology_decades_admin_write" on chronology_decades;
+create policy "chronology_decades_admin_write" on chronology_decades for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+alter table chronology_events enable row level security;
+drop policy if exists "chronology_events_public_read" on chronology_events;
+create policy "chronology_events_public_read" on chronology_events for select
+  using (auth.role() = 'authenticated' or published = true);
+drop policy if exists "chronology_events_admin_write" on chronology_events;
+create policy "chronology_events_admin_write" on chronology_events for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
 -- ═══ STORAGE BUCKETS ═══
 insert into storage.buckets (id, name, public)
 values ('work-photos', 'work-photos', true)
@@ -250,6 +319,14 @@ on conflict (id) do nothing;
 
 insert into storage.buckets (id, name, public)
 values ('work-audio', 'work-audio', true)
+on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('series-photos', 'series-photos', true)
+on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('chronology-photos', 'chronology-photos', true)
 on conflict (id) do nothing;
 
 drop policy if exists "work_photos_public_read" on storage.objects;
@@ -277,6 +354,32 @@ create policy "work_audio_admin_update" on storage.objects for update
 drop policy if exists "work_audio_admin_delete" on storage.objects;
 create policy "work_audio_admin_delete" on storage.objects for delete
   using (bucket_id = 'work-audio' and auth.role() = 'authenticated');
+
+drop policy if exists "series_photos_bucket_public_read" on storage.objects;
+create policy "series_photos_bucket_public_read" on storage.objects for select
+  using (bucket_id = 'series-photos');
+drop policy if exists "series_photos_bucket_admin_write" on storage.objects;
+create policy "series_photos_bucket_admin_write" on storage.objects for insert
+  with check (bucket_id = 'series-photos' and auth.role() = 'authenticated');
+drop policy if exists "series_photos_bucket_admin_update" on storage.objects;
+create policy "series_photos_bucket_admin_update" on storage.objects for update
+  using (bucket_id = 'series-photos' and auth.role() = 'authenticated');
+drop policy if exists "series_photos_bucket_admin_delete" on storage.objects;
+create policy "series_photos_bucket_admin_delete" on storage.objects for delete
+  using (bucket_id = 'series-photos' and auth.role() = 'authenticated');
+
+drop policy if exists "chronology_photos_bucket_public_read" on storage.objects;
+create policy "chronology_photos_bucket_public_read" on storage.objects for select
+  using (bucket_id = 'chronology-photos');
+drop policy if exists "chronology_photos_bucket_admin_write" on storage.objects;
+create policy "chronology_photos_bucket_admin_write" on storage.objects for insert
+  with check (bucket_id = 'chronology-photos' and auth.role() = 'authenticated');
+drop policy if exists "chronology_photos_bucket_admin_update" on storage.objects;
+create policy "chronology_photos_bucket_admin_update" on storage.objects for update
+  using (bucket_id = 'chronology-photos' and auth.role() = 'authenticated');
+drop policy if exists "chronology_photos_bucket_admin_delete" on storage.objects;
+create policy "chronology_photos_bucket_admin_delete" on storage.objects for delete
+  using (bucket_id = 'chronology-photos' and auth.role() = 'authenticated');
 
 -- ═══ MIGRATE EXISTING 28 WORKS ═══
 -- Images point at the already-hosted GitHub Pages files for now (legacy_image_url)
