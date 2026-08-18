@@ -61,7 +61,7 @@ async function modcrFetchWorks(){
 async function modcrFetchWorkByCrNumber(crNumber){
   const { data, error } = await modcrSupabase
     .from('works')
-    .select('*, work_photos(id,storage_path,is_primary,caption,sort_order,photo_type), work_annotations(id,storage_path,duration_seconds)')
+    .select('*, work_photos(id,storage_path,is_primary,caption,sort_order,photo_type), work_annotations(id,storage_path,duration_seconds,label)')
     .eq('cr_number', crNumber)
     .order('sort_order', { referencedTable: 'work_photos' })
     .maybeSingle();
@@ -96,6 +96,10 @@ async function modcrReorderPhotos(orderedPhotoIds){
   await Promise.all(orderedPhotoIds.map((id, i) =>
     modcrSupabase.from('work_photos').update({ sort_order: i }).eq('id', id)
   ));
+}
+async function modcrUpdateAnnotationLabel(annotationId, label){
+  const { error } = await modcrSupabase.from('work_annotations').update({ label: label || null }).eq('id', annotationId);
+  if(error) throw error;
 }
 async function modcrDeleteAnnotation(annotationId, storagePath){
   await modcrSupabase.storage.from('work-audio').remove([storagePath]);

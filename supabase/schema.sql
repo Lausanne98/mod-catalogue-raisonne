@@ -163,8 +163,11 @@ create table if not exists work_annotations (
   work_id           uuid not null references works(id) on delete cascade,
   storage_path      text not null,                -- path within the work-audio bucket
   duration_seconds  integer,
+  label             text,                         -- set after recording, from the intake form
   created_at        timestamptz not null default now()
 );
+-- Self-healing: label was added after annotations already existed in some projects.
+alter table work_annotations add column if not exists label text;
 create index if not exists work_annotations_work_id_idx on work_annotations(work_id);
 
 -- ═══ ROW LEVEL SECURITY ═══
