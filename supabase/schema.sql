@@ -86,6 +86,8 @@ create table if not exists works (
                                                     -- edition run), in addition to its
                                                     -- primary `series` above.
   dimensions   text,
+  title_source text,                             -- e.g. "Artist", "RLF" (Roy Lichtenstein Foundation-style label), "Estate"
+  inscriptions text,                             -- e.g. "Foundry mark on base: [Tallix / 1972]"
   description  text,
   provenance   text,
   exhibitions  text,                             -- free text for now, one entry per line
@@ -114,6 +116,10 @@ alter table works add constraint works_tag_fkey foreign key (tag) references mat
 
 -- Self-healing: add secondary_series to a works table created before this column existed.
 alter table works add column if not exists secondary_series text references series(slug);
+
+-- Self-healing: add title_source/inscriptions to a works table created before these existed.
+alter table works add column if not exists title_source text;
+alter table works add column if not exists inscriptions text;
 
 -- Self-healing: per-work draft/published state, independent of series.published.
 -- Saving the intake form only ever writes a draft (published defaults false);

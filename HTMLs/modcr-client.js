@@ -35,6 +35,8 @@ function modcrAdaptWork(row){
     secondarySeries: row.secondary_series || null,
     published: !!row.published,
     dimensions: row.dimensions || '',
+    titleSource: row.title_source || '',
+    inscriptions: row.inscriptions || '',
     description: row.description || '',
     provenance: row.provenance || '',
     exhibitions: row.exhibitions || '',
