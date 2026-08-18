@@ -88,10 +88,15 @@ create table if not exists works (
   dimensions   text,
   title_source text,                             -- e.g. "Artist", "RLF" (Roy Lichtenstein Foundation-style label), "Estate"
   inscriptions text,                             -- e.g. "Foundry mark on base: [Tallix / 1972]"
+  collection   text,                             -- e.g. "The artist's collection", "Private collection, New York"
   description  text,
   provenance   text,
   exhibitions  text,                             -- free text for now, one entry per line
   literature   text,                             -- free text for now, one entry per line
+  revisions    text,                             -- admin-authored change log, one dated entry per
+                                                   -- line ("date, then note"), same pattern as
+                                                   -- provenance/exhibitions/literature -- not an
+                                                   -- automatic audit trail
   remarks      text,
   flag         text,                             -- data-quality flag, e.g. "icon mismatch"
   legacy_image_url text,                         -- bridge: existing GitHub Pages-hosted image,
@@ -120,6 +125,10 @@ alter table works add column if not exists secondary_series text references seri
 -- Self-healing: add title_source/inscriptions to a works table created before these existed.
 alter table works add column if not exists title_source text;
 alter table works add column if not exists inscriptions text;
+
+-- Self-healing: add collection/revisions to a works table created before these existed.
+alter table works add column if not exists collection text;
+alter table works add column if not exists revisions text;
 
 -- Self-healing: per-work draft/published state, independent of series.published.
 -- Saving the intake form only ever writes a draft (published defaults false);

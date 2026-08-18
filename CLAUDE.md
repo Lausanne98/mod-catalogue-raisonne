@@ -156,19 +156,50 @@ from documentation of the work being made — foundry, patina, studio-process sh
 tagged that way. Process photos are excluded from primary/featured-image selection —
 they document the work, they aren't a candidate to represent it.
 
-## Don't repeat a work's series/category on the entry page
-Requested multiple times, previously lost between sessions — now the rule, not a
-one-off fix. A work's series (e.g. "Early Clay") appears in exactly **one** place
-on the entry page: the `cr-num` header line ("MOD CR 5 · Early Clay"). It must not
-be repeated anywhere else on the page — not as a "Category" row in a metadata
-table, not in a sidebar. (The entry page has no left sidebar at all — see
-"Entry page layout" below — so there's no second, navigation-link copy of it
-either anymore.) If a future redesign adds any kind of metadata table or nav
-element back, do not add a Category/Series field to it.
+## Admin/front-end field parity
+Every field an admin can populate must render somewhere on the public entry page,
+and every category shown on the entry page must have a corresponding admin input —
+no orphans in either direction (flagged as a "major architectural issue" when this
+slipped once already). Current full set, admin field ↔ entry page display:
+title, cr_number, series ↔ header/breadcrumb/sidebar, date_display/year ↔ date line,
+medium ↔ medium line, tag ↔ classification pill, dimensions/title_source/inscriptions/
+`collection` ↔ data table rows, description/provenance/exhibitions/literature/remarks
+↔ their sections, `revisions` ↔ Entry Revisions section. The one deliberate
+exception is `flag` — admin-only by design, a data-quality note for the Manage Works
+view, never meant to surface publicly. `collection` (e.g. "The artist's collection")
+and `revisions` (free text, one dated entry per line, same "date, then note" pattern
+as Provenance/Exhibitions/Literature — admin-authored, not an automatic change log)
+were added 2026-08-18 to close the last two gaps against the May reference design.
 
-## Entry page layout
-No left sidebar/subnav. Text lives only above the image (the breadcrumb) and to
-its right (title, date, medium, classification, any metadata) — nothing on the
-image's left. This was a deliberate layout decision (requested multiple times),
-not an oversight — don't reintroduce a left column of nav links, section
-jump-links, series links, or a print button when editing this page.
+## Entry page layout (superseded 2026-08-18 — see below)
+As of 2026-08-18 the entry page was reverted to the original May reference design
+(`preview_entry_v6.html`, a Claude-chat mockup — internally `catalogue_entry_v6_sans.html`
+in that mockup's own self-references) after the no-sidebar direction below caused
+real, repeated loss of the original design intent across session handoffs. **The
+current, correct layout has a left `.subnav` sidebar**: a "← Browse the Works" back
+link, a dynamically-built "In this entry" jump list (only sections that actually
+rendered get a jump link — hide-if-empty still applies to the nav itself), a
+"Series" list, and a "Print this page" button. The work's series now legitimately
+appears in **three** places on the entry page — the `cr-num` header line, the
+breadcrumb, and the sidebar's Series list — matching the reference exactly. This
+intentionally supersedes the two rules below; they're kept only as a paper trail so
+a future session doesn't reintroduce the no-sidebar layout thinking it's restoring
+something. If this page changes again, treat the *current live entry page file* and
+this note as the source of truth, not the two paragraphs beneath it.
+
+The classification pill (bottom of the meta column, bordered) is sourced from the
+formal material classification (`materials.label` for `work.tag`, e.g. "Ceramic")
+rather than literally repeating the `work.medium` free-text line above it — the May
+mockup's pill duplicated Medium verbatim, which was flagged separately as a
+redundant-data-display bug earlier in the project; this keeps the mockup's visual
+slot and position but not that specific duplication.
+
+---
+
+**(Superseded) Don't repeat a work's series/category on the entry page.** Previously:
+a work's series appeared in exactly one place (the `cr-num` header line), enforced
+because it had been requested multiple times. No longer the rule — see above.
+
+**(Superseded) Entry page layout.** Previously: no left sidebar/subnav, text only
+above and to the right of the image, no jump-links/series-links/print button. No
+longer the rule — see above.

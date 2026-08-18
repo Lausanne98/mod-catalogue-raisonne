@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work Intake — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0f0ef;
+    --sand2:  #e6e6e4;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #dedddb;
+    --rulelg: #ececea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f7f6;
+    --red:    #a83232;
+    --green:  #3f6b3f;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--sand);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif; font-weight: 400;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title {
+    font-family: 'Inter', sans-serif; font-weight: 400; letter-spacing: 0.14em;
+    text-transform: uppercase; font-size: 12px; color: var(--ink);
+  }
+  .header-sub {
+    font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light);
+    margin-left: auto;
+  }
+  .header-sub a, .header-sub button {
+    color: var(--light); text-decoration: none; font-family: 'Inter', sans-serif; font-size: 10px;
+    letter-spacing: .08em; text-transform: uppercase; background: none; border: none; cursor: pointer;
+  }
+  .header-sub a:hover, .header-sub button:hover { color: var(--ink); }
+  .nav-dark { color: var(--ink); }
+
+  main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 96px; }
+
+  /* Photos run the full width in their own band, on top, on every screen size —
+     the rest of the form follows below. Same order on mobile and desktop, so
+     there's one layout to reason about rather than two. */
+  .intake-layout { display: flex; flex-direction: column; gap: 24px; }
+
+  .intake-form { background: var(--white); border: 1px solid var(--rule); padding: 32px; }
+  @media(max-width: 800px) { .intake-form { padding: 20px; } }
+  .form-head { margin-bottom: 16px; }
+  .form-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .form-head p { font-size: 12.5px; color: var(--mid); font-style: italic; }
+  .save-state { font-size: 11.5px; margin-top: 8px; }
+  .save-state.saved { color: var(--green); }
+  .save-state.unsaved { color: var(--light); font-style: italic; }
+
+  .draft-badge {
+    display: inline-block; vertical-align: middle; margin-left: 10px; font-family: 'Inter', sans-serif;
+    font-size: 10px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
+    padding: 3px 10px; border-radius: 2px;
+  }
+  .draft-badge.state-draft { color: var(--gold); background: #faf3e8; border: 1px solid var(--goldlt); }
+  .draft-badge.state-published { color: var(--green); background: #eaf3ea; border: 1px solid #a8c9a8; }
+
+  .f-section { margin-bottom: 32px; padding-bottom: 28px; border-bottom: 1px solid var(--rulelg); }
+  .f-section:last-of-type { border-bottom: none; }
+  .f-section-head {
+    font-family: 'Inter', sans-serif; font-size: 9px; letter-spacing: .18em; font-weight: 500;
+    text-transform: uppercase; color: var(--mid); margin-bottom: 16px;
+  }
+  .f-section-hint { font-size: 11.5px; color: var(--light); margin-top: -10px; margin-bottom: 16px; font-style: italic; }
+
+  .f-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media(max-width: 560px) { .f-row { grid-template-columns: 1fr; } }
+
+  /* Chunkier text on mobile — bigger AND bolder, not just bigger. The base
+     sizes/weights above were tuned for a dense desktop admin screen; this
+     leans closer to the bold, high-contrast sans styling of a site like
+     MoMA's rather than a scaled-down desktop layout. 16px on form fields
+     also stops iOS Safari's auto-zoom-on-focus (it zooms in on any input
+     smaller than that), a side effect that was also worth fixing. */
+  @media(max-width: 700px) {
+    body { font-size: 17px; }
+    .header-title { font-size: 14px; font-weight: 600; }
+    .header-sub a, .header-sub button { font-size: 12.5px; font-weight: 500; }
+    .form-head h1 { font-size: 30px; font-weight: 500; }
+    .form-head p { font-size: 15.5px; }
+    .save-state { font-size: 13.5px; }
+    .f-section-head { font-size: 12.5px; font-weight: 700; }
+    .f-section-hint { font-size: 13.5px; }
+    .f-label { font-size: 13px; font-weight: 600; }
+    input[type=text], input[type=number], select, textarea { font-size: 16px; }
+    .photo-dropzone .dz-title { font-size: 16px; font-weight: 600; }
+    .photo-dropzone .dz-hint { font-size: 14px; }
+    .pc-caption { font-size: 14.5px; }
+    .pc-actions button { font-size: 13px; font-weight: 500; }
+    .pc-actions .pc-primary-badge { font-size: 12.5px; font-weight: 600; }
+    .pc-remove-x { width: 26px; height: 26px; font-size: 16px; top: -9px; right: -9px; }
+    .voice-status { font-size: 15.5px; }
+    .voice-duration { font-size: 13.5px; }
+    .voice-clear { font-size: 13px; font-weight: 600; }
+    .mic-unsupported { font-size: 14px; }
+    .btn { font-size: 13.5px; font-weight: 600; }
+    .btn.primary { font-size: 15px; font-weight: 600; }
+    .btn.danger { font-size: 14px; font-weight: 600; }
+  }
+  .f-field { display: flex; flex-direction: column; gap: 6px; }
+  .f-field.full { grid-column: 1 / -1; }
+  .f-label {
+    font-family: 'Inter', sans-serif; font-size: 9.5px; letter-spacing: .1em; font-weight: 500;
+    text-transform: uppercase; color: var(--light);
+  }
+  .f-label .opt { text-transform: none; letter-spacing: 0; font-weight: 400; }
+  input[type=text], input[type=number], select, textarea {
+    font-family: 'Inter', sans-serif; font-size: 14px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 9px 11px;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--goldlt); }
+  textarea { resize: vertical; min-height: 72px; line-height: 1.55; }
+  /* Explicit placeholder color rather than relying on browser default, so an
+     empty box reliably reads as empty and not as already-populated text. */
+  input::placeholder, textarea::placeholder { color: var(--light); opacity: 1; }
+  .f-label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .f-italic-btn {
+    font-family: 'Inter', sans-serif; font-style: italic; font-size: 11px; font-weight: 500;
+    color: var(--light); background: none; border: 1px solid var(--rule); border-radius: 3px;
+    padding: 1px 7px; cursor: pointer; line-height: 1.6;
+  }
+  .f-italic-btn:hover { color: var(--ink); border-color: var(--goldlt); }
+
+  /* ── Photos ── */
+  .photo-dropzone {
+    border: 2px dashed var(--rule); border-radius: 2px; padding: 40px 16px; text-align: center;
+    cursor: pointer; transition: border-color .18s, background .18s; position: relative;
+  }
+  .photo-dropzone:hover, .photo-dropzone.dragover { border-color: var(--goldlt); background: var(--hover); }
+  .photo-dropzone.disabled { cursor: not-allowed; opacity: .55; }
+  .photo-dropzone .dz-title {
+    font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 500; color: var(--ink); margin-bottom: 4px;
+  }
+  .photo-dropzone .dz-hint { font-size: 11.5px; color: var(--light); }
+  .photo-dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .photo-dropzone.disabled input[type=file] { cursor: not-allowed; }
+
+  /* Full-width band, so photo cards wrap into a row rather than stack in a
+     narrow column with empty space beside each one. */
+  .photo-list { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+  .photo-card {
+    display: flex; align-items: flex-start; gap: 10px; background: var(--white);
+    border: 1px solid var(--rule); padding: 8px; cursor: grab;
+    flex: 1 1 260px; min-width: 220px; max-width: 340px;
+    touch-action: none; /* so a touch-drag reorders the card instead of scrolling the page */
+    user-select: none; /* the caption <input> still edits normally regardless — this only
+                           stops a pre-threshold drag from flashing a text-selection highlight
+                           over the button labels/primary badge */
+    -webkit-touch-callout: none; /* iOS Safari's own long-press callout (Save Image / Copy)
+                                     on the thumbnail was stealing a real touch-drag before our
+                                     pointer handlers ever saw it — touch-action alone doesn't
+                                     stop this, this Apple-specific property does */
+  }
+  .photo-card.dragging { opacity: .4; }
+  .photo-card.primary { border-color: var(--gold); }
+  .pc-handle {
+    display: flex; align-items: center; justify-content: center; width: 18px; color: var(--light);
+    font-size: 13px; line-height: 1; padding-top: 4px; flex-shrink: 0; touch-action: none;
+  }
+  .pc-thumb-wrap { position: relative; flex-shrink: 0; }
+  .pc-thumb { display: block; width: 64px; height: 64px; object-fit: cover; background: var(--sand); }
+  .pc-remove-x {
+    position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ink); color: var(--white); border: 2px solid var(--white);
+    font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; padding: 0; opacity: 0; transition: opacity .12s, background .12s;
+  }
+  .pc-thumb-wrap:hover .pc-remove-x { opacity: 1; }
+  .pc-remove-x:hover { background: var(--red); }
+  .pc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .pc-caption {
+    font-family: 'Inter', sans-serif; font-size: 12.5px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 6px 8px; width: 100%;
+  }
+  .pc-actions { display: flex; gap: 10px; align-items: center; }
+  .pc-actions button {
+    font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer; padding: 0;
+  }
+  .pc-actions button:hover { color: var(--ink); }
+  .pc-actions .pc-primary-badge {
+    font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); cursor: default;
+  }
+
+  /* ── Voice annotation ── */
+  .voice-panel { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .mic-btn {
+    width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--ink); background: var(--white);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: background .2s, border-color .2s;
+  }
+  .mic-btn svg { width: 20px; height: 20px; }
+  .mic-btn.recording { background: var(--red); border-color: var(--red); animation: pulse 1.4s infinite; }
+  .mic-btn.recording svg { fill: var(--white); stroke: var(--white); }
+  .mic-btn:disabled { opacity: .4; cursor: not-allowed; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(168,50,50,.35);} 50%{box-shadow:0 0 0 10px rgba(168,50,50,0);} }
+  .voice-status { font-size: 12.5px; color: var(--mid); }
+  .voice-status .rec-time { font-variant-numeric: tabular-nums; color: var(--red); font-weight: 500; }
+  .annotation-list { list-style: none; margin-top: 10px; }
+  .annotation-list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--rulelg); }
+  .annotation-list audio { height: 32px; flex: 1; }
+  .voice-name {
+    font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 6px 9px;
+    width: 150px; flex-shrink: 0;
+  }
+  .voice-name::placeholder { color: var(--light); }
+  @media(max-width: 560px) { .annotation-list li { flex-wrap: wrap; } .voice-name { width: 100%; order: -1; } }
+  .voice-duration { font-size: 11.5px; color: var(--light); font-variant-numeric: tabular-nums; }
+  .voice-clear { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--light); background: none; border: none; cursor: pointer; text-decoration: underline; }
+  .voice-clear:hover { color: var(--red); }
+  .mic-unsupported { font-size: 12px; color: var(--light); font-style: italic; }
+
+  /* ── Actions ── */
+  .form-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+  .btn {
+    font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    padding: 12px 22px; cursor: pointer; border: 1px solid var(--ink); background: var(--white); color: var(--ink);
+    transition: background .18s, color .18s;
+  }
+  .btn:hover { background: var(--ink); color: var(--white); }
+  .btn.primary { background: var(--ink); color: var(--white); }
+  .btn.primary:hover { background: var(--gold); border-color: var(--gold); }
+  .btn.danger { border-color: var(--red); color: var(--red); }
+  .btn.danger:hover { background: var(--red); color: var(--white); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn:disabled:hover { background: var(--white); color: var(--ink); }
+
+  .save-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--white); padding: 12px 22px; font-size: 12.5px;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200;
+  }
+  .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .save-toast.error { background: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">Michele Oka Doner — Work Intake</div>
+  <div class="header-sub">
+    <a href="catalogue_admin_v52_sans.html">Dashboard</a> ·
+    <a href="catalogue_admin_manage_v52_sans.html">Works</a> ·
+    <a href="catalogue_admin_series_v18_sans.html">Series</a> ·
+    <a href="catalogue_admin_materials_v16_sans.html">Materials</a> ·
+    <a href="catalogue_admin_chronology_v15_sans.html"><span class="nav-dark">Chronology</span></a> ·
+    <a href="catalogue_v57_sans.html">View Site</a> ·
+    <button onclick="modcrLogOut('catalogue_admin_login_v52_sans.html')">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="form-head">
+    <h1><span id="formTitle">New Work Entry</span> <span class="draft-badge" id="draftBadge" style="display:none;"></span></h1>
+    <p>Fill in what you know — leave anything blank you're not sure of. Add photos or a voice note whenever you're ready. Save Work keeps everything as a private draft — nothing is visible to the public until you click Publish.</p>
+    <div class="save-state unsaved" id="saveState">Not yet saved to the catalogue.</div>
+  </div>
+
+  <div class="intake-layout">
+  <div class="intake-form">
+    <!-- Photos -->
+    <div class="f-section" style="margin-bottom:0;padding-bottom:0;border-bottom:none;">
+      <div class="f-section-head">Photos</div>
+      <label class="photo-dropzone" id="dropzone">
+        <div class="dz-title" id="dzTitle">Drop photos here</div>
+        <div class="dz-hint" id="dzHint">Or tap to choose from your camera or photo library.</div>
+        <input type="file" id="f-photos" accept="image/*" multiple>
+      </label>
+      <div class="photo-list" id="photoGrid"></div>
+    </div>
+  </div>
+
+  <div class="intake-form">
+    <!-- Basic info -->
+    <div class="f-section">
+      <div class="f-section-head">Basic Information</div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-title">Title</label>
+          <input type="text" id="f-title" placeholder="e.g. Frond Necklace">
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field">
+          <label class="f-label" for="f-cr">MOD CR Number <span class="opt">(suggested next number — override if it needs to go elsewhere)</span></label>
+          <input type="number" id="f-cr" min="1" step="1">
+        </div>
+        <div class="f-field">
+          <label class="f-label" for="f-series">Series</label>
+          <select id="f-series"><option value="">Select…</option></select>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field">
+          <label class="f-label" for="f-date">Date <span class="opt">(year or "c. 19XX")</span></label>
+          <input type="text" id="f-date" placeholder="e.g. 1999 or c. 1975">
+        </div>
+        <div class="f-field">
+          <label class="f-label" for="f-year">Year <span class="opt">(numeric, for decade filtering — optional)</span></label>
+          <input type="number" id="f-year" placeholder="e.g. 1975">
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field">
+          <label class="f-label" for="f-medium">Material / Medium <span class="opt">(descriptive text)</span></label>
+          <input type="text" id="f-medium" placeholder="e.g. Sterling silver">
+        </div>
+        <div class="f-field">
+          <label class="f-label" for="f-classification">Medium Classification <span class="opt">(filter value — leave blank if unclear)</span></label>
+          <select id="f-classification">
+            <option value="">Undecided / none</option>
+          </select>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field">
+          <label class="f-label" for="f-dimensions">Dimensions <span class="opt">(optional)</span></label>
+          <input type="text" id="f-dimensions" placeholder="e.g. 8 × 5 × 5 in.">
+        </div>
+        <div class="f-field">
+          <label class="f-label" for="f-title-source">Title Source <span class="opt">(optional)</span></label>
+          <input type="text" id="f-title-source" placeholder="e.g. Artist, Estate, Studio records">
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-inscriptions">Inscriptions <span class="opt">(optional)</span></label>
+          <input type="text" id="f-inscriptions" placeholder="e.g. Foundry mark on base: [Tallix / 1972]">
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-collection">Collection <span class="opt">(optional)</span></label>
+          <input type="text" id="f-collection" placeholder="e.g. The artist's collection, Private collection, New York">
+        </div>
+      </div>
+    </div>
+
+    <!-- Description / provenance / remarks -->
+    <div class="f-section">
+      <div class="f-section-head">Description &amp; History</div>
+      <div class="f-row">
+        <div class="f-field full">
+          <div class="f-label-row">
+            <label class="f-label" for="f-description">Description <span class="opt">(optional)</span></label>
+            <button type="button" class="f-italic-btn" onclick="wrapItalicSelection('f-description')" title="Italicize selected text">I</button>
+          </div>
+          <textarea id="f-description" placeholder="What is this work, and what should someone know about it?"></textarea>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <div class="f-label-row">
+            <label class="f-label" for="f-provenance">Provenance <span class="opt">(optional)</span></label>
+            <button type="button" class="f-italic-btn" onclick="wrapItalicSelection('f-provenance')" title="Italicize selected text">I</button>
+          </div>
+          <textarea id="f-provenance" placeholder="Ownership history — one line each, e.g. &quot;1975 — the artist's collection&quot;"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exhibition history / publications -->
+    <div class="f-section">
+      <div class="f-section-head">Exhibition History &amp; Publications</div>
+      <div class="f-section-hint">Leave blank if this work hasn't been exhibited or published yet — the section simply won't appear on its page.</div>
+      <div class="f-row">
+        <div class="f-field full">
+          <div class="f-label-row">
+            <label class="f-label" for="f-exhibitions">Exhibition History <span class="opt">(one per line — date, exhibition title, gallery, solo or group)</span></label>
+            <button type="button" class="f-italic-btn" onclick="wrapItalicSelection('f-exhibitions')" title="Italicize selected text">I</button>
+          </div>
+          <textarea id="f-exhibitions" placeholder="1994, A Lifetime of Accumulation, Cranbrook Academy of Art Museum, Solo"></textarea>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <div class="f-label-row">
+            <label class="f-label" for="f-literature">Publications / Literature <span class="opt">(one per line)</span></label>
+            <button type="button" class="f-italic-btn" onclick="wrapItalicSelection('f-literature')" title="Italicize selected text">I</button>
+          </div>
+          <textarea id="f-literature" placeholder="Smith, Roberta. &quot;The Forces of Nature.&quot; The New York Times, 1994."></textarea>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <div class="f-label-row">
+            <label class="f-label" for="f-remarks">Remarks <span class="opt">(optional)</span></label>
+            <button type="button" class="f-italic-btn" onclick="wrapItalicSelection('f-remarks')" title="Italicize selected text">I</button>
+          </div>
+          <textarea id="f-remarks" placeholder="Anything else worth noting for the record."></textarea>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <div class="f-label-row">
+            <label class="f-label" for="f-revisions">Entry Revisions <span class="opt">(optional — one per line: date, then what changed)</span></label>
+            <button type="button" class="f-italic-btn" onclick="wrapItalicSelection('f-revisions')" title="Italicize selected text">I</button>
+          </div>
+          <textarea id="f-revisions" placeholder="2026-05-01, Updated exhibition history and literature"></textarea>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-field full">
+          <label class="f-label" for="f-flag">Data-Quality Flag <span class="opt">(optional — surfaces on the admin dashboard)</span></label>
+          <input type="text" id="f-flag" placeholder="e.g. icon mismatch — image needs verification">
+        </div>
+      </div>
+    </div>
+
+    <!-- Voice annotation -->
+    <div class="f-section">
+      <div class="f-section-head">Artist's Annotations</div>
+      <div class="f-section-hint">Record a note in your own words — this will show as a small mic icon next to "Artist's Annotations" on the work's page.</div>
+      <div class="voice-panel" id="voicePanel">
+        <button class="mic-btn" id="micBtn" onclick="toggleRecording()" title="Record annotation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <rect x="9" y="2" width="6" height="12" rx="3"/>
+            <path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/>
+          </svg>
+        </button>
+        <div class="voice-status" id="voiceStatus">Tap to record</div>
+      </div>
+      <ul class="annotation-list" id="annotationList"></ul>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn primary" onclick="saveWork()" id="saveBtn">Save Work</button>
+      <button class="btn" onclick="togglePublish()" id="publishBtn" style="display:none;">Publish</button>
+      <button class="btn" onclick="location.href='catalogue_intake_v52_sans.html'">New Entry</button>
+      <button class="btn danger" onclick="deleteCurrentWork()" id="deleteBtn" style="display:none;">Delete This Work</button>
+    </div>
+  </div>
+  </div>
+</main>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+<script src="modcr-client.js"></script>
+<script>
+let currentDbId = null;
+let currentCr = null;
+let workIsPublished = false;
+
+// Wraps the current text selection in a textarea with <em> tags (or removes
+// them if the selection is already wrapped) — a lightweight italics toggle
+// for a plain <textarea>, which can't render partial styling on its own.
+// The <em> markup is stored as-is in the field's saved text.
+function wrapItalicSelection(id){
+  const ta = document.getElementById(id);
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  if(start === end){ ta.focus(); return; }
+  const value = ta.value;
+  const selected = value.slice(start, end);
+  const alreadyWrapped = selected.startsWith('<em>') && selected.endsWith('</em>');
+  const replacement = alreadyWrapped ? selected.slice(4, -5) : `<em>${selected}</em>`;
+  ta.value = value.slice(0, start) + replacement + value.slice(end);
+  ta.focus();
+  ta.setSelectionRange(start, start + replacement.length);
+}
+
+function updatePublishUI(){
+  const btn = document.getElementById('publishBtn');
+  const badge = document.getElementById('draftBadge');
+  const has = !!currentDbId;
+  btn.style.display = has ? 'inline-block' : 'none';
+  btn.textContent = workIsPublished ? 'Unpublish' : 'Publish';
+  badge.style.display = has ? 'inline-block' : 'none';
+  badge.textContent = workIsPublished ? 'Published' : 'Draft';
+  badge.classList.toggle('state-published', workIsPublished);
+  badge.classList.toggle('state-draft', !workIsPublished);
+}
+async function togglePublish(){
+  if(!currentDbId) return;
+  const next = !workIsPublished;
+  const btn = document.getElementById('publishBtn');
+  btn.disabled = true;
+  try{
+    await modcrSaveWork({ published: next }, currentDbId);
+    workIsPublished = next;
+    updatePublishUI();
+    showToast(next
+      ? 'Published — visible to the public once its series is also published.'
+      : 'Unpublished — hidden from the public again.');
+  }catch(e){
+    showToast('Could not update: ' + e.message, true);
+  }finally{
+    btn.disabled = false;
+  }
+}
+// Photos/annotations added before the work is first saved have no work_id to
+// attach to yet, so they're held here (as in-memory Files/Blobs with a local
+// object-URL preview) and only actually uploaded once saveWork() succeeds —
+// see the "if(pendingPhotos.length)"/"if(pendingAnnotations.length)" block
+// there. A "pending-…" id (instead of a real DB uuid) is how the rest of the
+// photo/annotation handlers below tell which mode a given card is in.
+let pendingPhotos = [];
+let pendingAnnotations = [];
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordStartTime = null;
+let recordTimerInterval = null;
+
+function showToast(msg, isError){
+  const t = document.getElementById('saveToast');
+  t.textContent = msg;
+  t.classList.toggle('error', !!isError);
+  t.classList.add('show');
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(()=>t.classList.remove('show'), 3800);
+}
+
+async function populateSeriesSelect(){
+  const series = await modcrFetchSeries();
+  const sel = document.getElementById('f-series');
+  sel.innerHTML = '<option value="">Select…</option>' +
+    series.map(s => `<option value="${s.slug}">${s.label}</option>`).join('');
+}
+async function populateMaterialSelect(){
+  const materials = await modcrFetchMaterials();
+  const sel = document.getElementById('f-classification');
+  sel.innerHTML = '<option value="">Undecided / none</option>' +
+    materials.map(m => `<option value="${m.slug}">${m.label}</option>`).join('');
+}
+
+function collectPayload(){
+  const cr = parseInt(document.getElementById('f-cr').value, 10);
+  const year = document.getElementById('f-year').value ? parseInt(document.getElementById('f-year').value, 10) : null;
+  return {
+    cr_number: cr,
+    title: document.getElementById('f-title').value.trim(),
+    series: document.getElementById('f-series').value || null,
+    date_display: document.getElementById('f-date').value.trim() || null,
+    year,
+    medium: document.getElementById('f-medium').value.trim() || null,
+    tag: document.getElementById('f-classification').value || null,
+    dimensions: document.getElementById('f-dimensions').value.trim() || null,
+    title_source: document.getElementById('f-title-source').value.trim() || null,
+    inscriptions: document.getElementById('f-inscriptions').value.trim() || null,
+    collection: document.getElementById('f-collection').value.trim() || null,
+    description: document.getElementById('f-description').value.trim() || null,
+    provenance: document.getElementById('f-provenance').value.trim() || null,
+    exhibitions: document.getElementById('f-exhibitions').value.trim() || null,
+    literature: document.getElementById('f-literature').value.trim() || null,
+    revisions: document.getElementById('f-revisions').value.trim() || null,
+    remarks: document.getElementById('f-remarks').value.trim() || null,
+    flag: document.getElementById('f-flag').value.trim() || null,
+  };
+}
+
+function fillForm(work){
+  document.getElementById('f-title').value = work.title || '';
+  document.getElementById('f-cr').value = work.id || '';
+  document.getElementById('f-series').value = work.series || '';
+  document.getElementById('f-date').value = work.date || '';
+  document.getElementById('f-year').value = work.year || '';
+  document.getElementById('f-medium').value = work.medium || '';
+  document.getElementById('f-classification').value = work.tag || '';
+  document.getElementById('f-dimensions').value = work.dimensions || '';
+  document.getElementById('f-title-source').value = work.titleSource || '';
+  document.getElementById('f-inscriptions').value = work.inscriptions || '';
+  document.getElementById('f-collection').value = work.collection || '';
+  document.getElementById('f-description').value = work.description || '';
+  document.getElementById('f-provenance').value = work.provenance || '';
+  document.getElementById('f-exhibitions').value = work.exhibitions || '';
+  document.getElementById('f-literature').value = work.literature || '';
+  document.getElementById('f-revisions').value = work.revisions || '';
+  document.getElementById('f-remarks').value = work.remarks || '';
+  document.getElementById('f-flag').value = work.flag || '';
+}
+
+function markSaved(){
+  const el = document.getElementById('saveState');
+  el.textContent = 'Saved to the catalogue (' + new Date().toLocaleTimeString() + ').';
+  el.classList.remove('unsaved');
+  el.classList.add('saved');
+  document.getElementById('deleteBtn').style.display = 'inline-block';
+}
+
+async function saveWork(){
+  const payload = collectPayload();
+  if(!payload.title){ showToast('Add a title before saving.', true); return; }
+  if(!payload.cr_number){ showToast('Add a MOD CR number before saving.', true); return; }
+  if(!payload.series){ showToast('Select a series before saving.', true); return; }
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try{
+    const saved = await modcrSaveWork(payload, currentDbId);
+    currentDbId = saved.id;
+    currentCr = saved.cr_number;
+    workIsPublished = !!saved.published;
+    document.getElementById('formTitle').textContent = 'Editing: ' + saved.title + ' (MOD CR ' + saved.cr_number + ')';
+    markSaved();
+    updatePublishUI();
+    history.replaceState(null, '', 'catalogue_intake_v52_sans.html?edit=' + saved.cr_number);
+
+    // Anything added before this first save was only held in memory (see
+    // uploadPhotoFiles/toggleRecording) — now that a real work row exists,
+    // upload it all in one go and switch over to the DB-backed render path.
+    if(pendingPhotos.length){
+      for(const p of pendingPhotos){
+        try{
+          await modcrUploadPhoto(currentDbId, p.file, p.is_primary);
+        }catch(err){
+          showToast('Photo upload failed: ' + err.message, true);
+        }
+        URL.revokeObjectURL(p.previewUrl);
+      }
+      pendingPhotos = [];
+    }
+    if(pendingAnnotations.length){
+      for(const a of pendingAnnotations){
+        try{
+          const saved = await modcrUploadAnnotation(currentDbId, a.blob, a.mimeType, a.durationSeconds);
+          if(a.label) await modcrUpdateAnnotationLabel(saved.id, a.label);
+        }catch(err){
+          showToast('Annotation upload failed: ' + err.message, true);
+        }
+        URL.revokeObjectURL(a.previewUrl);
+      }
+      pendingAnnotations = [];
+    }
+    await reloadPhotos();
+    await reloadAnnotations();
+    showToast('Work saved.');
+  }catch(e){
+    showToast('Could not save: ' + e.message, true);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Save Work';
+  }
+}
+
+async function deleteCurrentWork(){
+  if(!currentDbId) return;
+  if(!confirm('Delete this work from the catalogue? This cannot be undone.')) return;
+  try{
+    await modcrDeleteWork(currentDbId);
+    window.location.href = 'catalogue_admin_manage_v52_sans.html';
+  }catch(e){
+    showToast('Could not delete: ' + e.message, true);
+  }
+}
+
+// ---- Photos ----
+// A pending (not-yet-uploaded) photo/annotation is given a fake id prefixed
+// "pending-" instead of a real DB uuid — every handler below checks that
+// prefix to decide whether to edit the in-memory pendingPhotos/pendingAnnotations
+// array directly or make a real Supabase call.
+function isPending(id){ return id.startsWith('pending-'); }
+function photoSrc(p){ return p.previewUrl || modcrPhotoUrl(p.storage_path); }
+
+function renderPhotoGrid(photos){
+  const grid = document.getElementById('photoGrid');
+  const list = photos||[];
+  grid.innerHTML = list.map((p, i) => `
+    <div class="photo-card ${p.is_primary?'primary':''}" data-id="${p.id}">
+      <div class="pc-handle" title="Drag to reorder">⠿</div>
+      <div class="pc-thumb-wrap">
+        <img class="pc-thumb" src="${photoSrc(p)}" alt="" draggable="false">
+        <button class="pc-remove-x" onclick="removePhoto('${p.id}','${(p.storage_path||'').replace(/'/g,"\\'")}')" title="Remove photo">×</button>
+      </div>
+      <div class="pc-body">
+        <input type="text" class="pc-caption" placeholder="Add a note about this photo…"
+               value="${(p.caption||'').replace(/"/g,'&quot;')}"
+               onchange="saveCaption('${p.id}', this.value)">
+        <div class="pc-actions">
+          ${p.is_primary ? `<span class="pc-primary-badge">★ Primary</span>` : ''}
+          <button onclick="togglePhotoType('${p.id}', '${p.photo_type === 'process' ? 'work' : 'process'}')" title="Process photos (e.g. a foundry or patina shot) show in their own section on the work's page, separate from the main image.">
+            ${p.photo_type === 'process' ? '✓ Process Photo' : 'Mark as Process Photo'}
+          </button>
+        </div>
+      </div>
+    </div>`).join('');
+  makePhotoListReorderable(grid);
+}
+async function reloadPhotos(){
+  const work = await modcrFetchWorkByCrNumber(currentCr);
+  renderPhotoGrid(work.photos);
+}
+async function saveCaption(photoId, caption){
+  if(isPending(photoId)){
+    const p = pendingPhotos.find(p => p.id === photoId);
+    if(p) p.caption = caption.trim();
+    return;
+  }
+  try{
+    await modcrUpdatePhotoCaption(photoId, caption.trim());
+  }catch(e){
+    showToast('Could not save note: ' + e.message, true);
+  }
+}
+
+// Reordering: drag a .photo-card, drop it before/after another based on cursor
+// position, then persist the new order via sort_order.
+//
+// This deliberately does NOT use the native HTML5 drag-and-drop API
+// (dragstart/dragover/drop). That API turned out to be too unreliable here:
+// browsers treat <img> as its own native drag source, which can swallow the
+// gesture before the card ever sees it, and no combination of draggable="false"
+// plus cancelling the image's own dragstart made that consistent — a real,
+// live desktop test still showed the browser's own "not a valid drop target"
+// cursor. Pointer Events (pointerdown/pointermove/pointerup) sidestep the
+// native drag machinery entirely: this code is just tracking coordinates and
+// moving DOM nodes itself, the same way any custom reorder-by-dragging
+// implementation does. As a bonus, Pointer Events unify mouse and touch, so
+// this works the same way on a phone or tablet without a second code path.
+function reorderCardBefore(grid, dragEl, targetCard, clientX){
+  const rect = targetCard.getBoundingClientRect();
+  // The photo list wraps into a row (left-to-right, top-to-bottom), not a
+  // single vertical column — so "before" follows horizontal position, the
+  // same way a vertical list would follow vertical position.
+  const before = (clientX - rect.left) < rect.width / 2;
+  grid.insertBefore(dragEl, before ? targetCard : targetCard.nextSibling);
+}
+async function persistPhotoOrder(grid){
+  const ids = [...grid.querySelectorAll('.photo-card')].map(c => c.dataset.id);
+  if(!ids.length) return;
+  if(isPending(ids[0])){
+    // Nothing to persist to the DB yet — just reorder the in-memory array to
+    // match what the drag/buttons just produced in the DOM. Primary always
+    // follows whichever photo is first, so a reorder can silently change it.
+    pendingPhotos = ids.map(id => pendingPhotos.find(p => p.id === id)).filter(Boolean);
+    pendingPhotos.forEach((p, i) => { p.is_primary = (i === 0); });
+    renderPhotoGrid(pendingPhotos);
+    return;
+  }
+  try{
+    await modcrReorderPhotos(ids);
+    await modcrSetPrimaryPhoto(currentDbId, ids[0]);
+    await reloadPhotos();
+  }catch(e){ showToast('Could not save photo order: ' + e.message, true); }
+}
+function makePhotoListReorderable(grid){
+  let dragEl = null;
+  let pointerId = null;
+  let dragActive = false;
+  let startX = 0, startY = 0;
+  // A real physical drag rarely starts exactly on the tiny handle icon or the
+  // 64px thumbnail — people naturally grab wherever their cursor already is
+  // on the card, which is usually over the caption box or the button row
+  // (confirmed via a screen recording: dragging from there was highlighting
+  // the caption text instead of reordering, since those were excluded below
+  // to keep typing/clicking working). So only <input>/<textarea> are excluded
+  // now; everywhere else on the card can start a drag, including buttons —
+  // DRAG_THRESHOLD_PX means a normal tap-sized movement still lets the
+  // button's own click fire (nothing here calls preventDefault), and only a
+  // real drag distance hijacks the gesture into a reorder.
+  const DRAG_THRESHOLD_PX = 6;
+
+  grid.querySelectorAll('.photo-card').forEach(card => {
+    card.addEventListener('pointerdown', (e) => {
+      if(e.target.closest('input, textarea')) return;
+      dragEl = card;
+      pointerId = e.pointerId;
+      dragActive = false;
+      startX = e.clientX;
+      startY = e.clientY;
+    });
+    // <img> is natively draggable in every browser regardless of our own
+    // Pointer Events code, and a real native drag session takes over the
+    // cursor (showing the "no-drop" icon) and swallows pointermove/up before
+    // our handlers ever see them, since there are no dragover/drop handlers
+    // anywhere on this page to catch it. draggable="false" on the tag alone
+    // isn't reliably enough to stop that in every browser — cancelling the
+    // image's own dragstart is what actually prevents it from starting.
+    const thumb = card.querySelector('.pc-thumb');
+    if(thumb) thumb.addEventListener('dragstart', (e) => e.preventDefault());
+    card.addEventListener('pointermove', (e) => {
+      if(!dragEl || e.pointerId !== pointerId) return;
+      if(!dragActive){
+        if(Math.hypot(e.clientX - startX, e.clientY - startY) < DRAG_THRESHOLD_PX) return;
+        dragActive = true;
+        dragEl.classList.add('dragging');
+        try{ dragEl.setPointerCapture(pointerId); }catch(err){ /* capture isn't available in every context; reordering still works without it */ }
+      }
+      const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.photo-card');
+      if(target && target !== dragEl && grid.contains(target)){
+        reorderCardBefore(grid, dragEl, target, e.clientX);
+      }
+    });
+    const endDrag = async (e) => {
+      if(!dragEl || e.pointerId !== pointerId) return;
+      const wasDragging = dragActive;
+      dragEl.classList.remove('dragging');
+      dragEl = null;
+      pointerId = null;
+      dragActive = false;
+      if(wasDragging) await persistPhotoOrder(grid);
+    };
+    card.addEventListener('pointerup', endDrag);
+    card.addEventListener('pointercancel', endDrag);
+  });
+}
+
+// Drag-and-drop onto the dropzone, plus the usual click-to-browse file input.
+// Works before the work is saved too — see the pendingPhotos comment above.
+async function uploadPhotoFiles(files){
+  if(!currentDbId){
+    for(const file of files){
+      pendingPhotos.push({
+        id: 'pending-' + crypto.randomUUID(),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        caption: '',
+        is_primary: pendingPhotos.length === 0,
+        photo_type: 'work',
+      });
+    }
+    renderPhotoGrid(pendingPhotos);
+    return;
+  }
+  for(const file of files){
+    try{
+      const existing = document.querySelectorAll('.photo-card').length;
+      await modcrUploadPhoto(currentDbId, file, existing === 0);
+    }catch(err){
+      showToast('Photo upload failed: ' + err.message, true);
+    }
+  }
+  await reloadPhotos();
+}
+document.getElementById('f-photos').addEventListener('change', async (e)=>{
+  await uploadPhotoFiles(e.target.files);
+  e.target.value = '';
+});
+const dropzoneEl = document.getElementById('dropzone');
+['dragenter','dragover'].forEach(evt => dropzoneEl.addEventListener(evt, (e)=>{
+  e.preventDefault();
+  dropzoneEl.classList.add('dragover');
+}));
+['dragleave','drop'].forEach(evt => dropzoneEl.addEventListener(evt, (e)=>{
+  e.preventDefault();
+  dropzoneEl.classList.remove('dragover');
+}));
+dropzoneEl.addEventListener('drop', async (e)=>{
+  const files = Array.from(e.dataTransfer.files || []).filter(f => f.type.startsWith('image/'));
+  if(files.length) await uploadPhotoFiles(files);
+});
+async function removePhoto(id, storagePath){
+  if(isPending(id)){
+    const idx = pendingPhotos.findIndex(p => p.id === id);
+    if(idx === -1) return;
+    URL.revokeObjectURL(pendingPhotos[idx].previewUrl);
+    pendingPhotos.splice(idx, 1);
+    pendingPhotos.forEach((p, i) => { p.is_primary = (i === 0); });
+    renderPhotoGrid(pendingPhotos);
+    return;
+  }
+  try{
+    await modcrDeletePhoto(id, storagePath);
+    await reloadPhotos();
+    // Primary always follows whichever photo is first — if the deleted one
+    // was primary, hand the flag to whatever's now in front.
+    const first = document.querySelector('#photoGrid .photo-card');
+    if(first && !first.classList.contains('primary')){
+      await modcrSetPrimaryPhoto(currentDbId, first.dataset.id);
+      await reloadPhotos();
+    }
+  }catch(e){
+    showToast('Could not remove photo: ' + e.message, true);
+  }
+}
+async function togglePhotoType(id, newType){
+  if(isPending(id)){
+    const p = pendingPhotos.find(p => p.id === id);
+    if(p) p.photo_type = newType;
+    renderPhotoGrid(pendingPhotos);
+    return;
+  }
+  try{
+    await modcrSetPhotoType(id, newType);
+    await reloadPhotos();
+  }catch(e){
+    showToast('Could not update: ' + e.message, true);
+  }
+}
+
+// ---- Voice annotation ----
+// (The earlier dictate-into-form-fields feature was removed — it relied on
+// the Web Speech API, which iOS Safari/Brave/Chrome never reliably support
+// since every iOS browser is required to use WebKit under the hood. iOS's own
+// keyboard already has built-in dictation on every text field via the mic key,
+// which does the same job natively and actually works.)
+// Recording requires the page to be served over HTTPS (or localhost) — getUserMedia
+// is blocked by browsers on plain file:// pages and on http:// origins.
+const micSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+// If unsupported, say so up front instead of leaving "Tap to record" showing
+// for a button that silently does nothing when tapped.
+if(!micSupported){
+  document.getElementById('micBtn').disabled = true;
+  document.getElementById('voiceStatus').textContent = "Recording isn't supported in this browser.";
+}
+
+function annotationSrc(a){ return a.previewUrl || modcrAudioUrl(a.storage_path); }
+function formatDuration(seconds){
+  if(seconds == null) return '';
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+// MediaRecorder's webm output often has no duration written into the file's
+// own header (a known Chromium quirk), so <audio> shows 0:00 or "Infinity"
+// until forced to rescan by seeking near the end and back — the standard
+// workaround for this. We also show our own independently-measured
+// duration_seconds (recorded via wall-clock time, not file metadata) as
+// text next to the player, so there's always a correct number visible even
+// if this rescan trick doesn't fully resolve in a given browser.
+function fixAudioDuration(audio){
+  if(audio.duration === Infinity || isNaN(audio.duration)){
+    audio.currentTime = 1e101;
+    audio.addEventListener('timeupdate', function reset(){
+      audio.removeEventListener('timeupdate', reset);
+      audio.currentTime = 0;
+    });
+  }
+}
+function renderAnnotationList(annotations){
+  const list = document.getElementById('annotationList');
+  list.innerHTML = (annotations||[]).map(a => {
+    const dur = a.duration_seconds ?? a.durationSeconds;
+    return `
+    <li>
+      <input type="text" class="voice-name" placeholder="Name this recording…"
+             value="${(a.label||'').replace(/"/g,'&quot;')}"
+             onchange="saveAnnotationLabel('${a.id}', this.value)">
+      <audio controls src="${annotationSrc(a)}" onloadedmetadata="fixAudioDuration(this)"></audio>
+      ${dur != null ? `<span class="voice-duration">${formatDuration(dur)}</span>` : ''}
+      <button class="voice-clear" onclick="removeAnnotation('${a.id}','${(a.storage_path||'').replace(/'/g,"\\'")}')">Remove</button>
+    </li>`;
+  }).join('');
+}
+async function saveAnnotationLabel(id, label){
+  if(isPending(id)){
+    const a = pendingAnnotations.find(a => a.id === id);
+    if(a) a.label = label.trim();
+    return;
+  }
+  try{
+    await modcrUpdateAnnotationLabel(id, label.trim());
+  }catch(e){
+    showToast('Could not save name: ' + e.message, true);
+  }
+}
+async function reloadAnnotations(){
+  const work = await modcrFetchWorkByCrNumber(currentCr);
+  renderAnnotationList(work.annotations);
+}
+async function removeAnnotation(id, storagePath){
+  if(!confirm('Remove this annotation?')) return;
+  if(isPending(id)){
+    const idx = pendingAnnotations.findIndex(a => a.id === id);
+    if(idx === -1) return;
+    URL.revokeObjectURL(pendingAnnotations[idx].previewUrl);
+    pendingAnnotations.splice(idx, 1);
+    renderAnnotationList(pendingAnnotations);
+    return;
+  }
+  try{
+    await modcrDeleteAnnotation(id, storagePath);
+    await reloadAnnotations();
+  }catch(e){
+    showToast('Could not remove annotation: ' + e.message, true);
+  }
+}
+
+async function toggleRecording(){
+  if(!micSupported) return;
+  if(mediaRecorder && mediaRecorder.state === 'recording'){
+    mediaRecorder.stop();
+    return;
+  }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    recordedChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+    mediaRecorder = mimeType ? new MediaRecorder(stream,{mimeType}) : new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => { if(e.data.size>0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = async ()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      clearInterval(recordTimerInterval);
+      const durationSeconds = Math.round((Date.now()-recordStartTime)/1000);
+      const blob = new Blob(recordedChunks, {type: mediaRecorder.mimeType || 'audio/webm'});
+      document.getElementById('micBtn').classList.remove('recording');
+      if(!currentDbId){
+        pendingAnnotations.push({
+          id: 'pending-' + crypto.randomUUID(),
+          blob, mimeType: mediaRecorder.mimeType || 'audio/webm', durationSeconds,
+          previewUrl: URL.createObjectURL(blob),
+        });
+        renderAnnotationList(pendingAnnotations);
+        document.getElementById('voiceStatus').textContent = 'Tap to record another';
+        return;
+      }
+      document.getElementById('voiceStatus').textContent = 'Uploading…';
+      try{
+        await modcrUploadAnnotation(currentDbId, blob, mediaRecorder.mimeType || 'audio/webm', durationSeconds);
+        await reloadAnnotations();
+        document.getElementById('voiceStatus').textContent = 'Tap to record another';
+      }catch(err){
+        showToast('Annotation upload failed: ' + err.message, true);
+        document.getElementById('voiceStatus').textContent = 'Tap to record';
+      }
+    };
+    mediaRecorder.start();
+    document.getElementById('micBtn').classList.add('recording');
+    recordStartTime = Date.now();
+    recordTimerInterval = setInterval(()=>{
+      const secs = Math.floor((Date.now()-recordStartTime)/1000);
+      const m = String(Math.floor(secs/60)).padStart(2,'0');
+      const s = String(secs%60).padStart(2,'0');
+      document.getElementById('voiceStatus').innerHTML = `Recording… <span class="rec-time">${m}:${s}</span>`;
+    }, 250);
+  }catch(err){
+    document.getElementById('voiceStatus').textContent = 'Microphone access was blocked or unavailable: ' + err.message;
+  }
+}
+
+async function loadFromQueryString(){
+  const params = new URLSearchParams(location.search);
+  const editCr = parseInt(params.get('edit'), 10);
+  if(!editCr){
+    try{
+      const all = await modcrFetchWorks();
+      const maxCr = all.reduce((m,w)=>Math.max(m,w.id),0);
+      document.getElementById('f-cr').value = maxCr + 1;
+    }catch(e){ /* leave blank if this fails — not fatal */ }
+    return;
+  }
+  const work = await modcrFetchWorkByCrNumber(editCr);
+  if(!work){ showToast('Could not find MOD CR ' + editCr + '.', true); return; }
+  currentDbId = work.dbId;
+  currentCr = work.id;
+  workIsPublished = !!work.published;
+  fillForm(work);
+  document.getElementById('formTitle').textContent = `Editing: ${work.title} (${work.cr})`;
+  markSaved();
+  updatePublishUI();
+  renderPhotoGrid(work.photos);
+  renderAnnotationList(work.annotations);
+}
+
+(async function(){
+  await modcrRequireAuth('catalogue_admin_login_v52_sans.html');
+  await populateSeriesSelect();
+  await populateMaterialSelect();
+  await loadFromQueryString();
+})();
+</script>
+</body>
+</html>
