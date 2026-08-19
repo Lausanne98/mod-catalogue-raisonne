@@ -11,6 +11,19 @@ const MODCR_SUPABASE_URL = 'https://kuyyrygvaotsrhbyjyjw.supabase.co';
 const MODCR_SUPABASE_ANON_KEY = 'sb_publishable_s1HGNRWL1LbiCXzFDK4igg_41mnArJx';
 const modcrSupabase = supabase.createClient(MODCR_SUPABASE_URL, MODCR_SUPABASE_ANON_KEY);
 
+// crypto.randomUUID() only exists in a secure context (HTTPS/localhost) --
+// on plain HTTP it's undefined, and calling it threw an uncaught error that
+// silently broke every photo/audio upload for a work that was already
+// saved (the storage path here, not the separate not-yet-saved-work path
+// in catalogue_intake's own script, which has its own copy of this fix).
+function modcrGenId(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+    const r = Math.random()*16|0, v = c==='x' ? r : (r&0x3|0x8);
+    return v.toString(16);
+  });
+}
+
 // ---- Works: DB row <-> the {id,cr,title,date,year,medium,tag,series,img,flag}
 // shape the catalogue/entry/admin pages already render.
 function modcrPhotoUrl(storagePath){
@@ -166,7 +179,7 @@ async function modcrFetchSeriesPhotos(seriesSlug){
 }
 async function modcrUploadSeriesPhoto(seriesSlug, file, photoType){
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-  const path = `${seriesSlug}/${crypto.randomUUID()}.${ext}`;
+  const path = `${seriesSlug}/${modcrGenId()}.${ext}`;
   const { error: upErr } = await modcrSupabase.storage.from('series-photos').upload(path, file, { upsert: false });
   if(upErr) throw upErr;
   const { data, error } = await modcrSupabase.from('series_photos')
@@ -232,7 +245,7 @@ async function modcrDeleteChronologyEvent(id, storagePath){
 }
 async function modcrUploadChronologyPhoto(eventId, file){
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-  const path = `${eventId}/${crypto.randomUUID()}.${ext}`;
+  const path = `${eventId}/${modcrGenId()}.${ext}`;
   const { error: upErr } = await modcrSupabase.storage.from('chronology-photos').upload(path, file, { upsert: false });
   if(upErr) throw upErr;
   return path;
@@ -265,7 +278,7 @@ async function modcrDeleteWork(dbId){
 
 async function modcrUploadPhoto(dbId, file, isPrimary){
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-  const path = `${dbId}/${crypto.randomUUID()}.${ext}`;
+  const path = `${dbId}/${modcrGenId()}.${ext}`;
   const { error: upErr } = await modcrSupabase.storage.from('work-photos').upload(path, file, { upsert: false });
   if(upErr) throw upErr;
   const { data, error } = await modcrSupabase.from('work_photos')
@@ -277,7 +290,7 @@ async function modcrUploadPhoto(dbId, file, isPrimary){
 
 async function modcrUploadAnnotation(dbId, blob, mimeType, durationSeconds){
   const ext = (mimeType || 'audio/webm').split('/')[1] || 'webm';
-  const path = `${dbId}/${crypto.randomUUID()}.${ext}`;
+  const path = `${dbId}/${modcrGenId()}.${ext}`;
   const { error: upErr } = await modcrSupabase.storage.from('work-audio').upload(path, blob, {
     upsert: false, contentType: mimeType || 'audio/webm',
   });
