@@ -130,6 +130,12 @@ alter table works add column if not exists inscriptions text;
 alter table works add column if not exists collection text;
 alter table works add column if not exists revisions text;
 
+-- Self-healing: add photo_credit -- unlike other optional fields, this and
+-- title_source display with a studio default on the entry page rather than
+-- hiding when unset (see CLAUDE.md "Default display values"), so an admin
+-- only needs to fill this in for a photo actually credited to someone else.
+alter table works add column if not exists photo_credit text;
+
 -- Self-healing: per-work draft/published state, independent of series.published.
 -- Saving the intake form only ever writes a draft (published defaults false);
 -- a work only becomes publicly visible once explicitly published from the admin,

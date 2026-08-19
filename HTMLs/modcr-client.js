@@ -36,6 +36,7 @@ function modcrAdaptWork(row){
     published: !!row.published,
     dimensions: row.dimensions || '',
     titleSource: row.title_source || '',
+    photoCredit: row.photo_credit || '',
     inscriptions: row.inscriptions || '',
     collection: row.collection || '',
     description: row.description || '',
