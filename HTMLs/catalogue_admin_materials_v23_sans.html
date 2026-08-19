@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Materials — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0f0ef;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #dedddb;
+    --rulelg: #ececea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f7f6;
+    --red:    #a83232;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--sand); color: var(--ink); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  header {
+    position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .header-nav { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+  .header-nav a { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); text-decoration: none; }
+  .header-nav a:hover { color: var(--ink); }
+  .nav-dark { color: var(--ink); }
+  .header-nav button {
+    font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer;
+  }
+  .header-nav button:hover { color: var(--ink); }
+
+  main { max-width: 760px; margin: 0 auto; padding: 32px 20px 96px; }
+  .page-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .page-head p { font-size: 12.5px; color: var(--mid); margin-bottom: 24px; }
+
+  .panel { background: var(--white); border: 1px solid var(--rule); padding: 24px; margin-bottom: 24px; }
+  .panel-head { font-family: 'Inter', sans-serif; font-size: 9px; letter-spacing: .18em; font-weight: 500; text-transform: uppercase; color: var(--mid); margin-bottom: 18px; }
+
+  .add-row { display: flex; gap: 12px; align-items: end; }
+  .f-field { display: flex; flex-direction: column; gap: 5px; }
+  .f-label { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); }
+  input[type=text] {
+    font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 8px 10px; width: 100%;
+  }
+  input:focus { outline: none; border-color: var(--goldlt); }
+  .add-row .f-field:first-child { flex: 1; }
+  .add-row .f-field:nth-child(2) { flex: 1; }
+
+  .btn {
+    font-family: 'Inter', sans-serif; font-size: 12px; letter-spacing: .04em; padding: 9px 16px;
+    border: 1px solid var(--rule); background: var(--white); color: var(--ink); cursor: pointer; transition: all .15s;
+  }
+  .btn:hover { background: var(--ink); color: var(--white); }
+  .btn.primary { background: var(--ink); color: var(--white); }
+  .btn.primary:hover { background: var(--gold); border-color: var(--gold); }
+
+  table { width: 100%; border-collapse: collapse; background: var(--white); border: 1px solid var(--rule); }
+  thead th {
+    text-align: left; font-size: 9px; letter-spacing: .1em; font-weight: 500; text-transform: uppercase;
+    color: var(--light); padding: 10px 14px; border-bottom: 1px solid var(--rule); background: var(--sand);
+  }
+  tbody td { padding: 9px 14px; font-size: 13px; border-bottom: 1px solid var(--rulelg); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  .row-slug { font-size: 10.5px; color: var(--light); }
+  .row-actions a, .row-actions button {
+    font-family: 'Inter', sans-serif; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--mid); text-decoration: none; background: none; border: none; cursor: pointer; padding: 0;
+  }
+  .row-actions button:hover { color: var(--red); }
+  .empty-state { padding: 40px; text-align: center; color: var(--light); font-size: 13px; font-style: italic; }
+
+  .save-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--white); padding: 12px 22px; font-size: 12.5px;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200;
+  }
+  .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .save-toast.error { background: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">MOD CR — Admin</div>
+  <div class="header-nav">
+    <a href="catalogue_admin_v59_sans.html">Dashboard</a>
+    <a href="catalogue_admin_manage_v59_sans.html">Works</a>
+    <a href="catalogue_admin_series_v25_sans.html">Series</a>
+    <a href="catalogue_intake_v59_sans.html">Add a Work</a>
+    <a href="catalogue_admin_chronology_v15_sans.html"><span class="nav-dark">Chronology</span></a>
+    <a href="catalogue_v64_sans.html">View Site</a>
+    <button onclick="modcrLogOut('catalogue_admin_login_v59_sans.html')">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <h1>Manage Materials</h1>
+    <p>The Medium/tag filter list. Kept alphabetical. Deleting one that's still used by a work will fail on purpose — reassign those works' material first.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Add a Material</div>
+    <div class="add-row">
+      <div class="f-field">
+        <label class="f-label">Label</label>
+        <input type="text" id="newLabel" placeholder="e.g. Terracotta">
+      </div>
+      <div class="f-field">
+        <label class="f-label">Slug <span style="text-transform:none;color:var(--light);">(filter value)</span></label>
+        <input type="text" id="newSlug" placeholder="e.g. terracotta">
+      </div>
+      <button class="btn primary" onclick="addMaterial()">Add</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">All Materials</div>
+    <table>
+      <thead><tr><th>Label</th><th></th></tr></thead>
+      <tbody id="materialsTableBody"><tr><td colspan="2"><div class="empty-state">Loading…</div></td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+<script src="modcr-client.js"></script>
+<script>
+let materials = [];
+
+function showToast(msg, isError){
+  const el = document.getElementById('saveToast');
+  el.textContent = msg;
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+function renderTable(){
+  const tbody = document.getElementById('materialsTableBody');
+  if(materials.length === 0){
+    tbody.innerHTML = `<tr><td colspan="2"><div class="empty-state">No materials yet.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = materials.map(m => `
+    <tr>
+      <td>${m.label}<div class="row-slug">${m.slug}</div></td>
+      <td class="row-actions"><button onclick="deleteMaterial('${m.slug}','${m.label.replace(/'/g,"\\'")}')">Delete</button></td>
+    </tr>`).join('');
+}
+
+async function loadMaterials(){
+  try{
+    materials = await modcrFetchMaterials();
+  }catch(e){
+    document.getElementById('materialsTableBody').innerHTML =
+      `<tr><td colspan="2"><div class="empty-state">Could not load materials: ${e.message}</div></td></tr>`;
+    return;
+  }
+  renderTable();
+}
+
+async function addMaterial(){
+  const label = document.getElementById('newLabel').value.trim();
+  const slug = document.getElementById('newSlug').value.trim();
+  if(!label){ showToast('Add a label.', true); return; }
+  if(!slug || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)){
+    showToast('Slug must be lowercase letters/numbers with hyphens, e.g. "terracotta".', true);
+    return;
+  }
+  try{
+    await modcrAddMaterial(slug, label);
+    document.getElementById('newLabel').value = '';
+    document.getElementById('newSlug').value = '';
+    await loadMaterials();
+    showToast('Material added.');
+  }catch(e){
+    showToast('Could not add material: ' + e.message, true);
+  }
+}
+
+async function deleteMaterial(slug, label){
+  if(!confirm(`Delete "${label}"? This only works if no works currently use it.`)) return;
+  try{
+    await modcrDeleteMaterial(slug);
+    await loadMaterials();
+    showToast('Material deleted.');
+  }catch(e){
+    showToast('Could not delete — likely still in use by one or more works: ' + e.message, true);
+  }
+}
+
+(async function(){
+  await modcrRequireAuth('catalogue_admin_login_v59_sans.html');
+  await loadMaterials();
+})();
+</script>
+</body>
+</html>
