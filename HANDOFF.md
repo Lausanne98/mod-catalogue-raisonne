@@ -19,17 +19,17 @@ Pages (`cr.micheleokadoner.com`) with no PR/merge step — every push goes live
 within a minute or two. Current canonical version of each page (check
 `HTMLs/` if these drift — this list is a snapshot, not enforced):
 
-- Browse: `catalogue_v59_sans.html`
-- Entry: `catalogue_entry_v55_sans.html`
-- Intake: `catalogue_intake_v54_sans.html`
-- Admin dashboard: `catalogue_admin_v54_sans.html`
-- Manage Works: `catalogue_admin_manage_v54_sans.html`
-- Manage Materials: `catalogue_admin_materials_v18_sans.html`
-- Manage Series: `catalogue_admin_series_v20_sans.html`
-- Admin login: `catalogue_admin_login_v54_sans.html`
-- Chronology: `catalogue_chronology_v51_sans.html`
-- Bio: `mod_bio_v56_sans.html`
-- Preview gate: `preview_gate_v40_sans.html`
+- Browse: `catalogue_v60_sans.html`
+- Entry: `catalogue_entry_v56_sans.html`
+- Intake: `catalogue_intake_v55_sans.html`
+- Admin dashboard: `catalogue_admin_v55_sans.html`
+- Manage Works: `catalogue_admin_manage_v55_sans.html`
+- Manage Materials: `catalogue_admin_materials_v19_sans.html`
+- Manage Series: `catalogue_admin_series_v21_sans.html`
+- Admin login: `catalogue_admin_login_v55_sans.html`
+- Chronology: `catalogue_chronology_v52_sans.html`
+- Bio: `mod_bio_v57_sans.html`
+- Preview gate: `preview_gate_v41_sans.html`
 
 Stable URL aliases (hand-maintained, point at whichever version above is
 current): `/admin`, `/works`, `/entry`, `/chronology`, and root `/`.
