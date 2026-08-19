@@ -88,6 +88,17 @@ not exists`, safe to re-run.
   rewriting; it's a different file from this one and wasn't kept current.
 - No other known open bugs as of this commit.
 
+## Deferred: Manage Works admin refinements (requested 2026-08-19)
+User explicitly asked to hold these until the major issues (backend
+verification, real content population) are resolved — do not implement yet:
+- Clicking anywhere on a work's row (not just the "Edit" link) should
+  navigate to that work's edit view.
+- The column headers (Title, MOD CR, Date, Material) should be clickable
+  to sort the table by that column.
+- Sorting by Material specifically: alphabetical by material name first,
+  then by year made as the secondary sort (not just alphabetical, and not
+  just by year).
+
 ## How to verify "what's actually live" instead of trusting this file
 ```
 git log --oneline -15
