@@ -120,6 +120,19 @@ script then this file, rather than duplicating client setup or a hardcoded
 rule above doesn't apply to it directly — but it's shared by every admin and
 public page, so treat changes to it as touching all of them at once.
 
+## Credentials / secrets
+This repo is public (served via GitHub Pages) — never commit a password, API
+secret key, or other credential into any file that goes into git, regardless
+of whether it's a code file, a doc, or a handoff note. This includes the admin
+login password, the Supabase dashboard password, and the Postgres "Database
+password" — none of these belong in `CLAUDE.md`, `HANDOFF.md`, `PROGRESS.md`,
+commit messages, or code comments. The Supabase anon/publishable key in
+`modcr-client.js` is the one exception — it's meant to be public, safe by
+design because RLS (not key secrecy) is the real access-control boundary (see
+"Backend" below). Credentials belong somewhere outside git entirely — a
+password manager, not a repo file — and should be shared with a new session
+out-of-band, not by asking Claude to read or write them into a tracked file.
+
 ## Pulling media from the legacy site (micheleokadoner.com)
 The legacy WordPress media library is not a reliable 1:1 source of "icon = this work's
 photo, title = this work's name." Two failure modes found so far, both from MOD CR 6:
