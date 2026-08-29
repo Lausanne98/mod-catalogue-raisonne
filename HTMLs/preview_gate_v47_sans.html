@@ -74,7 +74,7 @@
 function safeReturnTarget(){
   const raw = new URLSearchParams(location.search).get('return') || '';
   if(/^[a-zA-Z0-9_\-]+\.html(\?[^\s]*)?$/.test(raw)) return raw;
-  return 'catalogue_v70_sans.html';
+  return 'catalogue_v71_sans.html';
 }
 document.getElementById('gateForm').addEventListener('submit', function(e){
   e.preventDefault();

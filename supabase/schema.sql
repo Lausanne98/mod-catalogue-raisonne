@@ -158,6 +158,19 @@ alter table series add column if not exists parent_slug text references series(s
 alter table works add column if not exists is_large_scale boolean not null default false;
 alter table works add column if not exists is_museum_collection boolean not null default false;
 
+-- Self-healing: the other two Highlights, added once the first two were live --
+-- Public Installation and Unlocated are now explicit admin flags too, rather
+-- than derived (respectively) from series='public-installations' and from
+-- missing provenance. Making them explicit means an admin can set a work as
+-- a public installation regardless of which Series bucket it's filed under,
+-- and can correct/confirm "unlocated" by hand rather than it just following
+-- from a Provenance field that may simply not be filled in yet. This is a
+-- deliberate one-time behavior change: any work that showed the "Unlocated
+-- Work" badge automatically (because it had no provenance on record) stops
+-- showing it until someone explicitly checks the box for that work.
+alter table works add column if not exists is_public_installation boolean not null default false;
+alter table works add column if not exists is_unlocated boolean not null default false;
+
 -- Self-healing: per-work draft/published state, independent of series.published.
 -- Saving the intake form only ever writes a draft (published defaults false);
 -- a work only becomes publicly visible once explicitly published from the admin,

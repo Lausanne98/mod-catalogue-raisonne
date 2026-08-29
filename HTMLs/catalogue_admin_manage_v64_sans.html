@@ -84,9 +84,9 @@
     <a href="catalogue_admin_v64_sans.html">Dashboard</a>
     <a href="catalogue_admin_series_v31_sans.html">Series</a>
     <a href="catalogue_admin_materials_v28_sans.html">Materials</a>
-    <a href="catalogue_intake_v65_sans.html">Add a Work</a>
+    <a href="catalogue_intake_v66_sans.html">Add a Work</a>
     <a href="catalogue_admin_chronology_v15_sans.html"><span class="nav-dark">Chronology</span></a>
-    <a href="catalogue_v70_sans.html">View Site</a>
+    <a href="catalogue_v71_sans.html">View Site</a>
     <button onclick="modcrLogOut('catalogue_admin_login_v64_sans.html')">Log Out</button>
   </div>
 </header>
@@ -204,7 +204,7 @@ function render(){
     return;
   }
   tbody.innerHTML = sorted.map(w=>{
-    return `<tr class="row-clickable" onclick="location.href='catalogue_intake_v65_sans.html?edit=${w.id}'">
+    return `<tr class="row-clickable" onclick="location.href='catalogue_intake_v66_sans.html?edit=${w.id}'">
       <td>${w.img?`<img class="row-thumb" src="${w.img}" alt="" onerror="this.style.visibility='hidden'">`:''}</td>
       <td class="row-title">${w.title}${!w.published?` <span class="draft-badge-sm">Draft</span>`:''}${w.flag?` <span class="flag-badge" title="${w.flag}">⚠ needs review</span>`:''}</td>
       <td>${w.cr}</td>
@@ -212,7 +212,7 @@ function render(){
       <td>${materialLabels[w.tag] || ''}</td>
       <td>${seriesLabels[w.series] || ''}</td>
       <td><div class="row-actions" onclick="event.stopPropagation()">
-        <a href="catalogue_intake_v65_sans.html?edit=${w.id}">Edit</a>
+        <a href="catalogue_intake_v66_sans.html?edit=${w.id}">Edit</a>
         <button class="del-link" onclick="deleteWork('${w.dbId}','${w.title.replace(/'/g,"\\'")}')">Delete</button>
       </div></td>
     </tr>`;

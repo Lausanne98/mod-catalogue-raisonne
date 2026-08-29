@@ -60,6 +60,8 @@ function modcrAdaptWork(row){
     remarks: row.remarks || '',
     isLargeScale: !!row.is_large_scale,
     isMuseumCollection: !!row.is_museum_collection,
+    isPublicInstallation: !!row.is_public_installation,
+    isUnlocated: !!row.is_unlocated,
     img,
     flag: row.flag || undefined,
   };
