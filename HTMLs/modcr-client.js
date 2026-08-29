@@ -58,6 +58,8 @@ function modcrAdaptWork(row){
     literature: row.literature || '',
     revisions: row.revisions || '',
     remarks: row.remarks || '',
+    isLargeScale: !!row.is_large_scale,
+    isMuseumCollection: !!row.is_museum_collection,
     img,
     flag: row.flag || undefined,
   };

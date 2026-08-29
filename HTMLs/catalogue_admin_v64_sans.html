@@ -75,9 +75,9 @@
     <a href="catalogue_admin_manage_v64_sans.html">Works</a>
     <a href="catalogue_admin_series_v31_sans.html">Series</a>
     <a href="catalogue_admin_materials_v28_sans.html">Materials</a>
-    <a href="catalogue_intake_v64_sans.html">Add a Work</a>
+    <a href="catalogue_intake_v65_sans.html">Add a Work</a>
     <a href="catalogue_admin_chronology_v15_sans.html"><span class="nav-dark">Chronology</span></a>
-    <a href="catalogue_v69_sans.html">View Site</a>
+    <a href="catalogue_v70_sans.html">View Site</a>
     <button onclick="modcrLogOut('catalogue_admin_login_v64_sans.html')">Log Out</button>
   </div>
 </header>
@@ -97,7 +97,7 @@
       <h2>Manage Works →</h2>
       <p>Browse, search, and filter every catalogued work by name, timeframe, or material. Edit or delete a work.</p>
     </a>
-    <a class="action-card" href="catalogue_intake_v64_sans.html">
+    <a class="action-card" href="catalogue_intake_v65_sans.html">
       <h2>Add a Work →</h2>
       <p>The intake form — new work details, photos, and a verbal annotation.</p>
     </a>
@@ -143,7 +143,7 @@
     flagWrap.innerHTML = '<div class="flag-empty">No works currently flagged.</div>';
   }else{
     flagWrap.innerHTML = '<ul class="flag-list">' + flagged.map(w => `
-      <li><a href="catalogue_intake_v64_sans.html?edit=${w.id}">${w.title} (${w.cr})</a><span class="flag-note">${w.flag}</span></li>
+      <li><a href="catalogue_intake_v65_sans.html?edit=${w.id}">${w.title} (${w.cr})</a><span class="flag-note">${w.flag}</span></li>
     `).join('') + '</ul>';
   }
 })();

@@ -146,6 +146,18 @@ alter table works add column if not exists photo_credit text;
 -- works are tagged or filtered changes because a series has a parent.
 alter table series add column if not exists parent_slug text references series(slug);
 
+-- Self-healing: add the two "Highlights" flags -- Large-Scale Work and Museum
+-- Collection. These back the Browse toolbar's quick-link shortcuts (the
+-- other two, Public Installations and Unlocated Works, need no new column:
+-- Public Installations is just the existing series, and Unlocated Works is
+-- computed from a work having no recorded provenance, same as the existing
+-- "Unlocated Work" badge on the entry page). Most works are neither, and
+-- leaving both false is the expected default -- these only ever surface
+-- (as a small badge on the entry page, and via the quick-links) for the
+-- minority of works an admin has actually checked.
+alter table works add column if not exists is_large_scale boolean not null default false;
+alter table works add column if not exists is_museum_collection boolean not null default false;
+
 -- Self-healing: per-work draft/published state, independent of series.published.
 -- Saving the intake form only ever writes a draft (published defaults false);
 -- a work only becomes publicly visible once explicitly published from the admin,
