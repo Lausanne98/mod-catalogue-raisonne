@@ -136,6 +136,16 @@ alter table works add column if not exists revisions text;
 -- only needs to fill this in for a photo actually credited to someone else.
 alter table works add column if not exists photo_credit text;
 
+-- Self-healing: add parent_slug to series -- lets a specific, granular named
+-- sub-series (e.g. "Descending Figures") nest under a broader bucket series
+-- (e.g. "Early Clay") for browsing purposes: the front end shows it in the
+-- parent's own "Sub Series" dropdown instead of as a separate flat entry in
+-- the main Series list. Purely a UI/navigation grouping -- a work's own
+-- `series` field still points directly at whichever series (broad or
+-- granular) actually applies to it, exactly as before; nothing about how
+-- works are tagged or filtered changes because a series has a parent.
+alter table series add column if not exists parent_slug text references series(slug);
+
 -- Self-healing: per-work draft/published state, independent of series.published.
 -- Saving the intake form only ever writes a draft (published defaults false);
 -- a work only becomes publicly visible once explicitly published from the admin,
