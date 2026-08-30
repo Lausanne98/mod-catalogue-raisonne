@@ -5,6 +5,9 @@ description: Research a single MOD Catalogue Raisonné work across the open web 
 
 # Associate Archivist
 
+Working nickname: **Kahlo** (placeholder, 2026-08-30 — may stick, may not;
+rename this skill's directory/frontmatter `name` if it does).
+
 A research pass for one MOD Catalogue Raisonné work at a time. Finds
 supporting information from public sources and writes it into that work's
 **draft** record in Supabase — never publishes anything, never overwrites
