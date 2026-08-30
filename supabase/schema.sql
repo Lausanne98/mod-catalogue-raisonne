@@ -338,6 +338,32 @@ drop policy if exists "annotations_admin_write" on work_annotations;
 create policy "annotations_admin_write" on work_annotations for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- ═══ WORK SOURCES (Associate Archivist research trail) ═══
+-- Every fact the Associate Archivist finds while researching a work gets
+-- logged here BEFORE (and regardless of whether) it's copied into the
+-- work's own fields -- so the citation trail is structured, queryable data
+-- from the moment it's found, rather than living only in a chat transcript
+-- that could get summarized away. Admin-only: this is working scratchpad
+-- behind the scenes, not the public-facing Provenance/Exhibitions/
+-- Literature text itself (that still lives on the work row, same as ever).
+create table if not exists work_sources (
+  id           uuid primary key default gen_random_uuid(),
+  work_id      uuid not null references works(id) on delete cascade,
+  url          text,
+  source_type  text not null default 'other', -- auction | gallery | museum | press | publication | collector | other
+  field        text,                          -- which work field this bears on, e.g. 'provenance', 'exhibitions' -- optional
+  finding      text not null,                 -- the actual excerpt/claim/fact found, in the archivist's own words or quoted
+  confidence   text not null default 'flagged', -- confirmed | flagged | rejected
+  accessed_at  timestamptz not null default now(),
+  created_at   timestamptz not null default now()
+);
+create index if not exists work_sources_work_id_idx on work_sources(work_id);
+
+alter table work_sources enable row level security;
+drop policy if exists "work_sources_admin_only" on work_sources;
+create policy "work_sources_admin_only" on work_sources for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
 -- ═══ SERIES CAROUSEL PHOTOS ("Image Gallery" in the browse page's Overview
 -- panel) — previously a hardcoded JS object with base64 images embedded
 -- directly in the browse page; now a real per-series photo set, editable

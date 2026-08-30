@@ -172,6 +172,23 @@ async function modcrDeleteMaterial(slug){
   if(error) throw error;
 }
 
+// ---- Work Sources (Associate Archivist research trail) ----
+async function modcrFetchWorkSources(workId){
+  const { data, error } = await modcrSupabase
+    .from('work_sources').select('*').eq('work_id', workId).order('created_at', { ascending: false });
+  if(error) throw error;
+  return data;
+}
+async function modcrAddWorkSource(payload){
+  const { data, error } = await modcrSupabase.from('work_sources').insert(payload).select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrDeleteWorkSource(sourceId){
+  const { error } = await modcrSupabase.from('work_sources').delete().eq('id', sourceId);
+  if(error) throw error;
+}
+
 function modcrSeriesPhotoUrl(storagePath){
   return modcrSupabase.storage.from('series-photos').getPublicUrl(storagePath).data.publicUrl;
 }
