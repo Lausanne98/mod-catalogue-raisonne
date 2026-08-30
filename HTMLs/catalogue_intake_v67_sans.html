@@ -301,7 +301,7 @@
   <div class="header-title">Michele Oka Doner — Work Intake</div>
   <div class="header-sub">
     <a href="catalogue_admin_v64_sans.html">Dashboard</a> ·
-    <a href="catalogue_admin_manage_v64_sans.html">Works</a> ·
+    <a href="catalogue_admin_manage_v65_sans.html">Works</a> ·
     <a href="catalogue_admin_series_v35_sans.html">Series</a> ·
     <a href="catalogue_admin_materials_v28_sans.html">Materials</a> ·
     <a href="catalogue_admin_chronology_v15_sans.html"><span class="nav-dark">Chronology</span></a> ·
@@ -314,7 +314,7 @@
 </header>
 <div class="mobile-nav-panel" id="mobileNavPanel">
   <a href="catalogue_admin_v64_sans.html">Dashboard</a>
-  <a href="catalogue_admin_manage_v64_sans.html">Works</a>
+  <a href="catalogue_admin_manage_v65_sans.html">Works</a>
   <a href="catalogue_admin_series_v35_sans.html">Series</a>
   <a href="catalogue_admin_materials_v28_sans.html">Materials</a>
   <a href="catalogue_admin_chronology_v15_sans.html">Chronology</a>
@@ -757,7 +757,7 @@ async function deleteCurrentWork(){
   if(!confirm('Delete this work from the catalogue? This cannot be undone.')) return;
   try{
     await modcrDeleteWork(currentDbId);
-    window.location.href = 'catalogue_admin_manage_v64_sans.html';
+    window.location.href = 'catalogue_admin_manage_v65_sans.html';
   }catch(e){
     showToast('Could not delete: ' + e.message, true);
   }
