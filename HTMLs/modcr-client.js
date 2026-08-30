@@ -189,6 +189,59 @@ async function modcrDeleteWorkSource(sourceId){
   if(error) throw error;
 }
 
+// ---- Staged Works (Associate Archivist candidate discoveries) ----
+async function modcrFetchStagedWorks(){
+  const { data, error } = await modcrSupabase
+    .from('staged_works').select('*').order('created_at', { ascending: false });
+  if(error) throw error;
+  return data;
+}
+async function modcrSaveStagedWork(payload, id){
+  const { data, error } = await modcrSupabase.from('staged_works').update(payload).eq('id', id).select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrDeleteStagedWork(id){
+  const { error } = await modcrSupabase.from('staged_works').delete().eq('id', id);
+  if(error) throw error;
+}
+// Promotes a staged candidate into a real `works` row, assigning it the
+// correct provisional CR number per CLAUDE.md's rule: within the 100+
+// block, numbers go in chronological (by-year) order, undated last. Any
+// existing 100+ work dated later than this one gets bumped up by one to
+// make room -- processed highest-number-first so the unique constraint on
+// cr_number is never transiently violated.
+async function modcrImportStagedWork(staged, publish){
+  const { data: existing, error } = await modcrSupabase
+    .from('works').select('id, cr_number, year').gte('cr_number', 100).order('cr_number');
+  if(error) throw error;
+  const newYearSort = staged.year == null ? Infinity : staged.year;
+  let insertAt = existing.findIndex(w => (w.year == null ? Infinity : w.year) > newYearSort);
+  if(insertAt === -1) insertAt = existing.length;
+  for(let i = existing.length - 1; i >= insertAt; i--){
+    const { error: shiftErr } = await modcrSupabase
+      .from('works').update({ cr_number: existing[i].cr_number + 1 }).eq('id', existing[i].id);
+    if(shiftErr) throw shiftErr;
+  }
+  const newCrNumber = 100 + insertAt;
+  const { data: newWork, error: insErr } = await modcrSupabase.from('works').insert({
+    cr_number: newCrNumber,
+    title: staged.title || 'Untitled',
+    date_display: staged.date_display || null,
+    year: staged.year,
+    medium: staged.medium || null,
+    tag: staged.tag || null,
+    series: staged.suggested_series || null,
+    published: !!publish,
+    flag: `Imported from Associate Archivist staging (source: ${staged.source_url || 'unspecified'}).${staged.notes ? ' ' + staged.notes : ''}`,
+  }).select().single();
+  if(insErr) throw insErr;
+  const { error: stagedErr } = await modcrSupabase.from('staged_works')
+    .update({ status: 'imported', imported_work_id: newWork.id }).eq('id', staged.id);
+  if(stagedErr) throw stagedErr;
+  return newWork;
+}
+
 function modcrSeriesPhotoUrl(storagePath){
   return modcrSupabase.storage.from('series-photos').getPublicUrl(storagePath).data.publicUrl;
 }

@@ -364,6 +364,37 @@ drop policy if exists "work_sources_admin_only" on work_sources;
 create policy "work_sources_admin_only" on work_sources for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- ═══ STAGED WORKS (Associate Archivist candidate discoveries) ═══
+-- Separate from `works` on purpose: a candidate the Archivist finds while
+-- scouting (an auction listing, a gallery page) that *looks* like a real,
+-- previously uncatalogued MOD work does not get a real CR number or a row
+-- in `works` until a human confirms it's real and imports it. This is the
+-- inbox for that judgment call -- distinct from work_sources, which is for
+-- enriching a work that's already safely in `works` as a draft.
+create table if not exists staged_works (
+  id                uuid primary key default gen_random_uuid(),
+  title             text,
+  date_display      text,
+  year              integer,
+  medium            text,
+  tag               text references materials(slug),
+  suggested_series  text references series(slug),
+  notes             text,                            -- why the archivist thinks this is real/uncatalogued
+  source_url        text,
+  source_type       text not null default 'other',   -- auction | gallery | museum | press | publication | other
+  confidence        text not null default 'candidate', -- candidate | likely | needs_review
+  status            text not null default 'new',       -- new | reviewing | imported | rejected
+  imported_work_id  uuid references works(id),
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+create index if not exists staged_works_status_idx on staged_works(status);
+
+alter table staged_works enable row level security;
+drop policy if exists "staged_works_admin_only" on staged_works;
+create policy "staged_works_admin_only" on staged_works for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
 -- ═══ SERIES CAROUSEL PHOTOS ("Image Gallery" in the browse page's Overview
 -- panel) — previously a hardcoded JS object with base64 images embedded
 -- directly in the browse page; now a real per-series photo set, editable
