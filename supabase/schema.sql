@@ -224,6 +224,10 @@ create table if not exists work_annotations (
 );
 -- Self-healing: label was added after annotations already existed in some projects.
 alter table work_annotations add column if not exists label text;
+-- Self-healing: text-based Artist's Annotations, alongside the existing voice
+-- recordings -- storage_path becomes optional since a typed note has none.
+alter table work_annotations alter column storage_path drop not null;
+alter table work_annotations add column if not exists text_note text;
 create index if not exists work_annotations_work_id_idx on work_annotations(work_id);
 
 -- ═══ ROW LEVEL SECURITY ═══

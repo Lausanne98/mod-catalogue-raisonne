@@ -83,7 +83,7 @@ async function modcrFetchWorks(){
 async function modcrFetchWorkByCrNumber(crNumber){
   const { data, error } = await modcrSupabase
     .from('works')
-    .select('*, work_photos(id,storage_path,is_primary,caption,sort_order,photo_type), work_annotations(id,storage_path,duration_seconds,label)')
+    .select('*, work_photos(id,storage_path,is_primary,caption,sort_order,photo_type), work_annotations(id,storage_path,duration_seconds,label,text_note)')
     .eq('cr_number', crNumber)
     .order('sort_order', { referencedTable: 'work_photos' })
     .maybeSingle();
@@ -124,9 +124,17 @@ async function modcrUpdateAnnotationLabel(annotationId, label){
   if(error) throw error;
 }
 async function modcrDeleteAnnotation(annotationId, storagePath){
-  await modcrSupabase.storage.from('work-audio').remove([storagePath]);
+  // A text annotation has no storage_path -- nothing to remove from Storage.
+  if(storagePath) await modcrSupabase.storage.from('work-audio').remove([storagePath]);
   const { error } = await modcrSupabase.from('work_annotations').delete().eq('id', annotationId);
   if(error) throw error;
+}
+async function modcrAddTextAnnotation(dbId, text){
+  const { data, error } = await modcrSupabase.from('work_annotations')
+    .insert({ work_id: dbId, text_note: text })
+    .select().single();
+  if(error) throw error;
+  return data;
 }
 
 async function modcrFetchSeries(){
@@ -345,7 +353,11 @@ async function modcrDeleteWork(dbId){
     modcrSupabase.from('work_annotations').select('storage_path').eq('work_id', dbId),
   ]);
   if(photos && photos.length) await modcrSupabase.storage.from('work-photos').remove(photos.map(p=>p.storage_path));
-  if(annotations && annotations.length) await modcrSupabase.storage.from('work-audio').remove(annotations.map(a=>a.storage_path));
+  // Text annotations have no storage_path -- filter those out before asking
+  // Storage to remove them (a null in the list would just be a wasted no-op
+  // entry, but there's no reason to send it).
+  const annotationPaths = (annotations || []).map(a=>a.storage_path).filter(Boolean);
+  if(annotationPaths.length) await modcrSupabase.storage.from('work-audio').remove(annotationPaths);
   const { error } = await modcrSupabase.from('works').delete().eq('id', dbId);
   if(error) throw error;
 }

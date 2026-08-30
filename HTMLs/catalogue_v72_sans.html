@@ -773,7 +773,7 @@ function sortWorks(m){
 }
 function renderGrid(arr){
   document.getElementById('workGrid').innerHTML=arr.map(w=>`
-    <a class="work-card" href="catalogue_entry_v66_sans.html?id=${w.id}">
+    <a class="work-card" href="catalogue_entry_v67_sans.html?id=${w.id}">
       <div class="wc-img-wrap">
         ${w.img?`<img class="wc-img" src="${w.img}" alt="${w.title}" loading="lazy" onerror="this.outerHTML='<div class=wc-placeholder>${w.title}</div>'">`:`<div class="wc-placeholder">${w.title}</div>`}
       </div>
@@ -787,7 +787,7 @@ function renderGrid(arr){
 function renderList(arr){
   document.getElementById('workList').innerHTML=`
     <div class="wl-head"><span></span><span>CR No.</span><span>Title</span><span>Medium</span><span>Date</span></div>
-    ${arr.map(w=>`<a class="wl-row" href="catalogue_entry_v66_sans.html?id=${w.id}">
+    ${arr.map(w=>`<a class="wl-row" href="catalogue_entry_v67_sans.html?id=${w.id}">
       ${w.img?`<img class="wl-thumb" src="${w.img}" alt="" onerror="this.style.display='none'">`:' <div class="wl-thumb" style="background:var(--sand)"></div>'}
       <span class="wl-num">${w.cr}</span><span class="wl-title">${w.title}</span>
       <span class="wl-med">${w.medium}</span><span class="wl-date">${w.date}</span>
