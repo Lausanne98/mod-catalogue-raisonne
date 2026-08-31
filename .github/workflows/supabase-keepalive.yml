@@ -1,0 +1,42 @@
+name: Supabase keepalive
+
+# Supabase's free tier auto-pauses a project after 7 days with no API
+# activity. This site is static (GitHub Pages) with no server to run a
+# cron job itself, so a scheduled GitHub Actions workflow does one
+# trivial, read-only request a day to keep the project active.
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read one row from a public table
+        run: |
+          curl -sf \
+            "https://kuyyrygvaotsrhbyjyjw.supabase.co/rest/v1/series?select=slug&limit=1" \
+            -H "apikey: sb_publishable_s1HGNRWL1LbiCXzFDK4igg_41mnArJx" \
+            -o /dev/null
+
+      # Failure here likely means the Supabase project auto-paused (or the
+      # API/key changed) — open a visible issue rather than relying on
+      # anyone's GitHub email-notification settings. Skips creating a
+      # duplicate if one is already open from a previous failed run.
+      - name: Open an issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          existing=$(curl -sS -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/issues?state=open&labels=supabase-keepalive-failure" \
+            | jq 'length')
+          if [ "$existing" = "0" ]; then
+            curl -sS -X POST -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/${{ github.repository }}/issues" \
+              -d '{"title":"Supabase keepalive ping failed","body":"The daily Supabase keepalive workflow (.github/workflows/supabase-keepalive.yml) failed. This may mean the Supabase project has auto-paused, or the API URL/key has changed. Check the failed run under the Actions tab, and check whether the live site is still loading data.","labels":["supabase-keepalive-failure"]}'
+          fi
