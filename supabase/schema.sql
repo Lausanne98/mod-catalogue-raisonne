@@ -399,6 +399,31 @@ drop policy if exists "staged_works_admin_only" on staged_works;
 create policy "staged_works_admin_only" on staged_works for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- ═══ SOURCE MATERIALS (raw intake — catalog PDFs & legacy photography,
+-- pending triage/mining by the Associate Archivist) ═══
+-- Distinct from work_photos/work_sources: this is unreviewed raw material
+-- dropped in for processing, not yet tied to a confirmed work or fact. Image
+-- uploads here are web-ready derivatives (converted/resized client-side on
+-- upload, e.g. TIFF/HEIC -> JPEG) -- the original large-format master, if
+-- one exists, stays on the studio's local raw archive and is never uploaded
+-- here; this bucket only ever holds working copies for review.
+create table if not exists source_materials (
+  id               uuid primary key default gen_random_uuid(),
+  kind             text not null default 'image' check (kind in ('pdf','image')),
+  filename         text not null,
+  storage_path     text not null,
+  related_work_id  uuid references works(id),
+  status           text not null default 'unreviewed' check (status in ('unreviewed','flagged','matched','rejected')),
+  notes            text,
+  uploaded_at      timestamptz not null default now()
+);
+create index if not exists source_materials_status_idx on source_materials(status);
+
+alter table source_materials enable row level security;
+drop policy if exists "source_materials_admin_only" on source_materials;
+create policy "source_materials_admin_only" on source_materials for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
 -- ═══ SERIES CAROUSEL PHOTOS ("Image Gallery" in the browse page's Overview
 -- panel) — previously a hardcoded JS object with base64 images embedded
 -- directly in the browse page; now a real per-series photo set, editable
@@ -485,6 +510,14 @@ insert into storage.buckets (id, name, public)
 values ('chronology-photos', 'chronology-photos', true)
 on conflict (id) do nothing;
 
+-- Private, unlike the buckets above: raw catalog PDFs and legacy photography
+-- are very likely copyrighted (published exhibition catalogs, monographs) --
+-- fine to hold for internal research/mining, never meant to be world-readable
+-- the way a published work's own photos are. Admin-only read AND write.
+insert into storage.buckets (id, name, public)
+values ('source-materials', 'source-materials', false)
+on conflict (id) do nothing;
+
 drop policy if exists "work_photos_public_read" on storage.objects;
 create policy "work_photos_public_read" on storage.objects for select
   using (bucket_id = 'work-photos');
@@ -536,6 +569,19 @@ create policy "chronology_photos_bucket_admin_update" on storage.objects for upd
 drop policy if exists "chronology_photos_bucket_admin_delete" on storage.objects;
 create policy "chronology_photos_bucket_admin_delete" on storage.objects for delete
   using (bucket_id = 'chronology-photos' and auth.role() = 'authenticated');
+
+drop policy if exists "source_materials_bucket_admin_read" on storage.objects;
+create policy "source_materials_bucket_admin_read" on storage.objects for select
+  using (bucket_id = 'source-materials' and auth.role() = 'authenticated');
+drop policy if exists "source_materials_bucket_admin_write" on storage.objects;
+create policy "source_materials_bucket_admin_write" on storage.objects for insert
+  with check (bucket_id = 'source-materials' and auth.role() = 'authenticated');
+drop policy if exists "source_materials_bucket_admin_update" on storage.objects;
+create policy "source_materials_bucket_admin_update" on storage.objects for update
+  using (bucket_id = 'source-materials' and auth.role() = 'authenticated');
+drop policy if exists "source_materials_bucket_admin_delete" on storage.objects;
+create policy "source_materials_bucket_admin_delete" on storage.objects for delete
+  using (bucket_id = 'source-materials' and auth.role() = 'authenticated');
 
 -- ═══ MIGRATE EXISTING 28 WORKS ═══
 -- Images point at the already-hosted GitHub Pages files for now (legacy_image_url)

@@ -250,6 +250,41 @@ async function modcrImportStagedWork(staged, publish){
   return newWork;
 }
 
+// ---- Source Materials (raw intake: catalog PDFs & legacy photography,
+// pending triage/mining) — private bucket, so display needs a signed URL
+// rather than the public-URL helper pattern used by work-photos etc. ----
+async function modcrFetchSourceMaterials(){
+  const { data, error } = await modcrSupabase
+    .from('source_materials').select('*').order('uploaded_at', { ascending: false });
+  if(error) throw error;
+  return data;
+}
+async function modcrSourceMaterialUrl(storagePath){
+  const { data, error } = await modcrSupabase.storage
+    .from('source-materials').createSignedUrl(storagePath, 3600);
+  if(error) throw error;
+  return data.signedUrl;
+}
+async function modcrUploadSourceMaterial(blob, filename, kind, relatedWorkId){
+  const path = `${Date.now()}-${modcrGenId()}-${filename}`;
+  const { error: upErr } = await modcrSupabase.storage.from('source-materials').upload(path, blob, { upsert: false });
+  if(upErr) throw upErr;
+  const { data, error } = await modcrSupabase.from('source_materials')
+    .insert({ kind, filename, storage_path: path, related_work_id: relatedWorkId || null })
+    .select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrUpdateSourceMaterial(id, patch){
+  const { error } = await modcrSupabase.from('source_materials').update(patch).eq('id', id);
+  if(error) throw error;
+}
+async function modcrDeleteSourceMaterial(id, storagePath){
+  await modcrSupabase.storage.from('source-materials').remove([storagePath]);
+  const { error } = await modcrSupabase.from('source_materials').delete().eq('id', id);
+  if(error) throw error;
+}
+
 function modcrSeriesPhotoUrl(storagePath){
   return modcrSupabase.storage.from('series-photos').getPublicUrl(storagePath).data.publicUrl;
 }
