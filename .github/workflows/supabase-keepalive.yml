@@ -1,0 +1,21 @@
+name: Supabase keepalive
+
+# Supabase's free tier auto-pauses a project after 7 days with no API
+# activity. This site is static (GitHub Pages) with no server to run a
+# cron job itself, so a scheduled GitHub Actions workflow does one
+# trivial, read-only request a day to keep the project active.
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read one row from a public table
+        run: |
+          curl -sf \
+            "https://kuyyrygvaotsrhbyjyjw.supabase.co/rest/v1/series?select=slug&limit=1" \
+            -H "apikey: sb_publishable_s1HGNRWL1LbiCXzFDK4igg_41mnArJx" \
+            -o /dev/null

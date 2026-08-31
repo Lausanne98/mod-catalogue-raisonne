@@ -8,6 +8,20 @@
 - The `service_role` secret key was never shared with Claude and must stay
   that way — full unrestricted DB access, private only.
 
+## Supabase auto-pause keepalive
+Supabase's free tier auto-pauses a project after 7 days with zero API
+activity. This site has no server of its own (static HTML on GitHub Pages,
+no Vercel/Node build to hang a cron-triggered API route off of), so instead
+`.github/workflows/supabase-keepalive.yml` is a GitHub Actions scheduled
+workflow (`schedule: cron '0 8 * * *'`, plus `workflow_dispatch` for a manual
+run) that does one read-only request a day (`select=slug&limit=1` against
+the public `series` table, using the anon key above) to keep the project
+active. Costs nothing — free GitHub Actions minutes, no new infra. Not
+verified against the live project this session — this sandbox's egress
+proxy blocks `*.supabase.co` outright (see "Not yet independently verified"
+below), same known limitation, so confirm the workflow actually succeeds
+from the Actions tab after it's merged.
+
 ## Status as of this session
 - **`supabase/schema.sql` had a real bug found and fixed this session**: the
   28-work migration used `tag='jewelry'` for the 7 jewelry works and
