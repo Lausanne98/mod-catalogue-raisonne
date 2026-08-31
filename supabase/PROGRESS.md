@@ -22,6 +22,12 @@ proxy blocks `*.supabase.co` outright (see "Not yet independently verified"
 below), same known limitation, so confirm the workflow actually succeeds
 from the Actions tab after it's merged.
 
+If the daily ping fails, the workflow opens a GitHub issue (labeled
+`supabase-keepalive-failure`, deduplicated so a run of consecutive failures
+doesn't open a new one each day) rather than relying on anyone's GitHub
+email-notification settings — a failure likely means the project auto-paused
+or the API/key changed, either of which is worth knowing about right away.
+
 ## Status as of this session
 - **`supabase/schema.sql` had a real bug found and fixed this session**: the
   28-work migration used `tag='jewelry'` for the 7 jewelry works and
