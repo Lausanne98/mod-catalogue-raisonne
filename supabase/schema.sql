@@ -404,11 +404,17 @@ create policy "staged_works_admin_only" on staged_works for all
 -- an admin tool. Nobody but an authenticated admin can ever read, update,
 -- or delete a row: a public write-only form is the standard safe pattern
 -- for this (no anon key can be used to browse other people's submissions).
--- Deliberately text-only, no photo upload from the public form itself --
--- an anonymous file-upload endpoint is a spam/abuse surface this project
--- doesn't need; the copy on the page asks submitters to email photos
--- instead. A reviewed submission gets triaged by hand into staged_works /
--- work_sources, same as any other Associate Archivist input.
+-- Photos ARE accepted directly on the form (photo_storage_paths), unlike
+-- the first draft of this table -- every upload is re-encoded through the
+-- same browser-canvas convert/resize step already used on Source Materials
+-- before it ever reaches Storage, which flattens embedded payloads and
+-- strips EXIF; the accept type is restricted to images only. PDFs are
+-- deliberately NOT accepted here -- a PDF's spec allows embedded scripts/
+-- launch actions, a materially different risk profile than a flattened
+-- JPEG -- the page asks anyone submitting a PDF catalog to email it
+-- instead, where a human looks at it before it's opened. A reviewed
+-- submission gets triaged by hand into staged_works / work_sources /
+-- source_materials, same as any other Associate Archivist input.
 create table if not exists public_submissions (
   id                  uuid primary key default gen_random_uuid(),
   submitted_at        timestamptz not null default now(),
@@ -423,6 +429,7 @@ create table if not exists public_submissions (
   exhibition_notes    text,
   additional_notes    text,
   confidential_contact boolean not null default false,
+  photo_storage_paths text[] not null default '{}',
   status              text not null default 'new', -- new | reviewing | imported | rejected
   created_at          timestamptz not null default now()
 );
@@ -561,6 +568,14 @@ insert into storage.buckets (id, name, public)
 values ('source-materials', 'source-materials', false)
 on conflict (id) do nothing;
 
+-- Private too: photos attached to a Call for Works submission haven't been
+-- reviewed yet, and may include images of works that turn out not to be
+-- genuine, unrelated, or something a submitter didn't intend to share
+-- publicly. Admin-only read, same as source-materials; anon may only INSERT.
+insert into storage.buckets (id, name, public)
+values ('public-submissions', 'public-submissions', false)
+on conflict (id) do nothing;
+
 drop policy if exists "work_photos_public_read" on storage.objects;
 create policy "work_photos_public_read" on storage.objects for select
   using (bucket_id = 'work-photos');
@@ -625,6 +640,16 @@ create policy "source_materials_bucket_admin_update" on storage.objects for upda
 drop policy if exists "source_materials_bucket_admin_delete" on storage.objects;
 create policy "source_materials_bucket_admin_delete" on storage.objects for delete
   using (bucket_id = 'source-materials' and auth.role() = 'authenticated');
+
+drop policy if exists "public_submissions_bucket_anyone_insert" on storage.objects;
+create policy "public_submissions_bucket_anyone_insert" on storage.objects for insert
+  with check (bucket_id = 'public-submissions');
+drop policy if exists "public_submissions_bucket_admin_read" on storage.objects;
+create policy "public_submissions_bucket_admin_read" on storage.objects for select
+  using (bucket_id = 'public-submissions' and auth.role() = 'authenticated');
+drop policy if exists "public_submissions_bucket_admin_delete" on storage.objects;
+create policy "public_submissions_bucket_admin_delete" on storage.objects for delete
+  using (bucket_id = 'public-submissions' and auth.role() = 'authenticated');
 
 -- ═══ MIGRATE EXISTING 28 WORKS ═══
 -- Images point at the already-hosted GitHub Pages files for now (legacy_image_url)

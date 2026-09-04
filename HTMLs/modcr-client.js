@@ -257,6 +257,12 @@ async function modcrSubmitPublicWork(payload){
   const { error } = await modcrSupabase.from('public_submissions').insert(payload);
   if(error) throw error;
 }
+async function modcrUploadPublicSubmissionPhoto(blob, filename){
+  const path = `${Date.now()}-${modcrGenId()}-${filename}`;
+  const { error } = await modcrSupabase.storage.from('public-submissions').upload(path, blob, { upsert: false });
+  if(error) throw error;
+  return path;
+}
 
 // ---- Source Materials (raw intake: catalog PDFs & legacy photography,
 // pending triage/mining) — private bucket, so display needs a signed URL
