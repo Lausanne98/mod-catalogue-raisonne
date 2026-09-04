@@ -250,6 +250,14 @@ async function modcrImportStagedWork(staged, publish){
   return newWork;
 }
 
+// ---- Public Submissions (Call for Works form) — write-only from the
+// public side; no fetch/read helper here on purpose, since only an
+// authenticated admin session can ever select from this table. ----
+async function modcrSubmitPublicWork(payload){
+  const { error } = await modcrSupabase.from('public_submissions').insert(payload);
+  if(error) throw error;
+}
+
 // ---- Source Materials (raw intake: catalog PDFs & legacy photography,
 // pending triage/mining) — private bucket, so display needs a signed URL
 // rather than the public-URL helper pattern used by work-photos etc. ----

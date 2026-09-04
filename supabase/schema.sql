@@ -399,6 +399,49 @@ drop policy if exists "staged_works_admin_only" on staged_works;
 create policy "staged_works_admin_only" on staged_works for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- ═══ PUBLIC SUBMISSIONS (Call for Works form on the public landing page) ═══
+-- Anyone can INSERT (no login) -- this is a public-facing intake form, not
+-- an admin tool. Nobody but an authenticated admin can ever read, update,
+-- or delete a row: a public write-only form is the standard safe pattern
+-- for this (no anon key can be used to browse other people's submissions).
+-- Deliberately text-only, no photo upload from the public form itself --
+-- an anonymous file-upload endpoint is a spam/abuse surface this project
+-- doesn't need; the copy on the page asks submitters to email photos
+-- instead. A reviewed submission gets triaged by hand into staged_works /
+-- work_sources, same as any other Associate Archivist input.
+create table if not exists public_submissions (
+  id                  uuid primary key default gen_random_uuid(),
+  submitted_at        timestamptz not null default now(),
+  submitter_name      text,
+  submitter_email     text,
+  relationship        text,   -- owner | gallery | estate | institution | other
+  work_title          text,
+  medium              text,
+  dimensions          text,
+  date_estimate       text,
+  provenance_notes    text,
+  exhibition_notes    text,
+  additional_notes    text,
+  confidential_contact boolean not null default false,
+  status              text not null default 'new', -- new | reviewing | imported | rejected
+  created_at          timestamptz not null default now()
+);
+create index if not exists public_submissions_status_idx on public_submissions(status);
+
+alter table public_submissions enable row level security;
+drop policy if exists "public_submissions_anyone_insert" on public_submissions;
+create policy "public_submissions_anyone_insert" on public_submissions for insert
+  with check (true);
+drop policy if exists "public_submissions_admin_read" on public_submissions;
+create policy "public_submissions_admin_read" on public_submissions for select
+  using (auth.role() = 'authenticated');
+drop policy if exists "public_submissions_admin_write" on public_submissions;
+create policy "public_submissions_admin_write" on public_submissions for update
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+drop policy if exists "public_submissions_admin_delete" on public_submissions;
+create policy "public_submissions_admin_delete" on public_submissions for delete
+  using (auth.role() = 'authenticated');
+
 -- ═══ SOURCE MATERIALS (raw intake — catalog PDFs & legacy photography,
 -- pending triage/mining by the Associate Archivist) ═══
 -- Distinct from work_photos/work_sources: this is unreviewed raw material
