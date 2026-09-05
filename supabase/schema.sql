@@ -410,6 +410,7 @@ create policy "staged_works_admin_only" on staged_works for all
 create table if not exists agent_settings (
   id                  text primary key default 'global',
   engagement_enabled  boolean not null default true,
+  admin_display_name  text,   -- for Khalo's greeting on the Agents page, e.g. "Good morning, Jordan"
   updated_at          timestamptz not null default now()
 );
 insert into agent_settings (id) values ('global') on conflict (id) do nothing;

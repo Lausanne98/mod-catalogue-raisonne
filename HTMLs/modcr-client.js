@@ -197,7 +197,7 @@ async function modcrDeleteWorkSource(sourceId){
   if(error) throw error;
 }
 
-// ---- Agent Settings (global engagement on/off) ----
+// ---- Agent Settings (global engagement on/off, admin display name) ----
 async function modcrFetchAgentEngagement(){
   const { data, error } = await modcrSupabase
     .from('agent_settings').select('engagement_enabled').eq('id', 'global').single();
@@ -207,6 +207,17 @@ async function modcrFetchAgentEngagement(){
 async function modcrSetAgentEngagement(enabled){
   const { error } = await modcrSupabase
     .from('agent_settings').update({ engagement_enabled: enabled, updated_at: new Date().toISOString() }).eq('id', 'global');
+  if(error) throw error;
+}
+async function modcrFetchAgentSettings(){
+  const { data, error } = await modcrSupabase
+    .from('agent_settings').select('*').eq('id', 'global').single();
+  if(error) throw error;
+  return data;
+}
+async function modcrSetAdminDisplayName(name){
+  const { error } = await modcrSupabase
+    .from('agent_settings').update({ admin_display_name: name, updated_at: new Date().toISOString() }).eq('id', 'global');
   if(error) throw error;
 }
 

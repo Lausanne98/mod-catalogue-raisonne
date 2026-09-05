@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Archivist's Drafts — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0f0ef;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #dedddb;
+    --rulelg: #ececea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f7f6;
+    --red:    #a83232;
+    --green:  #3f6b3f;
+    /* The "agent" accent -- chartreuse, deliberately distinct from --green
+       (used for approve/success states). Established here as the color
+       associated with agent-run interfaces across the admin; reuse these
+       two variables rather than picking a new green elsewhere. */
+    --agent:    #8a9a2b;
+    --agent-lt: #eef3c9;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--sand); color: var(--ink); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  header {
+    position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .header-nav { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+  .header-nav a { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); text-decoration: none; }
+  .header-nav a:hover { color: var(--ink); }
+  .nav-dark { color: var(--ink); }
+  .header-nav button {
+    font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer;
+  }
+  .header-nav button:hover { color: var(--ink); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 20px 96px; }
+  .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+  .page-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .page-head p { font-size: 12.5px; color: var(--mid); margin-bottom: 24px; max-width: 680px; }
+
+  .engagement-toggle {
+    display: flex; align-items: center; gap: 10px; background: var(--white); border: 1px solid var(--rule);
+    padding: 10px 16px; white-space: nowrap;
+  }
+  .engagement-toggle .et-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--mid); }
+  .et-switch {
+    position: relative; width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer;
+    background: var(--rule); transition: background .18s; flex-shrink: 0;
+  }
+  .et-switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--white); transition: left .18s;
+  }
+  .et-switch.on { background: var(--agent); }
+  .et-switch.on::after { left: 20px; }
+  .et-status { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--light); min-width: 30px; }
+  .et-status.on { color: var(--agent); font-weight: 500; }
+
+  .tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--rule); margin-bottom: 24px; }
+  .tab-btn {
+    font-family: 'Inter', sans-serif; font-size: 12px; letter-spacing: .06em; text-transform: uppercase;
+    padding: 12px 22px; border: none; background: none; color: var(--light); cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .tab-btn.active { color: var(--agent); background: var(--agent-lt); border-bottom-color: var(--agent); font-weight: 500; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filter-btn {
+    font-family: 'Inter', sans-serif; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    padding: 7px 14px; border: 1px solid var(--rule); background: var(--white); color: var(--mid); cursor: pointer;
+  }
+  .filter-btn.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
+
+  .card { background: var(--white); border: 1px solid var(--rule); padding: 20px 24px; margin-bottom: 14px; }
+  .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
+  .card-title { font-family: 'Inter', sans-serif; font-size: 15px; color: var(--ink); }
+  .card-sub { font-size: 11.5px; color: var(--light); margin-top: 3px; }
+  .status-pill { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 9px; border-radius: 2px; white-space: nowrap; }
+  .status-pill.pending, .status-pill.new { color: var(--gold); background: #faf3e8; border: 1px solid var(--goldlt); }
+  .status-pill.approved, .status-pill.imported { color: var(--green); background: #eaf3ea; border: 1px solid #a8c9a8; }
+  .status-pill.rejected { color: var(--red); background: #f7e9e9; border: 1px solid #d8a8a8; }
+
+  .f-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  @media(max-width:600px){ .f-grid{ grid-template-columns:1fr; } }
+  .f-field { display: flex; flex-direction: column; gap: 5px; }
+  .f-label { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); }
+  input[type=text], select, textarea {
+    font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 8px 10px; width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--goldlt); }
+  textarea { resize: vertical; min-height: 50px; }
+  .readonly-block { background: var(--sand); border: 1px solid var(--rulelg); padding: 12px 14px; font-size: 13.5px; line-height: 1.6; color: var(--ink); margin-bottom: 10px; white-space: pre-wrap; }
+  .citation-block { font-size: 11.5px; color: var(--mid); border-left: 2px solid var(--goldlt); padding-left: 10px; margin-bottom: 14px; }
+  .citation-block a { color: var(--mid); }
+  .notes-line { font-size: 12.5px; color: var(--mid); font-style: italic; margin-bottom: 14px; }
+
+  .card-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; padding: 9px 16px;
+    border: 1px solid var(--rule); background: var(--white); color: var(--ink); cursor: pointer; transition: all .15s;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn.approve { background: var(--ink); color: var(--white); }
+  .btn.approve:hover { background: var(--green); border-color: var(--green); }
+  .btn.reject { color: var(--red); }
+  .btn.reject:hover { background: var(--red); color: var(--white); border-color: var(--red); }
+
+  .empty-state { padding: 40px; text-align: center; color: var(--light); font-size: 13px; font-style: italic; }
+
+  .save-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--white); padding: 12px 22px; font-size: 12.5px;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200;
+  }
+  .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .save-toast.error { background: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">MOD CR — Admin</div>
+  <div class="header-nav">
+    <a href="catalogue_admin_v67_sans.html">Dashboard</a>
+    <a href="catalogue_admin_manage_v68_sans.html">Works</a>
+    <a href="catalogue_admin_series_v38_sans.html">Series</a>
+    <a href="catalogue_admin_materials_v31_sans.html">Materials</a>
+    <a href="catalogue_intake_v73_sans.html">Add a Work</a>
+    <a href="catalogue_admin_chronology_v18_sans.html">Chronology</a>
+    <a href="catalogue_admin_sources_v4_sans.html">Sources</a>
+    <a href="catalogue_admin_agents_v1_sans.html">Agents</a>
+    <a href="catalogue_v72_sans.html">View Site</a>
+    <button onclick="modcrLogOut('catalogue_admin_login_v64_sans.html')">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <div>
+      <h1>Archivist's Drafts</h1>
+      <p>Candidate discoveries and proposed changes from the Associate Archivist, pending your review. Nothing here has touched the live catalogue yet — importing or approving is the only thing that does.</p>
+    </div>
+    <div class="engagement-toggle">
+      <span class="et-label">Agent Engagement</span>
+      <button class="et-switch" id="engagementSwitch" onclick="toggleEngagement()" aria-label="Toggle agent engagement"></button>
+      <span class="et-status" id="engagementStatus">…</span>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="new" onclick="setTab('new')">New Entries</button>
+    <button class="tab-btn" data-tab="revisions" onclick="setTab('revisions')">Revisions</button>
+  </div>
+
+  <!-- NEW ENTRIES TAB -->
+  <div class="tab-panel active" id="tab-new">
+    <div class="filter-bar" id="newFilterBar">
+      <button class="filter-btn active" data-status="new" onclick="setNewFilter('new')">New</button>
+      <button class="filter-btn" data-status="reviewing" onclick="setNewFilter('reviewing')">Reviewing</button>
+      <button class="filter-btn" data-status="imported" onclick="setNewFilter('imported')">Imported</button>
+      <button class="filter-btn" data-status="rejected" onclick="setNewFilter('rejected')">Rejected</button>
+      <button class="filter-btn" data-status="all" onclick="setNewFilter('all')">All</button>
+    </div>
+    <div id="newEntriesList"><div class="empty-state">Loading…</div></div>
+  </div>
+
+  <!-- REVISIONS TAB -->
+  <div class="tab-panel" id="tab-revisions">
+    <div class="filter-bar" id="revFilterBar">
+      <button class="filter-btn active" data-status="pending" onclick="setRevFilter('pending')">Pending</button>
+      <button class="filter-btn" data-status="approved" onclick="setRevFilter('approved')">Approved</button>
+      <button class="filter-btn" data-status="rejected" onclick="setRevFilter('rejected')">Rejected</button>
+      <button class="filter-btn" data-status="all" onclick="setRevFilter('all')">All</button>
+    </div>
+    <div id="revisionsList"><div class="empty-state">Loading…</div></div>
+  </div>
+</main>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+<script src="modcr-client.js"></script>
+<script>
+let stagedWorks = [];
+let revisions = [];
+let materials = [];
+let seriesList = [];
+let newFilter = 'new';
+let revFilter = 'pending';
+
+function showToast(msg, isError){
+  const el = document.getElementById('saveToast');
+  el.textContent = msg;
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+function setTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('tab-new').classList.toggle('active', tab === 'new');
+  document.getElementById('tab-revisions').classList.toggle('active', tab === 'revisions');
+}
+function setNewFilter(status){
+  newFilter = status;
+  document.querySelectorAll('#newFilterBar .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status === status));
+  renderNewEntries();
+}
+function setRevFilter(status){
+  revFilter = status;
+  document.querySelectorAll('#revFilterBar .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status === status));
+  renderRevisions();
+}
+
+function renderNewEntries(){
+  const wrap = document.getElementById('newEntriesList');
+  const rows = newFilter === 'all' ? stagedWorks : stagedWorks.filter(s => s.status === newFilter);
+  if(rows.length === 0){
+    wrap.innerHTML = '<div class="empty-state">Nothing here.</div>';
+    return;
+  }
+  wrap.innerHTML = rows.map(s => `
+    <div class="card" data-id="${s.id}">
+      <div class="card-head">
+        <div>
+          <div class="card-title">${s.title || 'Untitled'}</div>
+          <div class="card-sub">${s.source_type || 'other'}${s.source_url ? ' — <a href="'+s.source_url+'" target="_blank">'+s.source_url+'</a>' : ''} · confidence: ${s.confidence}</div>
+        </div>
+        <span class="status-pill ${s.status}">${s.status}</span>
+      </div>
+      ${s.notes ? `<div class="notes-line">${s.notes}</div>` : ''}
+      <div class="f-grid">
+        <div class="f-field"><label class="f-label">Title</label><input type="text" value="${(s.title||'').replace(/"/g,'&quot;')}" onblur="updateStaged('${s.id}','title',this.value)"></div>
+        <div class="f-field"><label class="f-label">Date</label><input type="text" value="${s.date_display||''}" onblur="updateStaged('${s.id}','date_display',this.value)"></div>
+        <div class="f-field"><label class="f-label">Year</label><input type="text" value="${s.year||''}" onblur="updateStaged('${s.id}','year',this.value ? parseInt(this.value,10) : null)"></div>
+        <div class="f-field"><label class="f-label">Medium (free text)</label><input type="text" value="${(s.medium||'').replace(/"/g,'&quot;')}" onblur="updateStaged('${s.id}','medium',this.value)"></div>
+        <div class="f-field"><label class="f-label">Material Tag</label>
+          <select onchange="updateStaged('${s.id}','tag',this.value || null)">
+            <option value="">—</option>
+            ${materials.map(m => `<option value="${m.slug}" ${s.tag===m.slug?'selected':''}>${m.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="f-field"><label class="f-label">Suggested Series</label>
+          <select onchange="updateStaged('${s.id}','suggested_series',this.value || null)">
+            <option value="">—</option>
+            ${seriesList.map(sr => `<option value="${sr.slug}" ${s.suggested_series===sr.slug?'selected':''}>${sr.label}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="card-actions">
+        ${s.status !== 'imported' ? `
+          <button class="btn approve" onclick="importStaged('${s.id}', false)">Import as Draft</button>
+          <button class="btn approve" onclick="importStaged('${s.id}', true)">Import &amp; Publish</button>
+          <button class="btn reject" onclick="rejectStaged('${s.id}')">Reject</button>
+        ` : `<span class="card-sub">Imported — see Manage Works.</span>`}
+      </div>
+    </div>`).join('');
+}
+
+async function updateStaged(id, field, value){
+  const s = stagedWorks.find(x => x.id === id);
+  if(!s) return;
+  try{
+    await modcrSaveStagedWork({ [field]: value }, id);
+    s[field] = value;
+    showToast('Saved.');
+  }catch(e){
+    showToast('Could not save: ' + e.message, true);
+  }
+}
+async function importStaged(id, publish){
+  const s = stagedWorks.find(x => x.id === id);
+  if(!s) return;
+  if(!confirm(`Import "${s.title || 'Untitled'}" as a ${publish ? 'published' : 'draft'} work?`)) return;
+  try{
+    const newWork = await modcrImportStagedWork(s, publish);
+    showToast(`Imported as ${newWork.cr_number ? 'MOD CR ' + newWork.cr_number : 'a new work'}.`);
+    await loadNewEntries();
+  }catch(e){
+    showToast('Could not import: ' + e.message, true);
+  }
+}
+async function rejectStaged(id){
+  if(!confirm('Reject this candidate? It stays on record as rejected, not deleted.')) return;
+  try{
+    await modcrSaveStagedWork({ status: 'rejected' }, id);
+    await loadNewEntries();
+    showToast('Rejected.');
+  }catch(e){
+    showToast('Could not reject: ' + e.message, true);
+  }
+}
+
+function renderRevisions(){
+  const wrap = document.getElementById('revisionsList');
+  const rows = revFilter === 'all' ? revisions : revisions.filter(r => r.status === revFilter);
+  if(rows.length === 0){
+    wrap.innerHTML = '<div class="empty-state">Nothing here.</div>';
+    return;
+  }
+  wrap.innerHTML = rows.map(r => {
+    const work = r.works;
+    const src = r.work_sources;
+    return `
+    <div class="card" data-id="${r.id}">
+      <div class="card-head">
+        <div>
+          <div class="card-title">${work ? work.title + ' (MOD CR ' + work.cr_number + ')' : 'Unknown work'}</div>
+          <div class="card-sub">Proposed field: <strong>${r.field}</strong>${work ? ' · ' + (work.published ? 'Published' : 'Draft') : ''}</div>
+        </div>
+        <span class="status-pill ${r.status}">${r.status}</span>
+      </div>
+      <div class="readonly-block">${r.proposed_text}</div>
+      ${src ? `<div class="citation-block">${src.source_type || 'source'}: ${src.finding}${src.url ? ' — <a href="'+src.url+'" target="_blank">'+src.url+'</a>' : ''}</div>` : ''}
+      ${r.status === 'pending' ? `
+        <div class="card-actions">
+          <button class="btn approve" onclick="approveRevision('${r.id}')">Approve — Apply to Work</button>
+          <button class="btn reject" onclick="rejectRevision('${r.id}')">Reject</button>
+        </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function approveRevision(id){
+  if(!confirm('Apply this text to the work\\'s field? This appends to it and cannot be auto-undone.')) return;
+  try{
+    await modcrApproveRevision(id);
+    await loadRevisions();
+    showToast('Approved and applied.');
+  }catch(e){
+    showToast('Could not approve: ' + e.message, true);
+  }
+}
+async function rejectRevision(id){
+  try{
+    await modcrRejectRevision(id);
+    await loadRevisions();
+    showToast('Rejected.');
+  }catch(e){
+    showToast('Could not reject: ' + e.message, true);
+  }
+}
+
+async function loadNewEntries(){
+  try{
+    stagedWorks = await modcrFetchStagedWorks();
+  }catch(e){
+    document.getElementById('newEntriesList').innerHTML = `<div class="empty-state">Could not load: ${e.message}</div>`;
+    return;
+  }
+  renderNewEntries();
+}
+async function loadRevisions(){
+  try{
+    revisions = await modcrFetchWorkRevisions();
+  }catch(e){
+    document.getElementById('revisionsList').innerHTML = `<div class="empty-state">Could not load: ${e.message}</div>`;
+    return;
+  }
+  renderRevisions();
+}
+
+function renderEngagementSwitch(enabled){
+  document.getElementById('engagementSwitch').classList.toggle('on', enabled);
+  const status = document.getElementById('engagementStatus');
+  status.textContent = enabled ? 'On' : 'Off';
+  status.classList.toggle('on', enabled);
+}
+async function toggleEngagement(){
+  const currentlyOn = document.getElementById('engagementSwitch').classList.contains('on');
+  const next = !currentlyOn;
+  try{
+    await modcrSetAgentEngagement(next);
+    renderEngagementSwitch(next);
+    showToast(next ? 'Agent engagement turned on.' : 'Agent engagement turned off — Khalo will not act until this is back on.');
+  }catch(e){
+    showToast('Could not change engagement: ' + e.message, true);
+  }
+}
+
+(async function(){
+  await modcrRequireAuth('catalogue_admin_login_v64_sans.html');
+  try{
+    renderEngagementSwitch(await modcrFetchAgentEngagement());
+  }catch(e){
+    document.getElementById('engagementStatus').textContent = '—';
+  }
+  try{
+    materials = await modcrFetchMaterials();
+    seriesList = await modcrFetchSeries();
+  }catch(e){ /* filters just won't populate; not fatal */ }
+  await loadNewEntries();
+  await loadRevisions();
+})();
+</script>
+</body>
+</html>
