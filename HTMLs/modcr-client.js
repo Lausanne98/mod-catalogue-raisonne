@@ -197,10 +197,16 @@ async function modcrDeleteWorkSource(sourceId){
   if(error) throw error;
 }
 
-// ---- Staged Works (Associate Archivist candidate discoveries) ----
+// ---- Staged Works (Associate Archivist candidate discoveries — the
+// "New Entries" tab of Archivist's Drafts) ----
 async function modcrFetchStagedWorks(){
   const { data, error } = await modcrSupabase
     .from('staged_works').select('*').order('created_at', { ascending: false });
+  if(error) throw error;
+  return data;
+}
+async function modcrCreateStagedWork(payload){
+  const { data, error } = await modcrSupabase.from('staged_works').insert(payload).select().single();
   if(error) throw error;
   return data;
 }
@@ -248,6 +254,46 @@ async function modcrImportStagedWork(staged, publish){
     .update({ status: 'imported', imported_work_id: newWork.id }).eq('id', staged.id);
   if(stagedErr) throw stagedErr;
   return newWork;
+}
+
+// ---- Work Revisions (Associate Archivist proposed changes to an existing
+// work — the "Revisions" tab of Archivist's Drafts). A confirmed finding
+// never writes to the work's field directly; it proposes a revision here,
+// and only modcrApproveRevision actually applies it, on a human's say-so. ----
+async function modcrFetchWorkRevisions(status){
+  let q = modcrSupabase.from('work_revisions')
+    .select('*, works(cr_number, title, published), work_sources(url, finding, source_type)')
+    .order('created_at', { ascending: false });
+  if(status) q = q.eq('status', status);
+  const { data, error } = await q;
+  if(error) throw error;
+  return data;
+}
+async function modcrProposeRevision(payload){
+  const { data, error } = await modcrSupabase.from('work_revisions').insert(payload).select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrApproveRevision(id){
+  const { data: rev, error: fetchErr } = await modcrSupabase
+    .from('work_revisions').select('*').eq('id', id).single();
+  if(fetchErr) throw fetchErr;
+  const { data: work, error: workErr } = await modcrSupabase
+    .from('works').select(rev.field).eq('id', rev.work_id).single();
+  if(workErr) throw workErr;
+  const current = work[rev.field];
+  const newValue = current ? current + '\n' + rev.proposed_text : rev.proposed_text;
+  const { error: updErr } = await modcrSupabase
+    .from('works').update({ [rev.field]: newValue }).eq('id', rev.work_id);
+  if(updErr) throw updErr;
+  const { error: revErr } = await modcrSupabase
+    .from('work_revisions').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', id);
+  if(revErr) throw revErr;
+}
+async function modcrRejectRevision(id){
+  const { error } = await modcrSupabase
+    .from('work_revisions').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', id);
+  if(error) throw error;
 }
 
 // ---- Public Submissions (Call for Works form) — write-only from the

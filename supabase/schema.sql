@@ -399,6 +399,36 @@ drop policy if exists "staged_works_admin_only" on staged_works;
 create policy "staged_works_admin_only" on staged_works for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- ═══ WORK REVISIONS (Associate Archivist proposed changes to an EXISTING
+-- work, published or draft) ═══
+-- Companion to staged_works: staged_works is for a work the Archivist
+-- doesn't think exists in the catalogue yet ("New Entries"); this table is
+-- for new information about a work that's already in `works` -- a citation,
+-- an exhibition, a corrected dimension ("Revisions"). Neither table lets the
+-- Archivist touch a real work field directly, no matter how confident the
+-- finding: a "confirmed" work_sources finding creates a PENDING row here
+-- instead of being auto-applied, and only a human approving it (via
+-- modcrApproveRevision) actually writes to the work. This replaces the
+-- earlier, more permissive rule where a confirmed finding was appended to
+-- the work's field immediately -- every change to an existing work now
+-- waits on a human decision, not just a flagged/ambiguous one.
+create table if not exists work_revisions (
+  id             uuid primary key default gen_random_uuid(),
+  work_id        uuid not null references works(id) on delete cascade,
+  field          text not null,             -- which work field this would change, e.g. 'exhibitions'
+  proposed_text  text not null,             -- the exact text to append to that field
+  source_id      uuid references work_sources(id), -- the citation backing this proposal, if any
+  status         text not null default 'pending', -- pending | approved | rejected
+  reviewed_at    timestamptz,
+  created_at     timestamptz not null default now()
+);
+create index if not exists work_revisions_status_idx on work_revisions(status);
+
+alter table work_revisions enable row level security;
+drop policy if exists "work_revisions_admin_only" on work_revisions;
+create policy "work_revisions_admin_only" on work_revisions for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
 -- ═══ PUBLIC SUBMISSIONS (Call for Works form on the public landing page) ═══
 -- Anyone can INSERT (no login) -- this is a public-facing intake form, not
 -- an admin tool. Nobody but an authenticated admin can ever read, update,

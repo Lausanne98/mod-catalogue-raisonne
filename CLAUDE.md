@@ -1,5 +1,11 @@
 # MOD Catalogue Raisonné — conventions
 
+## Agent team
+See `AGENT_ARCHITECTURE.md` at the repo root for the named agent team
+(Chloe/Khalo/Timur), their scoped permissions, and the write-access model
+for Archivist's Drafts (New Entries / Revisions). `.claude/skills/
+associate-archivist/SKILL.md` is Khalo's actual operating instructions.
+
 ## Provisional CR numbering
 `cr_number` should ultimately reflect chronological creation order, but the full
 chronology isn't settled yet — many works (e.g. student works) are still to be
