@@ -31,8 +31,18 @@ file — don't just say so in conversation.
 
 ## Before starting (either mode)
 
-Load the following into context, every run, before searching or reading
-anything:
+**Check `agent_settings.engagement_enabled` first, before anything else.**
+Query it directly (`select engagement_enabled from agent_settings where id
+= 'global'`, readable without authentication) or via
+`modcrFetchAgentEngagement()`. If it's `false`, stop immediately — do not
+search, do not read a source material, do not log anything anywhere. Tell
+the user agent engagement is currently switched off in Archivist's Drafts,
+and that turning it back on is what unblocks this. This is checked once at
+the start of a run, not per-item — engagement is a global kill switch, not
+a per-finding filter.
+
+Once engagement is confirmed on, load the following into context, every
+run, before searching or reading anything:
 - `CLAUDE.md` at the repo root — the taxonomy (Medium vs. Series), the
   provisional CR-numbering rule, the "Pulling media from the legacy site"
   cautions, and field-parity conventions all apply here too.

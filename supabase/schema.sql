@@ -399,6 +399,29 @@ drop policy if exists "staged_works_admin_only" on staged_works;
 create policy "staged_works_admin_only" on staged_works for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- ═══ AGENT SETTINGS (global on/off switch for agent engagement) ═══
+-- A single row. Any agent (Khalo today; Chloe/Timur once built) must check
+-- engagement_enabled before doing ANY work -- research, writes, everything
+-- -- and stop immediately, doing nothing, if it's false. Readable by anyone
+-- (not sensitive, and an agent invoked from a Claude Code session has no
+-- logged-in Supabase Auth session of its own to satisfy an admin-only
+-- policy) -- only flipping it requires an authenticated admin session, via
+-- the toggle in Archivist's Drafts.
+create table if not exists agent_settings (
+  id                  text primary key default 'global',
+  engagement_enabled  boolean not null default true,
+  updated_at          timestamptz not null default now()
+);
+insert into agent_settings (id) values ('global') on conflict (id) do nothing;
+
+alter table agent_settings enable row level security;
+drop policy if exists "agent_settings_public_read" on agent_settings;
+create policy "agent_settings_public_read" on agent_settings for select
+  using (true);
+drop policy if exists "agent_settings_admin_write" on agent_settings;
+create policy "agent_settings_admin_write" on agent_settings for update
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
 -- ═══ WORK REVISIONS (Associate Archivist proposed changes to an EXISTING
 -- work, published or draft) ═══
 -- Companion to staged_works: staged_works is for a work the Archivist

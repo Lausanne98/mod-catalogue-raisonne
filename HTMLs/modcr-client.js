@@ -197,6 +197,19 @@ async function modcrDeleteWorkSource(sourceId){
   if(error) throw error;
 }
 
+// ---- Agent Settings (global engagement on/off) ----
+async function modcrFetchAgentEngagement(){
+  const { data, error } = await modcrSupabase
+    .from('agent_settings').select('engagement_enabled').eq('id', 'global').single();
+  if(error) throw error;
+  return data.engagement_enabled;
+}
+async function modcrSetAgentEngagement(enabled){
+  const { error } = await modcrSupabase
+    .from('agent_settings').update({ engagement_enabled: enabled, updated_at: new Date().toISOString() }).eq('id', 'global');
+  if(error) throw error;
+}
+
 // ---- Staged Works (Associate Archivist candidate discoveries — the
 // "New Entries" tab of Archivist's Drafts) ----
 async function modcrFetchStagedWorks(){

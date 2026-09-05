@@ -47,6 +47,29 @@ a `works` row. The only things that change a real work are a human's
 Approve click in Archivist's Drafts, or the manual admin (Manage Works /
 Add a Work) forms a person uses directly.
 
+## Agent engagement on/off (built 2026-09-05)
+
+A single global switch, `agent_settings.engagement_enabled`, toggled from
+Archivist's Drafts. Any agent must check it first, before doing anything
+else, and do nothing at all if it's off — this is a kill switch, not a
+per-finding filter. Readable by anyone (no sensitive data in it, and an
+agent invoked from a Claude Code session has no logged-in admin session to
+satisfy an admin-gated read); only flipping it requires an authenticated
+admin session. Khalo's `SKILL.md` checks this as the very first step of
+"Before starting." Chloe and Timur should do the same once built.
+
+## Visual convention: the "agent" color
+
+Chartreuse (`--agent: #8a9a2b`, `--agent-lt: #eef3c9` in the admin pages'
+CSS) is the color associated with agent-run interfaces across the admin —
+deliberately distinct from the existing muted forest green (`--green`)
+used for approve/success states elsewhere, so the two don't get confused.
+Currently applied to the New Entries / Revisions tabs and the engagement
+toggle in Archivist's Drafts (`catalogue_admin_drafts_v2_sans.html`). Any
+future agent-facing admin UI (Source Materials, a future Chloe/Timur
+interface) should reuse these same two variables rather than introducing
+another green.
+
 ## The team
 
 ### 1. Chloe — Researcher
