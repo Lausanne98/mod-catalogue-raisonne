@@ -5,8 +5,8 @@ description: Research a single MOD Catalogue Raisonné work across the open web 
 
 # Associate Archivist
 
-Working nickname: **Khalo** (placeholder, 2026-08-30 — may stick, may not;
-rename this skill's directory/frontmatter `name` if it does).
+Name: **Khalo** (confirmed 2026-09-05 — see `AGENT_ARCHITECTURE.md` at the
+repo root for the full agent team and how Khalo fits alongside it).
 
 Finds supporting information from public sources or an uploaded document and
 writes it into **draft** records in Supabase — never publishes anything,
@@ -90,11 +90,13 @@ which of the *whole catalogue* this document touches.
    as the same work; see "Verification" below, same standard as Mode A).
 3. **Matches an existing work, confidently** — log a `work_sources` row
    (`field` set to whichever it actually is: `exhibitions`, `literature`,
-   `provenance`, etc.) with `confidence: confirmed`, and copy the specific
-   finding into that work's real field, appended to whatever's already
-   there. For an exhibition catalog specifically, the appended line should
-   read like a real citation — venue, exhibition title, year — not just
-   "mentioned in a catalog."
+   `provenance`, etc.) with `confidence: confirmed`, then propose it as a
+   `work_revisions` row (see "Verification and confidence" below) rather
+   than writing to the work's real field directly — this lands it in the
+   **Revisions** tab of Archivist's Drafts for a human to approve. For an
+   exhibition catalog specifically, the proposed text should read like a
+   real citation — venue, exhibition title, year — not just "mentioned in
+   a catalog."
 4. **Matches, but ambiguously** (title's close but nothing to confirm
    medium/date against, or the document doesn't clearly distinguish two
    similarly-named works) — log as `confidence: flagged` only, and set/
@@ -102,10 +104,12 @@ which of the *whole catalogue* this document touches.
    exhibition citation, unverified — see Work Sources"). Never touch the
    real `exhibitions`/`provenance`/etc. text for a flagged match.
 5. **Depicts or names a work not currently in `works` at all** — create a
-   `staged_works` row (`source_type: 'publication'`, `notes` explaining
-   what the document shows and why it reads as a genuine, previously
-   uncatalogued work), exactly as a web-sourced discovery would in Mode A.
-   Do not guess a CR number — that's assigned only on import, per CLAUDE.md.
+   `staged_works` row via `modcrCreateStagedWork` (`source_type:
+   'publication'`, `notes` explaining what the document shows and why it
+   reads as a genuine, previously uncatalogued work), exactly as a
+   web-sourced discovery would in Mode A — this is the **New Entries** tab
+   of Archivist's Drafts. Do not guess a CR number — that's assigned only
+   on import, per CLAUDE.md.
 6. When done, update the `source_materials` row itself: `status: 'matched'`
    if it produced at least one confirmed or staged finding, `flagged` if
    only ambiguous matches came of it, `rejected` if the document turned out
@@ -138,24 +142,35 @@ Confidence levels:
 - **rejected** — checked and ruled out (log it anyway; it stops the next
   run from re-investigating the same dead end).
 
-Only **confirmed** findings get copied into the work's own field
-(`provenance`, `exhibitions`, etc.) — appended to existing text, never
-silently overwriting it. If a confirmed finding would *contradict* existing
-text on the work, do not overwrite it: log the conflict as a `flagged`
-source instead and leave the human-reviewed field alone, since curator
-judgment outranks a freshly found source.
+**No finding — confirmed or otherwise — ever writes to a work's real field
+directly.** That line moved: a **confirmed** finding gets proposed as a
+`work_revisions` row instead (via `modcrProposeRevision` — `work_id`,
+`field`, `proposed_text`, `source_id` pointing at the `work_sources` row
+that backs it, `status: 'pending'`). It shows up in the **Revisions** tab of
+Archivist's Drafts, and nothing happens to the work until a human clicks
+Approve there (`modcrApproveRevision`, which appends `proposed_text` to the
+field and can't be triggered by this skill). If a confirmed finding would
+*contradict* existing text on the work, do not propose a revision at all:
+log the conflict as a `flagged` source instead and leave the field alone —
+curator judgment outranks a freshly found source, and a contradiction is
+exactly the kind of thing that needs a human's eyes before it's even
+proposed, not just before it's applied.
 
-**Flagged** findings never touch the work's real fields — set the work's
+**Flagged** findings never generate a revision proposal — set the work's
 `flag` field (or append to it if already set) with a short pointer like
 "Possible additional exhibition history found, unverified — see Work
 Sources." so it surfaces in Manage Works for a human to judge.
 
 ## Hard rules (both modes)
 
-- **Never set `published = true`.** This skill only ever writes to a
-  work that is already, and remains, a draft. Publishing is a manual,
-  human decision — see CLAUDE.md's "Only published works can appear in the
-  public facing site. No Exceptions."
+- **Never write to a `works` row directly, and never set `published =
+  true`.** This skill's only writes are to `work_sources`, `staged_works`,
+  and `work_revisions` — all pending-review staging areas. The only thing
+  that ever changes a real work's field is a human clicking Approve on a
+  proposed revision, or importing a staged candidate, in Archivist's
+  Drafts. Publishing is a manual, human decision on top of that — see
+  CLAUDE.md's "Only published works can appear in the public facing site.
+  No Exceptions."
 - **Never attach a third-party image** without the same verification
   CLAUDE.md already requires for the legacy-site migration: confirm the
   image actually depicts this specific work, and don't assume reproduction
@@ -169,7 +184,7 @@ Sources." so it surfaces in Manage Works for a human to judge.
 ## Output to the user (both modes)
 
 After a run, report: what was searched or read, what was found (with
-confidence), what got written to real fields vs. only logged as a source
+confidence), what got proposed as a revision vs. only logged as a source
 vs. staged as a new candidate work, and what's still unknown. In Mode B,
 report per-work outcomes across the whole document, not just a total count
 — "confirmed on CR 12 and CR 47, flagged on CR 9, one new candidate staged"
