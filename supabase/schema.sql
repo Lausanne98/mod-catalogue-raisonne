@@ -453,6 +453,55 @@ drop policy if exists "work_revisions_admin_only" on work_revisions;
 create policy "work_revisions_admin_only" on work_revisions for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- ═══ IT / INFRASTRUCTURE (the manual version of what Timur -- the not-yet-
+-- built IT agent -- would eventually maintain automatically) ═══
+-- NEVER a place to store an actual password or API key -- see CLAUDE.md's
+-- "Credentials / secrets": this whole site runs on a public anon key with
+-- RLS as the only real boundary, so anything in a table here is exactly as
+-- exposed as the public site is. login_url points at where to sign in
+-- (Supabase dashboard, GitHub, etc.); the credential itself lives in a
+-- password manager, never here.
+create table if not exists it_subscriptions (
+  id             uuid primary key default gen_random_uuid(),
+  service_name   text not null,
+  plan           text,
+  monthly_cost   numeric(10,2),
+  billing_cycle  text,   -- monthly | annual | free | usage-based
+  login_url      text,
+  status         text not null default 'active', -- active | needs-review | cancelled
+  notes          text,
+  created_at     timestamptz not null default now()
+);
+
+alter table it_subscriptions enable row level security;
+drop policy if exists "it_subscriptions_admin_only" on it_subscriptions;
+create policy "it_subscriptions_admin_only" on it_subscriptions for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+insert into it_subscriptions (service_name, login_url, notes) values
+  ('Supabase', 'https://supabase.com/dashboard', 'Postgres database, Storage, and Auth for the whole site. Free-tier project -- see the GitHub Actions keep-alive cron that prevents 7-day inactivity auto-pause.'),
+  ('GitHub', 'https://github.com/login', 'Repo (Lausanne98/mod-catalogue-raisonne), GitHub Pages hosting, and the Actions keep-alive cron all live here.'),
+  ('Domain registrar', null, 'Whoever cr.micheleokadoner.com is registered through -- fill in once known.')
+on conflict do nothing;
+
+-- A second, tighter password gate for the IT page -- separate table (not
+-- agent_settings) specifically so it is NEVER covered by agent_settings'
+-- public-read policy. Admin-only in both directions: unlike engagement_
+-- enabled, nothing unauthenticated ever needs to read this. Stores a
+-- SHA-256 hash only, computed client-side -- the plaintext password is
+-- never sent anywhere or stored anywhere, including here.
+create table if not exists it_access_settings (
+  id         text primary key default 'global',
+  gate_hash  text,
+  updated_at timestamptz not null default now()
+);
+insert into it_access_settings (id) values ('global') on conflict (id) do nothing;
+
+alter table it_access_settings enable row level security;
+drop policy if exists "it_access_settings_admin_only" on it_access_settings;
+create policy "it_access_settings_admin_only" on it_access_settings for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
 -- ═══ PUBLIC SUBMISSIONS (Call for Works form on the public landing page) ═══
 -- Anyone can INSERT (no login) -- this is a public-facing intake form, not
 -- an admin tool. Nobody but an authenticated admin can ever read, update,

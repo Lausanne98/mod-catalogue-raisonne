@@ -221,6 +221,44 @@ async function modcrSetAdminDisplayName(name){
   if(error) throw error;
 }
 
+// ---- IT / Infrastructure (manual version of what Timur would eventually
+// maintain). Never stores a real credential -- see schema.sql. ----
+async function modcrFetchITSubscriptions(){
+  const { data, error } = await modcrSupabase
+    .from('it_subscriptions').select('*').order('service_name');
+  if(error) throw error;
+  return data;
+}
+async function modcrAddITSubscription(payload){
+  const { data, error } = await modcrSupabase.from('it_subscriptions').insert(payload).select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrSaveITSubscription(payload, id){
+  const { error } = await modcrSupabase.from('it_subscriptions').update(payload).eq('id', id);
+  if(error) throw error;
+}
+async function modcrDeleteITSubscription(id){
+  const { error } = await modcrSupabase.from('it_subscriptions').delete().eq('id', id);
+  if(error) throw error;
+}
+async function modcrFetchITGateHash(){
+  const { data, error } = await modcrSupabase
+    .from('it_access_settings').select('gate_hash').eq('id', 'global').single();
+  if(error) throw error;
+  return data.gate_hash;
+}
+async function modcrSetITGateHash(hash){
+  const { error } = await modcrSupabase
+    .from('it_access_settings').update({ gate_hash: hash, updated_at: new Date().toISOString() }).eq('id', 'global');
+  if(error) throw error;
+}
+async function modcrHashText(text){
+  const encoded = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // ---- Staged Works (Associate Archivist candidate discoveries — the
 // "New Entries" tab of Archivist's Drafts) ----
 async function modcrFetchStagedWorks(){

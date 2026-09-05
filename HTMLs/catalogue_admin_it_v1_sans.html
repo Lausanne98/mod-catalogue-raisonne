@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IT / Infrastructure — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0f0ef;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #dedddb;
+    --rulelg: #ececea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f7f6;
+    --red:    #a83232;
+    --green:  #3f6b3f;
+    --agent:    #8a9a2b;
+    --agent-lt: #eef3c9;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--sand); color: var(--ink); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  header {
+    position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .header-nav { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+  .header-nav a { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); text-decoration: none; }
+  .header-nav a:hover { color: var(--ink); }
+  .nav-dark { color: var(--ink); }
+  .header-nav button {
+    font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer;
+  }
+  .header-nav button:hover { color: var(--ink); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 20px 96px; }
+  .page-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .page-head p { font-size: 12.5px; color: var(--mid); margin-bottom: 24px; max-width: 680px; }
+
+  /* GATE */
+  .gate-wrap {
+    max-width: 400px; margin: 80px auto; background: var(--white); border: 1px solid var(--rule);
+    padding: 36px 32px; text-align: center;
+  }
+  .gate-wrap h2 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 19px; margin-bottom: 8px; }
+  .gate-wrap p { font-size: 12.5px; color: var(--mid); margin-bottom: 20px; line-height: 1.6; }
+  .gate-wrap input { font-family: 'Inter', sans-serif; font-size: 14px; border: 1px solid var(--rule); padding: 10px 12px; width: 100%; margin-bottom: 12px; }
+  .gate-wrap input:focus { outline: none; border-color: var(--goldlt); }
+  .gate-error { font-size: 12px; color: var(--red); margin-bottom: 10px; display: none; }
+  .gate-error.show { display: block; }
+
+  .panel { background: var(--white); border: 1px solid var(--rule); padding: 24px; margin-bottom: 24px; }
+  .panel-head { font-family: 'Inter', sans-serif; font-size: 9px; letter-spacing: .18em; font-weight: 500; text-transform: uppercase; color: var(--mid); margin-bottom: 18px; }
+  .panel-note { font-size: 11.5px; color: var(--light); font-style: italic; margin-bottom: 16px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; font-size: 9px; letter-spacing: .1em; font-weight: 500; text-transform: uppercase;
+    color: var(--light); padding: 8px 10px; border-bottom: 1px solid var(--rule);
+  }
+  tbody td { padding: 10px; font-size: 13px; border-bottom: 1px solid var(--rulelg); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  .status-pill { font-size: 9px; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 2px; white-space: nowrap; }
+  .status-pill.active { color: var(--green); background: #eaf3ea; border: 1px solid #a8c9a8; }
+  .status-pill.needs-review { color: var(--gold); background: #faf3e8; border: 1px solid var(--goldlt); }
+  .status-pill.cancelled { color: var(--light); background: var(--sand); border: 1px solid var(--rule); }
+  .row-actions a, .row-actions button {
+    font-family: 'Inter', sans-serif; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--mid); text-decoration: none; background: none; border: none; cursor: pointer; padding: 0; margin-right: 10px;
+  }
+  .row-actions button:hover { color: var(--red); }
+  .signin-link { color: var(--gold); text-decoration: none; font-size: 11.5px; }
+  .signin-link:hover { text-decoration: underline; }
+
+  .add-row { display: grid; grid-template-columns: 1.4fr 1fr .8fr 1fr 1.4fr .9fr; gap: 10px; align-items: end; margin-top: 16px; }
+  @media(max-width: 900px) { .add-row { grid-template-columns: 1fr 1fr; } }
+  .f-field { display: flex; flex-direction: column; gap: 5px; }
+  .f-label { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); }
+  input[type=text], input[type=number], select {
+    font-family: 'Inter', sans-serif; font-size: 12.5px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 7px 9px; width: 100%;
+  }
+  .btn {
+    font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; padding: 9px 16px;
+    border: 1px solid var(--rule); background: var(--white); color: var(--ink); cursor: pointer; transition: all .15s;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn.primary { background: var(--ink); color: var(--white); }
+  .btn.primary:hover { background: var(--gold); border-color: var(--gold); }
+  .empty-state { padding: 30px; text-align: center; color: var(--light); font-size: 13px; font-style: italic; }
+
+  /* FLOWCHART (infrastructure) */
+  .flow-wrap { background: var(--white); border: 1px solid var(--rule); padding: 32px 20px; overflow-x: auto; }
+  .flow-row { display: flex; align-items: center; gap: 8px; min-width: 780px; }
+  .flow-box {
+    flex: 1; text-align: center; padding: 14px 10px; border: 1.5px solid var(--rule); background: var(--sand);
+    font-size: 11.5px; line-height: 1.5;
+  }
+  .flow-box.agent-box { border-color: var(--agent); background: var(--agent-lt); color: #55611a; }
+  .flow-box strong { display: block; font-size: 12.5px; margin-bottom: 2px; }
+  .flow-arrow { font-size: 18px; color: var(--light); flex-shrink: 0; }
+  .flow-side { display: flex; justify-content: center; margin-top: 14px; }
+  .flow-side .flow-box { flex: none; max-width: 320px; border-style: dashed; }
+
+  .save-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--white); padding: 12px 22px; font-size: 12.5px;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200;
+  }
+  .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .save-toast.error { background: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">MOD CR — Admin</div>
+  <div class="header-nav">
+    <a href="catalogue_admin_v68_sans.html">Dashboard</a>
+    <a href="catalogue_admin_manage_v69_sans.html">Works</a>
+    <a href="catalogue_admin_series_v39_sans.html">Series</a>
+    <a href="catalogue_admin_materials_v32_sans.html">Materials</a>
+    <a href="catalogue_intake_v74_sans.html">Add a Work</a>
+    <a href="catalogue_admin_chronology_v19_sans.html">Chronology</a>
+    <a href="catalogue_admin_sources_v5_sans.html">Sources</a>
+    <a href="catalogue_admin_drafts_v4_sans.html">Drafts</a>
+    <a href="catalogue_admin_agents_v2_sans.html">Agents</a>
+    <a href="catalogue_admin_it_v1_sans.html"><span class="nav-dark">IT</span></a>
+    <a href="catalogue_v72_sans.html">View Site</a>
+    <button onclick="modcrLogOut('catalogue_admin_login_v64_sans.html')">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <h1>IT / Infrastructure</h1>
+    <p>Subscriptions, sign-in links, and the infrastructure map — the manual version of what Timur will eventually maintain automatically. No password or API key is ever stored here; "Sign In" links go to each service's own login page.</p>
+  </div>
+
+  <div id="gateArea"></div>
+
+  <div id="itContent" style="display:none;">
+    <div class="panel">
+      <div class="panel-head">Subscriptions &amp; Services</div>
+      <div class="panel-note">Costs and renewal dates are only as current as the last person to update them here — this isn't monitored automatically yet.</div>
+      <table>
+        <thead><tr><th>Service</th><th>Plan</th><th>Cost/mo</th><th>Cycle</th><th>Status</th><th>Sign In</th><th></th></tr></thead>
+        <tbody id="subsTableBody"><tr><td colspan="7"><div class="empty-state">Loading…</div></td></tr></tbody>
+      </table>
+      <div class="add-row">
+        <div class="f-field"><label class="f-label">Service</label><input type="text" id="newService" placeholder="e.g. ElevenLabs"></div>
+        <div class="f-field"><label class="f-label">Plan</label><input type="text" id="newPlan" placeholder="e.g. Creator"></div>
+        <div class="f-field"><label class="f-label">Cost/mo</label><input type="number" id="newCost" step="0.01" placeholder="22.00"></div>
+        <div class="f-field"><label class="f-label">Cycle</label>
+          <select id="newCycle"><option value="monthly">Monthly</option><option value="annual">Annual</option><option value="free">Free</option><option value="usage-based">Usage-based</option></select>
+        </div>
+        <div class="f-field"><label class="f-label">Login URL</label><input type="text" id="newLoginUrl" placeholder="https://..."></div>
+        <button class="btn primary" onclick="addSubscription()">Add</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">Infrastructure Map</div>
+      <div class="flow-wrap">
+        <div class="flow-row">
+          <div class="flow-box"><strong>GitHub Repo</strong>Lausanne98/mod-catalogue-raisonne</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box"><strong>GitHub Pages</strong>Deploys on every push to the live branch</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box"><strong>cr.micheleokadoner.com</strong>Custom domain, CDN-cached ~10 min</div>
+        </div>
+        <div class="flow-side">
+          <div class="flow-box agent-box"><strong>GitHub Actions</strong>Daily keep-alive cron → Supabase, prevents 7-day auto-pause</div>
+        </div>
+        <div class="flow-side">
+          <div class="flow-box"><strong>Supabase</strong>Postgres + Storage + Auth — every admin and public page reads/writes here via the public anon key, with RLS as the real access boundary</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+<script src="modcr-client.js"></script>
+<script>
+let subs = [];
+
+function showToast(msg, isError){
+  const el = document.getElementById('saveToast');
+  el.textContent = msg;
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+function renderGate(hasHash){
+  const wrap = document.getElementById('gateArea');
+  wrap.innerHTML = `
+    <div class="gate-wrap">
+      <h2>${hasHash ? 'IT Section Locked' : 'Set an IT Section Password'}</h2>
+      <p>${hasHash ? "This section has its own password, on top of your admin login. It's a speed bump, not a vault -- never store real credentials here." : 'No password set yet for this section. Choose one now -- only its hash is stored, never the password itself.'}</p>
+      <input type="password" id="gatePw" placeholder="Password" onkeydown="if(event.key==='Enter') submitGate(${hasHash})">
+      <div class="gate-error" id="gateError"></div>
+      <button class="btn primary" onclick="submitGate(${hasHash})" style="width:100%;">${hasHash ? 'Unlock' : 'Set Password'}</button>
+    </div>`;
+}
+
+async function submitGate(hasHash){
+  const pw = document.getElementById('gatePw').value;
+  const errEl = document.getElementById('gateError');
+  if(!pw){ errEl.textContent = 'Enter a password.'; errEl.classList.add('show'); return; }
+  const hash = await modcrHashText(pw);
+  if(hasHash){
+    let storedHash;
+    try{ storedHash = await modcrFetchITGateHash(); }catch(e){ errEl.textContent = 'Could not check password: ' + e.message; errEl.classList.add('show'); return; }
+    if(hash !== storedHash){
+      errEl.textContent = 'Incorrect password.';
+      errEl.classList.add('show');
+      return;
+    }
+    sessionStorage.setItem('modcr_it_unlocked', 'true');
+    unlockContent();
+  }else{
+    try{
+      await modcrSetITGateHash(hash);
+      sessionStorage.setItem('modcr_it_unlocked', 'true');
+      unlockContent();
+      showToast('IT section password set.');
+    }catch(e){
+      errEl.textContent = 'Could not set password: ' + e.message;
+      errEl.classList.add('show');
+    }
+  }
+}
+
+function unlockContent(){
+  document.getElementById('gateArea').style.display = 'none';
+  document.getElementById('itContent').style.display = 'block';
+  loadSubscriptions();
+}
+
+function renderSubs(){
+  const body = document.getElementById('subsTableBody');
+  if(subs.length === 0){
+    body.innerHTML = '<tr><td colspan="7"><div class="empty-state">No services added yet.</div></td></tr>';
+    return;
+  }
+  body.innerHTML = subs.map(s => `
+    <tr>
+      <td>${s.service_name}</td>
+      <td>${s.plan || '—'}</td>
+      <td>${s.monthly_cost != null ? '$' + Number(s.monthly_cost).toFixed(2) : '—'}</td>
+      <td>${s.billing_cycle || '—'}</td>
+      <td><span class="status-pill ${s.status}">${s.status}</span></td>
+      <td>${s.login_url ? `<a class="signin-link" href="${s.login_url}" target="_blank">Sign In →</a>` : '—'}</td>
+      <td class="row-actions"><button onclick="deleteSubscription('${s.id}','${(s.service_name||'').replace(/'/g,"\\'")}')">Delete</button></td>
+    </tr>`).join('');
+}
+
+async function loadSubscriptions(){
+  try{
+    subs = await modcrFetchITSubscriptions();
+  }catch(e){
+    document.getElementById('subsTableBody').innerHTML = `<tr><td colspan="7"><div class="empty-state">Could not load: ${e.message}</div></td></tr>`;
+    return;
+  }
+  renderSubs();
+}
+
+async function addSubscription(){
+  const service_name = document.getElementById('newService').value.trim();
+  if(!service_name){ showToast('Enter a service name.', true); return; }
+  const payload = {
+    service_name,
+    plan: document.getElementById('newPlan').value.trim() || null,
+    monthly_cost: document.getElementById('newCost').value ? parseFloat(document.getElementById('newCost').value) : null,
+    billing_cycle: document.getElementById('newCycle').value,
+    login_url: document.getElementById('newLoginUrl').value.trim() || null,
+  };
+  try{
+    await modcrAddITSubscription(payload);
+    ['newService','newPlan','newCost','newLoginUrl'].forEach(id => document.getElementById(id).value = '');
+    await loadSubscriptions();
+    showToast('Added.');
+  }catch(e){
+    showToast('Could not add: ' + e.message, true);
+  }
+}
+
+async function deleteSubscription(id, name){
+  if(!confirm(`Remove "${name}" from this list?`)) return;
+  try{
+    await modcrDeleteITSubscription(id);
+    await loadSubscriptions();
+    showToast('Removed.');
+  }catch(e){
+    showToast('Could not remove: ' + e.message, true);
+  }
+}
+
+(async function(){
+  await modcrRequireAuth('catalogue_admin_login_v64_sans.html');
+  let hash = null;
+  try{
+    hash = await modcrFetchITGateHash();
+  }catch(e){ /* treat as no hash set */ }
+
+  if(sessionStorage.getItem('modcr_it_unlocked') === 'true' && hash){
+    unlockContent();
+  }else{
+    renderGate(!!hash);
+  }
+})();
+</script>
+</body>
+</html>
