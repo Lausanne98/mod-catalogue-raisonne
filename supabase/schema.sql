@@ -497,6 +497,29 @@ create table if not exists it_access_settings (
 );
 insert into it_access_settings (id) values ('global') on conflict (id) do nothing;
 
+-- Add Resend and the Anthropic API account to IT tracking (2026-09-06), and
+-- record what a DNS check turned up about micheleokadoner.com's mail host
+-- and an existing SPF misconfiguration, on the Domain registrar row.
+-- service_name has no unique constraint, so these guard against duplicate
+-- inserts by hand rather than via ON CONFLICT.
+insert into it_subscriptions (service_name, plan, login_url, status, notes)
+select 'Resend', null, 'https://resend.com/login', 'needs-review',
+  'Domain (micheleokadoner.com) not yet verified in Resend for MOD CR -- the account is shared with the separate CE project. Not wired into any MOD CR code yet; planned for a notification email on new Call for Works submissions.'
+where not exists (select 1 from it_subscriptions where service_name = 'Resend');
+
+insert into it_subscriptions (service_name, plan, login_url, status, notes)
+select 'Anthropic API (Claude)', 'Pay-as-you-go API credits', 'https://console.anthropic.com', 'active',
+  'Powers the agent chat feature (Supabase Edge Function agent-chat) via the ANTHROPIC_API_KEY secret. Billing account is shared with the separate CE project -- not MOD-CR-exclusive spend.'
+where not exists (select 1 from it_subscriptions where service_name = 'Anthropic API (Claude)');
+
+update it_subscriptions
+set notes = 'Host is Pair Networks (pair.com), not Bluehost -- MX is mail3.g1.pair.com, account appears to be under "donerstudiollc." Log in at pair.com to manage DNS.' ||
+  E'\n\nOpen items (found 2026-09-06):\n' ||
+  E'1. Domain currently has two conflicting SPF TXT records -- needs merging into one before adding anything else.\n' ||
+  E'2. Add micheleokadoner.com as a verified domain in Resend; fold its SPF requirement into the merged record above, plus add the DKIM record Resend provides.\n' ||
+  E'3. Ask the studio to create a real mailbox for cr@micheleokadoner.com at Pair, so replies to automated notifications do not bounce.'
+where service_name = 'Domain registrar';
+
 alter table it_access_settings enable row level security;
 drop policy if exists "it_access_settings_admin_only" on it_access_settings;
 create policy "it_access_settings_admin_only" on it_access_settings for all
