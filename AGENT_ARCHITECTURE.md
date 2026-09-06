@@ -246,6 +246,74 @@ the prior round.
   — splitting that into a real separate Researcher pass is the next piece
   of this team to build.
 
+#### Spec notes captured 2026-09-06, not yet built
+
+Two distinct jobs for Chloe, gathered here before either is designed in
+detail:
+
+**A. Outbound monitoring — new mentions of the artist's work**
+- Starts from a given list of sites (gallery sites, auction houses, press
+  outlets) and checks them periodically for new mentions of the artist or
+  her work.
+- A new mention goes into a **"New Finds" bullpen** — provisional, pending
+  studio approval — tagged with one of four categories: `press`,
+  `auction-house`, `gallery`, `book`.
+- Chloe also maintains a **CR Archive**: a website/source archive of
+  everything found, organized under those same four categories, separate
+  from the New Finds queue (New Finds is the pending-review inbox; the CR
+  Archive is the organized, categorized holding of what's been gathered).
+- Studio review outcome on a New Finds item is three-way, not two: approve
+  (moves toward Khalo/staging), reject-but-keep (goes to a reject archive),
+  or **trash** (deleted outright) — the trash option exists specifically so
+  rejected noise doesn't pile into a large reject archive nobody wants to
+  wade through.
+- For a website find specifically, Chloe drafts the catalog-record fields
+  (see below) automatically and places the draft directly in the bullpen —
+  no back-and-forth needed the way there is for a physical drop-off, since
+  there's no one on the other end to ask.
+
+**B. Inbound intake — labeling what the studio drops in**
+- The studio is not consistent about labeling its own material. Chloe's
+  second job is to help label everything as it's onboarded, one folder or
+  file at a time, closing that gap at the point of intake rather than
+  after the fact.
+- When a folder is dropped, Chloe has fields to populate, fillable either
+  by typing or by voice. Sketched conversational flow:
+  1. "Received — let me have a quick look." Chloe scans the contents:
+     is this a catalog, a press clipping, a photo of an artwork? Is it one
+     work, or a folder covering several different works?
+  2. "Would you like to tell me about this file, or would you like to see
+     what I see so far and we can go from there?"
+  3. Target fields — for an artwork: title, date, name, material. For
+     press: publication, date, byline.
+  4. For a folder or a group of photos specifically: "Are you looking for
+     a specific photo, or should we label these now? Should we label the
+     group, or go through and label the individual photos?"
+  5. "Would you like me to draft this based on what's already in the
+     archive, and see how far I can get on my own?"
+- To draft well, Chloe needs read access to micheleokadoner.com (the
+  legacy site), the CR site itself, and a small set of other reference
+  sites given to her up front, for context when populating fields.
+- Once a first pass is drafted, Chloe presents it back as a **draft catalog
+  record** for that file/folder — the term to use here (an archives/museum
+  term, not "labeling matrix") is a **catalog record** (museum collections
+  systems often call the same thing an **object record**); reserve
+  **accession record** for the formal record made once something is
+  actually accepted into the permanent collection, which is a later,
+  separate step from Chloe's draft.
+- End state either way (web find or studio drop-off): Chloe labels as much
+  as she reliably can, so that Khalo has a properly labeled item to place
+  correctly into the catalogue rather than starting from nothing.
+
+Open design questions, deliberately not resolved yet: what table(s) back
+the New Finds bullpen and the CR Archive (extend `source_materials`, or a
+new table per CLAUDE.md's "adding a table is normal" precedent); how
+outbound monitoring is actually triggered on a schedule (a cron-triggered
+Edge Function, most likely, mirroring the existing GitHub Actions
+keep-alive pattern rather than a new paid scheduler); and the UI for the
+draft-catalog-record review/approve/reject/trash flow. Worth a dedicated
+design pass before building, given the size of this feature.
+
 ### 2. Khalo — Associate Archivist
 - **Role:** Processes and verifies what the Researcher gathers (or, today,
   what it finds itself via direct web search or an uploaded document).
