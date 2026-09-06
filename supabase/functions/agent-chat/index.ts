@@ -21,8 +21,22 @@ import Anthropic from "npm:@anthropic-ai/sdk@0.110.0";
 import { createClient } from "npm:@supabase/supabase-js@2.112.3";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY =
-  Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+
+// Resolves the public/anon-equivalent key across both the legacy single-key
+// shape and the newer publishable-keys dictionary shape (mirrors
+// getServiceRoleKey() below, for the same reason).
+function getPublicKey(): string {
+  const legacy = Deno.env.get("SUPABASE_ANON_KEY");
+  if (legacy) return legacy;
+  const dict = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
+  if (dict) {
+    const parsed = JSON.parse(dict) as Record<string, string>;
+    const val = Object.values(parsed)[0];
+    if (val) return val;
+  }
+  throw new Error("No Supabase publishable/anon key found in the environment");
+}
+const SUPABASE_ANON_KEY = getPublicKey();
 
 // Reads ANTHROPIC_API_KEY from the environment automatically.
 const anthropic = new Anthropic();
