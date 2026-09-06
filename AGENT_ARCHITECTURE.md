@@ -302,18 +302,36 @@ parallel staging clone/branch of the site and database rather than live
 production. Preview reviewed and approved before merging to the live
 default. Not yet scoped for build.
 
-## Voices
+## Voices (built 2026-09-06)
 
-Open item, not yet decided: each named agent (Chloe, Khalo, Timur) could be
-given a distinct voice for spoken interaction (e.g. via the Claude mobile
-app's voice mode). That's a per-conversation setting in the Claude app
-itself, not something a Claude Code session can configure or assign in
-advance — there's no file or API call here that "sets Chloe's voice." If a
-consistent voice per persona matters, the practical approach is picking one
-manually in the app when talking to each persona, guided by a short
-personality brief for each (e.g. Chloe: curious, quick, exploratory; Khalo:
-measured, precise, a little formal; Timur: plain, technical, low-drama) —
-worth pinning down there rather than here if it turns out to matter.
+The Agents hub's Play buttons originally used the browser's built-in
+`speechSynthesis` (Web Speech API) — whatever OS-bundled TTS voice the
+visitor's browser happened to have, robotic and inconsistent across
+machines. Replaced with a real ElevenLabs voice per persona, via a new
+`supabase/functions/agent-voice` Edge Function that proxies
+`POST /v1/text-to-speech/{voice_id}` (model `eleven_flash_v2_5`) and
+streams the resulting MP3 back to the browser — same
+authenticated-admin-only gating as `agent-chat`.
+
+Each persona's voice is a fixed `ELEVENLABS_VOICE_<NAME>` secret (a
+voice_id picked from the studio's own ElevenLabs Voice Library), not a
+per-session picker — there's no browser-voice list to choose from anymore,
+so the old per-card "Voice" dropdown was removed. Personality brief guiding
+which voice to pick per persona: Chloe: curious, quick, exploratory; Khalo:
+measured, precise, a little formal; Timur: plain, technical, low-drama.
+
+Billing: uses the studio's own ElevenLabs account (separate from the
+ElevenReader consumer app subscription, which is a different product with
+no API access) — starting on the Free tier for this beta/internal-testing
+phase, with a move to Starter ($6/mo) planned once the site goes
+consumer-facing, since Free's license terms don't cover commercial use.
+Track this on the IT Desk subscriptions table once the account is live.
+
+The client-side player caches each generated clip's object URL in memory
+per page load (`audioCache` in `catalogue_admin_agents`), so replaying the
+same greeting/overview during one visit doesn't re-spend credits. Play
+toggles to Stop while a clip is playing and actually halts playback
+(`audio.pause()`) rather than restarting from the top on a second click.
 
 ## Infrastructure notes
 
