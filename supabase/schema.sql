@@ -600,6 +600,37 @@ drop policy if exists "source_materials_admin_only" on source_materials;
 create policy "source_materials_admin_only" on source_materials for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- Metadata-only index of a photographer's raw archive (e.g. a folder of
+-- 500MB-4GB TIFF masters on an external drive at the studio) -- the actual
+-- image bytes are never uploaded here, only filename/size/type, so the
+-- archive is browsable/searchable from the admin site without moving
+-- gigabytes of raw masters into Supabase. Populated by a local script
+-- (scripts/archive_indexer.py) run on whatever machine has the drive
+-- attached -- this table has no client-side upload path of its own.
+-- When a specific file is actually needed, it's converted to JPG and
+-- uploaded to source_materials separately; linked_source_material_id then
+-- points at that row so the index shows what's been pulled in already.
+create table if not exists archive_index (
+  id                        uuid primary key default gen_random_uuid(),
+  archive_label             text not null, -- e.g. "XYZ Photographer -- 2019 Shoot"
+  relative_path             text not null, -- path within that archive/shoot, e.g. "raw/DSC001.tif"
+  filename                  text not null,
+  file_size_bytes           bigint,
+  file_type                 text,
+  status                    text not null default 'not_converted' check (status in ('not_converted','converted','skipped')),
+  linked_source_material_id uuid references source_materials(id) on delete set null,
+  notes                     text,
+  indexed_at                timestamptz not null default now(),
+  unique (archive_label, relative_path)
+);
+create index if not exists archive_index_label_idx on archive_index(archive_label);
+create index if not exists archive_index_status_idx on archive_index(status);
+
+alter table archive_index enable row level security;
+drop policy if exists "archive_index_admin_only" on archive_index;
+create policy "archive_index_admin_only" on archive_index for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
 -- ═══ SERIES CAROUSEL PHOTOS ("Image Gallery" in the browse page's Overview
 -- panel) — previously a hardcoded JS object with base64 images embedded
 -- directly in the browse page; now a real per-series photo set, editable

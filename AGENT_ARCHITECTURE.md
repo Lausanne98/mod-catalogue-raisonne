@@ -174,6 +174,38 @@ of `\'` in a `confirm()` string had been a silent syntax error breaking
 Drafts, not just the one button, since one syntax error anywhere in a
 `<script>` tag prevents the whole tag from parsing.
 
+## Raw archive indexing (2026-09-06)
+
+Solves for a real studio need: a photographer's shoot can be 500MB-4GB of
+TIFF masters, spread across many folders on an external drive — and there
+are many such shoots. Those masters should never be bulk-uploaded (per
+CLAUDE.md's existing guidance that full-resolution masters stay in the
+studio's own raw archive), but the archive still needs to be *browsable*
+from the admin site.
+
+`scripts/archive_indexer.py` is a local script — run on whatever machine
+has the drive attached, never by a Claude Code cloud session, which has no
+access to that drive regardless of what path it's given. Two modes:
+
+- `index <folder> --label "..."` walks the folder tree and records only
+  filename/size/type into the new `archive_index` table — no image bytes
+  ever leave the drive. Upserts on `(archive_label, relative_path)`, so
+  re-indexing the same folder updates rows instead of duplicating them.
+- `convert --label ... --path ... --root ...` converts exactly one file to
+  JPEG (via macOS's built-in `sips`, no extra install) and uploads only
+  that JPEG to `source_materials` — the same 2000px-max-dimension
+  convention Source Materials already uses — then marks the matching
+  `archive_index` row `converted` and links it to the new
+  `source_materials` row.
+
+Authentication: the script signs in interactively with the admin's real
+email/password each run (via `supabase-py`'s password auth) — nothing
+stored, same RLS-authenticated pattern as every other admin-only table.
+
+The Researcher's Desk page renders `archive_index` read-only, grouped by
+`archive_label`, showing size/type/status per file — this is the
+"browsable without uploading" half of the workflow the studio asked for.
+
 ## The team
 
 ### 1. Chloe — Researcher

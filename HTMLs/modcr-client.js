@@ -407,6 +407,17 @@ async function modcrDeleteSourceMaterial(id, storagePath){
   if(error) throw error;
 }
 
+// ---- Archive Index (metadata-only record of a photographer's raw archive
+// on an external drive at the studio — populated by scripts/archive_indexer.py
+// run locally, never uploaded through the browser). Read-only from here;
+// this file has no write path for it on purpose. ----
+async function modcrFetchArchiveIndex(){
+  const { data, error } = await modcrSupabase
+    .from('archive_index').select('*').order('archive_label').order('relative_path');
+  if(error) throw error;
+  return data;
+}
+
 function modcrSeriesPhotoUrl(storagePath){
   return modcrSupabase.storage.from('series-photos').getPublicUrl(storagePath).data.publicUrl;
 }
