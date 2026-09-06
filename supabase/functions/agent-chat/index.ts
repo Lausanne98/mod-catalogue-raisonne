@@ -1,0 +1,192 @@
+// MOD Catalogue Raisonné — agent chat Edge Function.
+//
+// Gives Chloe/Khalo/Timur real, live back-and-forth conversation grounded in
+// the actual Supabase data each persona works with, replacing the static
+// Overview blurbs on the Agents hub page. This talks to the catalogue; it
+// never edits it — no write ever happens from this function. It's read-only
+// end to end, purely conversational.
+//
+// Deploy: supabase functions deploy agent-chat
+// Requires the ANTHROPIC_API_KEY secret (Project Settings -> Edge Functions
+// -> Secrets). All Anthropic-specific code lives in this one file by design
+// (see AGENT_ARCHITECTURE.md) — swapping LLM providers later means editing
+// only here.
+//
+// Gated to authenticated admin sessions only, since this is a per-call cost.
+// The client must invoke this with the current Supabase session attached —
+// modcrSupabase.functions.invoke() does this automatically. Never call this
+// from a public/unauthenticated page.
+
+import Anthropic from "npm:@anthropic-ai/sdk@0.110.0";
+import { createClient } from "npm:@supabase/supabase-js@2.112.3";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY =
+  Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+
+// Reads ANTHROPIC_API_KEY from the environment automatically.
+const anthropic = new Anthropic();
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+  });
+}
+
+// ---- Service-role client, for reading real catalogue state to ground each
+// persona's answers. Server-side only — this key never reaches the browser.
+function getServiceRoleKey(): string {
+  const direct = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (direct) return direct;
+  // Newer Supabase projects expose secret keys as a JSON dictionary instead
+  // of one SUPABASE_SERVICE_ROLE_KEY string — fall back to that shape.
+  const dict = Deno.env.get("SUPABASE_SECRET_KEYS");
+  if (dict) {
+    const parsed = JSON.parse(dict) as Record<string, string>;
+    const val = Object.values(parsed)[0];
+    if (val) return val;
+  }
+  throw new Error("No Supabase service-role key found in the environment");
+}
+const adminDb = createClient(SUPABASE_URL, getServiceRoleKey());
+
+type Persona = "chloe" | "khalo" | "timur";
+
+const SHARED_RULES = `
+Keep replies conversational and brief — a few sentences, like a real back-and-forth chat, not a report. Only go longer if the person asks for detail.
+You are a chat persona for internal studio use, not a public-facing feature. Never fabricate catalogue facts, subscription details, or numbers you weren't given below — if you don't have the information, say so plainly rather than guessing.
+This conversation is read-only: you can discuss, explain, and answer questions about the catalogue and its state, but you cannot actually create, edit, approve, or submit anything through this chat. If asked to do something that requires a real change, say that it has to happen through the actual admin pages (Archivist's Drafts, Manage Works, Manage Materials, etc.), not here.
+`;
+
+const PERSONA_SYSTEM_PROMPTS: Record<Persona, string> = {
+  khalo: `You are Khalo, the Associate Archivist for the Michele Oka Doner Catalogue Raisonné project. You research works, verify names/dates/mediums/dimensions against what's already catalogued, and process uploaded source materials (exhibition catalogs, legacy photography) to find every work they mention or depict. When you find something worth adding, you propose it as a new draft entry or a revision — you never touch a live, published work directly, and a human always reviews your proposals in Archivist's Drafts before anything goes live. You're careful, precise, and a little formal, but warm — an archivist who takes provenance seriously.
+${SHARED_RULES}`,
+  chloe: `You are Chloe, the Researcher for the Michele Oka Doner Catalogue Raisonné project. Your role is to gather provenance research, exhibition history, and raw material — photography, catalogs, documents — into a holding folder for Khalo to sort through. You're read-only against the database and don't propose or write anything yourself. Be upfront that you're not built as an autonomous skill yet, so in practice Khalo currently does this research directly — you can still talk about the project, the catalogue's state, and what your role will cover once you exist. You're curious, energetic, and enthusiastic about tracking down a work's history.
+${SHARED_RULES}`,
+  timur: `You are Timur, the Infrastructure Keeper for the Michele Oka Doner Catalogue Raisonné project. Your role is tracking where everything lives — Supabase, GitHub, and any other service the project depends on — and watching for vendor or protocol risk over time. Be upfront that you're not built as an autonomous skill yet, so infrastructure checks are still manual — you can still discuss the current tracked services and general infrastructure setup below. You're cordial, technical, precise, and economical with words — you don't editorialize past what the data shows.
+${SHARED_RULES}`,
+};
+
+async function buildGroundingContext(persona: Persona): Promise<string> {
+  const lines: string[] = [];
+
+  const { data: settings } = await adminDb
+    .from("agent_settings")
+    .select("engagement_enabled, admin_display_name")
+    .eq("id", "global")
+    .maybeSingle();
+  if (settings?.admin_display_name) {
+    lines.push(`You're talking with ${settings.admin_display_name}.`);
+  }
+  if (settings && settings.engagement_enabled === false) {
+    lines.push(
+      "Agent engagement is currently switched OFF in the admin settings — mention this if asked whether you're actively working on anything.",
+    );
+  }
+
+  if (persona === "khalo" || persona === "chloe") {
+    const [staged, revisions, unreviewed, flagged] = await Promise.all([
+      adminDb.from("staged_works").select("id", { count: "exact", head: true }),
+      adminDb.from("work_revisions").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      adminDb.from("source_materials").select("id", { count: "exact", head: true }).eq("status", "unreviewed"),
+      adminDb.from("works").select("id", { count: "exact", head: true }).not("flag", "is", null),
+    ]);
+    lines.push(
+      `Live catalogue state: ${staged.count ?? 0} staged new-entry drafts pending review, ` +
+        `${revisions.count ?? 0} proposed revisions pending review, ` +
+        `${unreviewed.count ?? 0} unreviewed source materials, ` +
+        `${flagged.count ?? 0} works currently flagged for a data-quality issue.`,
+    );
+  }
+
+  if (persona === "timur") {
+    const { data: subs } = await adminDb
+      .from("it_subscriptions")
+      .select("service_name, plan, monthly_cost, status")
+      .order("service_name");
+    if (subs?.length) {
+      lines.push(
+        "Currently tracked services:\n" +
+          subs
+            .map((s) => `- ${s.service_name} (${s.plan || "no plan set"}, $${s.monthly_cost ?? "?"}/mo, ${s.status})`)
+            .join("\n"),
+      );
+    }
+  }
+
+  return lines.join("\n");
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
+  if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+
+  // Defense-in-depth: verify the caller's Supabase session directly, even
+  // though this function's own JWT verification (default-on) already blocks
+  // unauthenticated calls before this code runs.
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const {
+    data: { user },
+  } = await callerClient.auth.getUser();
+  if (!user) return jsonResponse({ error: "Unauthorized" }, 401);
+
+  let body: { persona?: Persona; message?: string; history?: Anthropic.MessageParam[] };
+  try {
+    body = await req.json();
+  } catch {
+    return jsonResponse({ error: "Invalid JSON body" }, 400);
+  }
+
+  const { persona, message, history } = body;
+  if (!persona || !PERSONA_SYSTEM_PROMPTS[persona]) {
+    return jsonResponse({ error: "persona must be one of: chloe, khalo, timur" }, 400);
+  }
+  if (!message || typeof message !== "string") {
+    return jsonResponse({ error: "message is required" }, 400);
+  }
+
+  // Bound history so token spend can't grow unbounded across a long session.
+  const trimmedHistory = Array.isArray(history) ? history.slice(-20) : [];
+
+  let grounding = "";
+  try {
+    grounding = await buildGroundingContext(persona);
+  } catch (err) {
+    console.error("Grounding fetch failed:", err);
+    // Fail open on grounding, not on the whole chat — a stale/missing
+    // snapshot is better than the feature going down over one bad query.
+  }
+
+  const system =
+    PERSONA_SYSTEM_PROMPTS[persona] + (grounding ? `\n\nCurrent live data:\n${grounding}` : "");
+
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 1024,
+      system,
+      messages: [...trimmedHistory, { role: "user", content: message }],
+    });
+
+    const textBlock = response.content.find(
+      (b): b is Anthropic.TextBlock => b.type === "text",
+    );
+    return jsonResponse({ reply: textBlock?.text ?? "" });
+  } catch (err) {
+    console.error("Claude API call failed:", err);
+    const status = err instanceof Anthropic.APIError ? err.status ?? 502 : 502;
+    return jsonResponse(
+      { error: "The agent couldn't respond right now. Try again in a moment." },
+      status,
+    );
+  }
+});

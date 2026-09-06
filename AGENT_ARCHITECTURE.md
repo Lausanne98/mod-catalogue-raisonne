@@ -70,6 +70,50 @@ future agent-facing admin UI (Source Materials, a future Chloe/Timur
 interface) should reuse these same two variables rather than introducing
 another green.
 
+## Live chat (built 2026-09-06)
+
+Each agent card on the Agents hub page now has a **Chat** button — real
+back-and-forth conversation, not the static Overview blurb. This is a
+*conversational intelligence* feature, separate from the *voice/audio*
+work (Kokoro/Parler-TTS/ElevenLabs) discussed elsewhere — this makes what
+an agent says be dynamic and grounded in live data; it doesn't change how
+it sounds when read aloud.
+
+Architecture: `supabase/functions/agent-chat/index.ts`, a Supabase Edge
+Function — the project's first. All Anthropic-specific code lives in this
+one file by design, so a future move to a different LLM provider (Grok,
+etc.) means editing only this function, not rebuilding the feature. It:
+
+- Verifies the caller has a real, authenticated Supabase session (defense
+  in depth on top of the function's own default JWT verification) — never
+  reachable by an unauthenticated/public request, since every call costs
+  real API money.
+- Fetches a small live-data snapshot per persona (pending drafts/revisions
+  counts, unreviewed source materials, flagged works for Khalo/Chloe;
+  tracked IT subscriptions for Timur) via a service-role client, and folds
+  it into that persona's system prompt — this is the "grounded in real
+  data" requirement, implemented as a fixed per-request snapshot rather
+  than an open-ended tool-calling loop, since the queries needed are
+  bounded and predictable for this use case.
+- Calls Claude Haiku 4.5 (`claude-haiku-4-5`) — chosen for cost, given this
+  is lightweight, occasional internal chat, not a coding/reasoning task.
+- Is read-only end to end: the chat can discuss and explain, but cannot
+  actually create/edit/approve anything — a persona asked to "do" something
+  is instructed to point back to the real admin pages (Drafts, Manage
+  Works, etc.) instead of claiming to have done it.
+- Chat history is kept client-side in memory only (cleared on page
+  reload), capped to the last 20 turns sent per request to bound cost.
+
+Client wiring: `catalogue_admin_agents_v4_sans.html`, calling
+`modcrSupabase.functions.invoke('agent-chat', {...})` — this automatically
+attaches the admin's current session token, which is what the function's
+auth check relies on.
+
+Deployment note: this session has no Supabase CLI/service-role access, so
+the function file is committed to git but must be deployed manually (via
+`supabase functions deploy agent-chat` locally, or pasted into the
+Dashboard's function editor) — same constraint as `schema.sql` changes.
+
 ## The team
 
 ### 1. Chloe — Researcher
