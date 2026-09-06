@@ -206,6 +206,31 @@ The Researcher's Desk page renders `archive_index` read-only, grouped by
 `archive_label`, showing size/type/status per file — this is the
 "browsable without uploading" half of the workflow the studio asked for.
 
+## Top nav consolidated into an "Agents ▾" dropdown (2026-09-06)
+
+The admin top nav had grown to 9+ flat items. Drafts, Agents, Researcher's
+Desk, and IT — the four agent-related pages — are now one `Agents ▾`
+dropdown menu (`.nav-dropdown` / `.nav-dropdown-trigger` /
+`.nav-dropdown-menu`, toggled by `toggleNavDropdown(event)`, closed on any
+outside click) rather than four separate top-level links, across every
+admin page: `catalogue_admin`, `catalogue_admin_manage`,
+`catalogue_admin_chronology`, `catalogue_admin_sources`,
+`catalogue_admin_drafts`, `catalogue_admin_agents`,
+`catalogue_admin_researcher`, `catalogue_admin_it`, `catalogue_intake`,
+`catalogue_admin_series`, `catalogue_admin_materials`. On whichever of the
+four member pages is current, the trigger itself (not a menu item) carries
+`nav-dark` to show where you are. Series and Materials — already reachable
+only via "Edit →" links next to their filters on Manage Works, not the top
+nav, since the prior round — are unaffected by the dropdown itself but were
+still bumped a version to keep their own nav's links to the other 9 pages
+current.
+
+While touching every page's nav block, also fixed the same pre-existing
+"Chronology mislabeled `nav-dark`" bug (it was highlighting Chronology as
+the current page from Dashboard, Manage Works, and Intake, none of which
+are the Chronology page) that Series and Materials had already had fixed in
+the prior round.
+
 ## The team
 
 ### 1. Chloe — Researcher
