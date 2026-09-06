@@ -143,6 +143,37 @@ the function file is committed to git but must be deployed manually (via
 `supabase functions deploy agent-chat` locally, or pasted into the
 Dashboard's function editor) — same constraint as `schema.sql` changes.
 
+## Agent cards link to their real pages, and a Researcher's Desk (2026-09-06)
+
+Each agent card on the Agents hub page now links straight to where that
+agent's actual work happens: Khalo → Archivist's Drafts, Timur → IT /
+Infrastructure, Chloe → a new **Researcher's Desk** page
+(`catalogue_admin_researcher_v1_sans.html`).
+
+Researcher's Desk is not a new data model — it's Chloe's own view onto the
+same `source_materials` table the Sources page already manages, split into
+**Updates** (status `unreviewed`) and **Archive** (everything else:
+flagged/matched/rejected). Uploading through either page writes to the
+same shared pile; there's one set of records, two entry points into it.
+
+An "External Archive" panel documents a real constraint rather than
+pretending around it: a planned local folder on an external drive (e.g.
+"MOD CR Archive / MOD CR Archive Assets," path still pending) **cannot be
+read automatically** by this site or by any Claude Code session — there is
+no filesystem connection between a drive at the studio and either of
+those. Getting a folder's contents onto the site will always require an
+actual upload through the dropzone (or, if the studio would rather not
+upload the files themselves, a manual log entry that references the
+drive's contents without them ever leaving it) — never a "watch this
+folder" sync.
+
+Found and fixed in passing while touching `catalogue_admin_drafts` for
+this round's nav cascade: a pre-existing `\\'` (double backslash) instead
+of `\'` in a `confirm()` string had been a silent syntax error breaking
+**the entire script block** on that page — every function on Archivist's
+Drafts, not just the one button, since one syntax error anywhere in a
+`<script>` tag prevents the whole tag from parsing.
+
 ## The team
 
 ### 1. Chloe — Researcher
