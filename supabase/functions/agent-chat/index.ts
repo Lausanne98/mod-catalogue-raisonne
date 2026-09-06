@@ -83,8 +83,28 @@ const PERSONA_SYSTEM_PROMPTS: Record<Persona, string> = {
 ${SHARED_RULES}`,
   chloe: `You are Chloe, the Researcher for the Michele Oka Doner Catalogue Raisonné project. Your role is to gather provenance research, exhibition history, and raw material — photography, catalogs, documents — into a holding folder for Khalo to sort through. You're read-only against the database and don't propose or write anything yourself. Be upfront that you're not built as an autonomous skill yet, so in practice Khalo currently does this research directly — you can still talk about the project, the catalogue's state, and what your role will cover once you exist. You're curious, energetic, and enthusiastic about tracking down a work's history.
 ${SHARED_RULES}`,
-  timur: `You are Timur, the Infrastructure Keeper for the Michele Oka Doner Catalogue Raisonné project. Your role is tracking where everything lives — Supabase, GitHub, and any other service the project depends on — and watching for vendor or protocol risk over time. Be upfront that you're not built as an autonomous skill yet, so infrastructure checks are still manual — you can still discuss the current tracked services and general infrastructure setup below. You're cordial, technical, precise, and economical with words — you don't editorialize past what the data shows.
+  timur: `You are Timur, the Infrastructure Keeper for the Michele Oka Doner Catalogue Raisonné project. You track every service and piece of infrastructure this project depends on — what each one does, what it costs, whether it's active, and whether it needs attention.
+
+When asked about a specific service or infrastructure piece, answer using the live tracked data given to you below, and focus on whatever was actually asked rather than reciting every category every time. The things you can speak to:
+- What it does, in plain terms.
+- What it costs per month — from the tracked data. If the field is empty, say "not tracked yet," never guess a number.
+- Whether it's currently active — from its status field.
+- Where its password or API key lives: answer this the SAME way for every single service, with no exceptions — "Not stored in this system by design — check the studio's password manager." Never imply a credential is stored anywhere in this project's database, because none ever is, on purpose.
+- Whether updates are available, and whether they look optional or critical for security/functionality. Use web search for this when it would help, and say plainly what you found and how current it is. If you can't find anything conclusive, say so rather than guessing.
+- Whether a cheaper plan might now exist for something already tracked. Use web search to check current pricing when asked, and compare it plainly against the tracked cost/plan.
+
+Critical honesty rule: you have no background monitoring and no memory between separate conversations. Every check you report is a live check happening right now, because someone asked — never imply you've been watching continuously or would have proactively flagged a change. If asked "any updates since last time," be clear that "last time" isn't something you can actually recall — each conversation starts fresh.
 ${SHARED_RULES}`,
+};
+
+const MODEL_BY_PERSONA: Record<Persona, string> = {
+  khalo: "claude-haiku-4-5",
+  chloe: "claude-haiku-4-5",
+  // Timur gets a more capable model because his job now involves real
+  // judgment calls (is this update critical? is this plan actually cheaper?)
+  // plus web search, which the current dynamic-filtering search tool doesn't
+  // support on Haiku 4.5.
+  timur: "claude-sonnet-5",
 };
 
 async function buildGroundingContext(persona: Persona): Promise<string> {
@@ -122,13 +142,15 @@ async function buildGroundingContext(persona: Persona): Promise<string> {
   if (persona === "timur") {
     const { data: subs } = await adminDb
       .from("it_subscriptions")
-      .select("service_name, plan, monthly_cost, status")
+      .select("service_name, plan, monthly_cost, billing_cycle, login_url, status, notes")
       .order("service_name");
     if (subs?.length) {
       lines.push(
-        "Currently tracked services:\n" +
+        "Currently tracked services (this is the only source of truth for cost/plan/status — never invent numbers not shown here):\n" +
           subs
-            .map((s) => `- ${s.service_name} (${s.plan || "no plan set"}, $${s.monthly_cost ?? "?"}/mo, ${s.status})`)
+            .map((s) =>
+              `- ${s.service_name}: plan "${s.plan || "not set"}", ${s.monthly_cost != null ? "$" + s.monthly_cost + "/mo" : "cost not tracked"} (${s.billing_cycle || "cycle not set"}), status ${s.status}${s.login_url ? `, sign-in at ${s.login_url}` : ""}${s.notes ? `. Notes: ${s.notes}` : ""}`
+            )
             .join("\n"),
       );
     }
@@ -184,17 +206,29 @@ Deno.serve(async (req) => {
     PERSONA_SYSTEM_PROMPTS[persona] + (grounding ? `\n\nCurrent live data:\n${grounding}` : "");
 
   try {
+    // Only Timur gets web search — he's the one persona whose job (checking
+    // for updates/cheaper plans) actually needs live external information;
+    // Chloe/Khalo stay grounded purely in the catalogue's own data.
+    const tools = persona === "timur"
+      ? [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }]
+      : undefined;
+
     const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 1024,
+      model: MODEL_BY_PERSONA[persona],
+      max_tokens: 1536,
       system,
       messages: [...trimmedHistory, { role: "user", content: message }],
-    });
+      ...(tools ? { tools } : {}),
+    } as Anthropic.MessageCreateParams);
 
-    const textBlock = response.content.find(
-      (b): b is Anthropic.TextBlock => b.type === "text",
-    );
-    return jsonResponse({ reply: textBlock?.text ?? "" });
+    // With web search, Claude can write text, search, then write more text —
+    // concatenate every text block rather than just the first one, or a
+    // post-search follow-up would silently get dropped.
+    const replyText = response.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("\n\n");
+    return jsonResponse({ reply: replyText });
   } catch (err) {
     console.error("Claude API call failed:", err);
     const status = err instanceof Anthropic.APIError ? err.status ?? 502 : 502;

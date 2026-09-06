@@ -95,8 +95,16 @@ etc.) means editing only this function, not rebuilding the feature. It:
   data" requirement, implemented as a fixed per-request snapshot rather
   than an open-ended tool-calling loop, since the queries needed are
   bounded and predictable for this use case.
-- Calls Claude Haiku 4.5 (`claude-haiku-4-5`) — chosen for cost, given this
-  is lightweight, occasional internal chat, not a coding/reasoning task.
+- Calls Claude Haiku 4.5 (`claude-haiku-4-5`) for Chloe and Khalo — chosen
+  for cost, given this is lightweight, occasional internal chat, not a
+  coding/reasoning task. **Timur is the exception**: he runs on Sonnet 5
+  with the `web_search_20260209` server tool enabled (2026-09-06), because
+  his job now involves real judgment calls (is this update critical? is
+  this plan actually cheaper?) plus live external lookups that a cheaper
+  model + no search can't do. Server tools need no client-side loop — the
+  search happens inside the one API call, so the request shape barely
+  changes; the response just needs every text block concatenated, not only
+  the first, since Claude can write, search, then write again in one turn.
 - Is read-only end to end: the chat can discuss and explain, but cannot
   actually create/edit/approve anything — a persona asked to "do" something
   is instructed to point back to the real admin pages (Drafts, Manage
@@ -108,6 +116,27 @@ Client wiring: `catalogue_admin_agents_v4_sans.html`, calling
 `modcrSupabase.functions.invoke('agent-chat', {...})` — this automatically
 attaches the admin's current session token, which is what the function's
 auth check relies on.
+
+### Timur on the IT page (2026-09-06)
+
+The IT page (`catalogue_admin_it_v5_sans.html`) got its own embedded Timur
+chat panel — a "Chat with Timur" button at the top, plus every subscription
+row and every Infrastructure Map box is clickable, each firing a pre-formed
+question about that specific thing (what it does, cost, active status,
+where credentials live, updates, cheaper plans). Two constraints baked
+directly into Timur's system prompt, not left to chance:
+
+- **Credentials always answer the same way, for every service, no
+  exceptions**: "Not stored in this system by design — check the studio's
+  password manager." This matches CLAUDE.md's credentials rule exactly —
+  Timur must never imply a password/key lives anywhere in this project's
+  database, because none ever does, on purpose.
+- **No background monitoring, no memory between conversations.** This is a
+  static site with no scheduler — Timur cannot proactively notice a price
+  drop or a security update. Every answer is a live check happening
+  because someone asked, in that moment, never an ongoing watch. He's
+  instructed to say so plainly if asked something like "any updates since
+  last time" — there is no "last time" he can actually recall.
 
 Deployment note: this session has no Supabase CLI/service-role access, so
 the function file is committed to git but must be deployed manually (via
