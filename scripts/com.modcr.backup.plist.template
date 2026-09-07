@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+MOD Catalogue Raisonné — launchd schedule for backup_archive.py.
+
+This is a TEMPLATE. Before using it, replace the three placeholders below
+(marked with <angle brackets>) with real paths on the Studio Mac, then:
+
+  1. Save the edited file as:
+     ~/Library/LaunchAgents/com.modcr.backup.plist
+  2. Load it:
+     launchctl load ~/Library/LaunchAgents/com.modcr.backup.plist
+  3. It will now run automatically every 6 weeks (3628800 seconds), as long
+     as the Mac is on and awake at the scheduled time. To run it once
+     immediately as a test, instead of waiting for the interval:
+     launchctl start com.modcr.backup
+
+The script will still prompt for the admin email/password interactively at
+that scheduled time (per its own design -- nothing is stored) -- so this is
+really only practical if you're at the Mac when it fires, OR you adapt the
+script to skip the interactive login for scheduled runs (a follow-up worth
+discussing before relying on this fully unattended).
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.modcr.backup</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string><FULL_PATH_TO_REPO>/scripts/backup_archive.py</string>
+        <string>--dest</string>
+        <string><FULL_PATH_TO_EXTERNAL_DRIVE>/MOD CR Backups</string>
+    </array>
+
+    <key>StartInterval</key>
+    <integer>3628800</integer>
+
+    <key>StandardOutPath</key>
+    <string><FULL_PATH_TO_REPO>/scripts/backup.log</string>
+
+    <key>StandardErrorPath</key>
+    <string><FULL_PATH_TO_REPO>/scripts/backup.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

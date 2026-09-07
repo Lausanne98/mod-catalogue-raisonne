@@ -408,22 +408,37 @@ context, restated here because it's the anchor the rest of this protocol
 hangs off of: Timur reasons from what's actually tracked, not from what a
 service "usually" costs.
 
-#### Parked: scheduled backups
+#### Scheduled backups (built 2026-09-07)
 
 Asked whether "the IT manager" (Timur) can run a periodic backup of the
 studio's archive to an external drive (proposed cadence: every 6 weeks).
-Worth stating plainly why that can't be Timur himself: a chat persona,
-whether running in this cloud sandbox or answering a question in the
-Claude app, has no standing process and no access to a physical drive —
-the same structural limit already documented under "Raw archive indexing"
-above for reading an external drive applies equally to writing one on a
-schedule. What's actually buildable is a **local backup script** (the same
-shape as `scripts/archive_indexer.py`) run on the Studio Mac via a
-scheduled `launchd` job — pulling the relevant Supabase tables/Storage
-buckets down to the attached external drive on a timer, set up once by a
-person on that machine, independent of any Claude conversation. Not yet
-built; flagging the distinction now so a future session doesn't try to
-make "Timur" do this directly.
+Not Timur himself — a chat persona, whether running in this cloud sandbox
+or answering a question in the Claude app, has no standing process and no
+access to a physical drive, the same structural limit already documented
+under "Raw archive indexing" above for reading an external drive, applying
+equally to writing one on a schedule.
+
+What's actually built: `scripts/backup_archive.py`, a local script (same
+shape and same interactive-login pattern as `archive_indexer.py`) that
+dumps every table in `supabase/schema.sql` to JSON and downloads every file
+in every Storage bucket, into a fresh timestamped folder per run — so
+running it repeatedly builds a history of backups rather than overwriting
+the last one. `scripts/com.modcr.backup.plist.template` is a `launchd`
+schedule template (macOS's cron replacement) set to a 6-week interval;
+copy it into `~/Library/LaunchAgents/` with the placeholder paths filled
+in to make it run automatically.
+
+**Open tension, deliberately not resolved:** the script authenticates the
+same way `archive_indexer.py` does — prompting for the admin email/password
+interactively, nothing ever stored — which is the safest option but means
+a `launchd`-scheduled run will sit waiting for input nobody's there to
+give, unless someone is physically at the Mac when it fires. Making it
+truly unattended would mean storing *some* credential on disk for the
+script to read on its own (a local, out-of-git credentials file, or a
+Supabase service-role key) — a real, if modest, step up in what's exposed
+if that Mac is ever compromised, compared to the project's current
+practice of never storing a credential anywhere. Worth a deliberate choice
+before relying on this fully hands-off, rather than picking silently.
 
 ### Parked for later (separate project): Studio liaison / voice-driven interface
 For the artist's studio team, who don't use Claude Code directly. Concept:
