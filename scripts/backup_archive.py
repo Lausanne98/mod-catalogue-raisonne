@@ -82,6 +82,24 @@ BUCKETS = [
 
 PAGE_SIZE = 1000
 
+# Deliberate, acknowledged exception to this project's "never store a
+# credential" practice, made ONLY so an unattended launchd-scheduled run
+# doesn't sit forever waiting for a password nobody's there to type. Lives
+# outside the repo entirely -- this path is never git-tracked, and this
+# script never creates or writes to it, only reads it if it's already there.
+#
+# To set it up (do this ONCE, on the Studio Mac itself, in a terminal --
+# never paste a real password into a Claude Code chat message, cloud or
+# local): create the file at this exact path with exactly two lines, the
+# admin email on the first and the password on the second, then lock down
+# its permissions so only your own account can read it:
+#     nano ~/.modcr_backup_credentials
+#     chmod 600 ~/.modcr_backup_credentials
+# A manual, on-demand run (see the module docstring) works identically
+# whether or not this file exists -- if it's missing, this script just
+# falls back to the interactive prompt below instead.
+CREDENTIALS_FILE = os.path.expanduser("~/.modcr_backup_credentials")
+
 
 def get_client():
     try:
@@ -90,8 +108,21 @@ def get_client():
         sys.exit("Missing dependency. Run: pip install supabase")
 
     client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
-    email = input("MOD CR admin email: ").strip()
-    password = getpass.getpass("Password: ")
+
+    if os.path.isfile(CREDENTIALS_FILE):
+        with open(CREDENTIALS_FILE) as f:
+            lines = [line.strip() for line in f.readlines() if line.strip()]
+        if len(lines) < 2:
+            sys.exit(
+                f"{CREDENTIALS_FILE} exists but doesn't have both an email and a "
+                "password line -- fix it or delete it to fall back to the interactive prompt."
+            )
+        email, password = lines[0], lines[1]
+        print(f"Using stored credentials from {CREDENTIALS_FILE} (unattended run).")
+    else:
+        email = input("MOD CR admin email: ").strip()
+        password = getpass.getpass("Password: ")
+
     client.auth.sign_in_with_password({"email": email, "password": password})
     return client
 

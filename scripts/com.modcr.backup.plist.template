@@ -14,11 +14,12 @@ This is a TEMPLATE. Before using it, replace the three placeholders below
      immediately as a test, instead of waiting for the interval:
      launchctl start com.modcr.backup
 
-The script will still prompt for the admin email/password interactively at
-that scheduled time (per its own design -- nothing is stored) -- so this is
-really only practical if you're at the Mac when it fires, OR you adapt the
-script to skip the interactive login for scheduled runs (a follow-up worth
-discussing before relying on this fully unattended).
+For a scheduled run to work fully unattended (no one at the Mac to type a
+password), create ~/.modcr_backup_credentials FIRST -- see the comment
+above CREDENTIALS_FILE in backup_archive.py for exactly how. Without that
+file, a launchd-fired run will just sit waiting for interactive input
+nobody's there to give; a manual run you trigger yourself always still
+works either way, credentials file or not.
 -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">

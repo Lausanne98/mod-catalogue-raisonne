@@ -428,17 +428,24 @@ schedule template (macOS's cron replacement) set to a 6-week interval;
 copy it into `~/Library/LaunchAgents/` with the placeholder paths filled
 in to make it run automatically.
 
-**Open tension, deliberately not resolved:** the script authenticates the
-same way `archive_indexer.py` does — prompting for the admin email/password
-interactively, nothing ever stored — which is the safest option but means
-a `launchd`-scheduled run will sit waiting for input nobody's there to
-give, unless someone is physically at the Mac when it fires. Making it
-truly unattended would mean storing *some* credential on disk for the
-script to read on its own (a local, out-of-git credentials file, or a
-Supabase service-role key) — a real, if modest, step up in what's exposed
-if that Mac is ever compromised, compared to the project's current
-practice of never storing a credential anywhere. Worth a deliberate choice
-before relying on this fully hands-off, rather than picking silently.
+**Resolved 2026-09-07:** decided in favor of fully unattended operation. The
+script now checks for `~/.modcr_backup_credentials` (two lines: email,
+password) first, using it non-interactively if present, and only falls
+back to the interactive prompt when that file doesn't exist — so a manual,
+on-demand run (the studio's second ask: a way to trigger a backup any time,
+not only on the 6-week schedule) works exactly as before either way, while
+a `launchd`-fired scheduled run can now complete with nobody at the Mac.
+This is a deliberate, acknowledged exception to the project's usual
+never-store-a-credential practice, scoped as narrowly as possible: the file
+lives outside the repo (never git-tracked), the script only ever reads it
+(never writes or creates it), and setup requires the studio to create it
+by hand in a terminal on the Studio Mac itself — never by pasting a real
+password into a Claude Code chat message, cloud or local. See the comment
+above `CREDENTIALS_FILE` in `backup_archive.py` for the exact setup steps.
+Placing the actual file is still an outstanding step — a cloud session has
+no access to the Studio Mac's filesystem to do it, so it needs either a
+local Claude Code session running directly on that machine, or the studio
+doing it by hand.
 
 ### Parked for later (separate project): Studio liaison / voice-driven interface
 For the artist's studio team, who don't use Claude Code directly. Concept:
