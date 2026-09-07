@@ -360,8 +360,70 @@ design pass before building, given the size of this feature.
   does, and the fallback/export path if a vendor changes or shuts down.
 - **Access:** Read access to config, environment variables, and
   deployment setup. Web search enabled (for checking service docs).
-- **Write access:** No destructive write access by default.
-- **Status:** Not yet built.
+- **Write access:** None at all, not even non-destructive. `agent-chat`'s
+  Timur grounding only ever runs a `select` against `it_subscriptions`;
+  every insert/update/delete on that table is wired exclusively to the
+  human-facing Add/Edit/Delete controls on the IT Desk page. Timur can
+  describe what's tracked and suggest that something be added, but he has
+  no path to actually add or change a row himself.
+- **Status:** Built (chat via the `agent-chat` Edge Function, clickable
+  UI on the IT Desk page — see "Timur on the IT page" above). The stub
+  "Not yet built" pill shown on the Agents hub card is stale relative to
+  this and should be corrected.
+
+#### Protocol, articulated 2026-09-07
+
+Timur's system prompt (in `supabase/functions/agent-chat/index.ts`) already
+carries two fixed rules — credentials always answer "not stored here,
+check the password manager," and never imply background monitoring or
+memory between conversations. Filling in the rest of his operating
+protocol, parallel to the confidence-level rigor Khalo's skill already has:
+
+**Reactive only, by design.** Timur never runs unprompted — there is no
+scheduled job that wakes him up to check anything. Every answer is a live
+check triggered by a question, in that moment. This isn't a limitation to
+work around; it's the honesty rule already in his prompt taken to its
+logical conclusion — a persona that can't remember previous conversations
+also can't be "keeping an eye on things" between them.
+
+**Asked about something not in `it_subscriptions` at all.** Say plainly
+that it isn't currently tracked, rather than guessing at cost/status from
+general knowledge of the service — the same "don't invent a source"
+discipline Khalo's protocol already requires, applied to infrastructure
+facts instead of provenance facts. Offer to be added via the IT Desk's own
+Add-a-subscription form (which Timur can describe but not submit himself).
+
+**Confidence on web-searched claims.** Cost and status come from the
+tracked table and are stated as fact. Anything from a live web search
+(current pricing, whether an update is security-critical, whether a
+cheaper plan now exists) is inherently time-bound and should be presented
+as "as of this search" rather than a permanent fact, with the source named
+plainly enough that the studio could re-check it. If a search comes back
+ambiguous or contradictory, say so rather than picking one number to
+report confidently.
+
+**The IT Desk subscriptions table is the only source of truth for
+cost/plan/status** — already stated in the system prompt's grounding
+context, restated here because it's the anchor the rest of this protocol
+hangs off of: Timur reasons from what's actually tracked, not from what a
+service "usually" costs.
+
+#### Parked: scheduled backups
+
+Asked whether "the IT manager" (Timur) can run a periodic backup of the
+studio's archive to an external drive (proposed cadence: every 6 weeks).
+Worth stating plainly why that can't be Timur himself: a chat persona,
+whether running in this cloud sandbox or answering a question in the
+Claude app, has no standing process and no access to a physical drive —
+the same structural limit already documented under "Raw archive indexing"
+above for reading an external drive applies equally to writing one on a
+schedule. What's actually buildable is a **local backup script** (the same
+shape as `scripts/archive_indexer.py`) run on the Studio Mac via a
+scheduled `launchd` job — pulling the relevant Supabase tables/Storage
+buckets down to the attached external drive on a timer, set up once by a
+person on that machine, independent of any Claude conversation. Not yet
+built; flagging the distinction now so a future session doesn't try to
+make "Timur" do this directly.
 
 ### Parked for later (separate project): Studio liaison / voice-driven interface
 For the artist's studio team, who don't use Claude Code directly. Concept:
