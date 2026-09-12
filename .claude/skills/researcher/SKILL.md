@@ -98,6 +98,15 @@ curl -s -X POST "$SUPABASE_URL/rest/v1/research_finds" \
   -d '{"category":"auction-house","title":"...","finding_text":"...","url":"...","matched_work_id":null}'
 ```
 
+**Do not add `-H "Prefer: return=representation"` to the insert.** It's
+tempting (to get the new row's id back), but it makes PostgREST re-SELECT
+the row it just inserted to return it as JSON -- and since SELECT on this
+table is admin-only, that re-select fails, surfacing as the exact same
+"new row violates row-level security policy" error an actual failed
+insert would give, even though the insert itself succeeded. Check the
+HTTP status code (`201` = it worked) rather than trusting the response
+body, or just don't ask for the row back at all.
+
 No credential of any kind is needed or should be requested from the user
 to run this skill — that's the point of the RLS design above.
 
