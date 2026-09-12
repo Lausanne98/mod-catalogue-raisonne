@@ -154,31 +154,73 @@ populated; every cataloguing field (`date_display`, `year`, `medium`, `tag`,
    chasing, not a confirmed fact. Same discipline as everywhere else in this
    skill: a title/lead is not a source until you've actually read a page
    that corroborates it.
-2. Research it the same way Mode A researches a named work (see "What to
-   search" and "What to extract" above) — auction records, gallery/museum
-   pages, press, publications — trying to establish date, medium, and
-   enough else to make this a real, well-formed candidate rather than a
-   bare title.
-3. Log every source found along the way to `work_sources` as usual —
+2. **Re-check that this is genuinely new before researching it as new.**
+   The connector that created this row only checked `matched_work_id` on
+   the finding, which Chloe sets conservatively (title+date+medium all
+   lining up, per her own skill file). A closer title/date match can still
+   turn up once you look at the full `works` table yourself — if you find
+   one, treat this as Mode A on that existing work instead (log a
+   `work_sources` row on the real work, propose a revision if warranted),
+   and set this `staged_works` row's `status: 'rejected'` with a note
+   pointing at the CR number it actually matches, rather than fleshing out
+   a duplicate.
+3. If it's still genuinely new, research it the same way Mode A researches
+   a named work (see "What to search" and "What to extract" above) —
+   auction records, gallery/museum pages, press, publications. Don't stop
+   at date and medium: actively look for **exhibitions, literature/
+   publication citations, and provenance** too, exactly as thoroughly as
+   Mode A would for a work that's already catalogued. A candidate that only
+   ever gets a date and a medium is half-done.
+4. Apply the full taxonomy from CLAUDE.md, not just "pick a plausible tag":
+   - `tag` must match a real `materials.slug` — don't invent or reuse the
+     nearest existing one for something that isn't actually that material.
+   - `suggested_series` should be the most specific tier that genuinely
+     fits — a granular named sub-series (e.g. `tattooed`, `thorn-men`) over
+     a broad bucket, if the work plausibly belongs to one.
+   - Check the Early Clay cross-categorization rule: if `tag = ceramic` and
+     the work dates before 2000, it belongs under Early Clay automatically
+     via the live filter logic — never set `suggested_series: 'early-clay'`
+     directly unless the medium is actually ceramic.
+   - If the work plausibly belongs to a second category in addition to its
+     primary one (e.g. a jewelry piece that's also part of a limited
+     edition), note that in `notes` as a suggested `secondary_series` for
+     whoever imports it — `staged_works` has no `secondary_series` column
+     of its own, so this travels as a note until import.
+5. **If something specific is still missing after a real search pass, say
+   exactly what's missing rather than guessing or leaving it silently
+   blank** — e.g. "sale price and venue confirmed, but no exhibition or
+   literature history found anywhere." If this skill is running in a
+   session that can also invoke the `researcher` skill, it's fine to run a
+   second, more targeted Chloe-style pass yourself on that specific gap
+   (same site list, narrower question) rather than reporting the gap and
+   stopping. If not, log the specific gap in `notes` (e.g. "Needs a
+   follow-up pass: exhibition history unconfirmed") so a human or a later
+   Researcher run knows exactly what's still open — a vague "needs more
+   research" note is not useful; name the actual missing fact.
+6. Log every source found along the way to `work_sources` as usual —
    except `work_id` doesn't exist yet for a staged candidate, so these are
    logged against the staged row conceptually via the `notes` field (a
    dated, cited addendum) until it's imported and gets a real `work_id`;
    don't skip citing just because there's no `work_sources` row to hang it
    on yet.
-4. Update the `staged_works` row itself (via `modcrSaveStagedWork`) with
+7. Update the `staged_works` row itself (via `modcrSaveStagedWork`) with
    whatever you can now confidently fill in: `date_display`, `year`,
-   `medium`, `tag` (must match a real `materials.slug`, per CLAUDE.md),
-   `suggested_series`, and append your research narrative to `notes` rather
-   than overwriting Chloe's original note. Set `confidence` to `likely` if
-   the work now reads as clearly real and well-sourced, or leave it
-   `candidate` if it's still thin. Set `status: 'reviewing'` once you've
-   done a real pass — never `imported` (that only happens when a human
-   promotes it via the existing New Entries mechanism) and never invent a
-   CR number.
-5. If research turns up nothing beyond what Chloe already found, say so
+   `medium`, `tag`, `suggested_series`, and append your research narrative
+   to `notes` rather than overwriting Chloe's original note. Set
+   `confidence` to `likely` if the work now reads as clearly real and
+   well-sourced, or leave it `candidate` if it's still thin. Set `status:
+   'reviewing'` once you've done a real pass — never `imported` (that only
+   happens when a human promotes it via the existing New Entries mechanism)
+   and never invent a CR number.
+8. If research turns up nothing beyond what Chloe already found, say so
    plainly and leave the row as `candidate` / `status: 'new'` rather than
    padding it out — a thin, honest stub is more useful than a
    confident-sounding guess.
+
+The end state is always the same regardless of how thorough the pass was:
+a `staged_works` row sitting in New Entries for a human to modify, discard,
+or approve/import — Mode C never promotes, imports, or publishes anything
+itself, no matter how confident the research came out.
 
 Mode C never touches `research_finds` itself — that row already did its
 job the moment it produced this staged candidate.

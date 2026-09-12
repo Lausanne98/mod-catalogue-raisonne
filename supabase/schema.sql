@@ -989,6 +989,17 @@ grant select, update, delete on research_finds to authenticated;
 alter table staged_works add column if not exists source_find_id uuid references research_finds(id) on delete set null;
 alter table research_finds add column if not exists staged_work_id uuid references staged_works(id) on delete set null;
 
+-- Small reference thumbnail for the New Finds card, admin-only display --
+-- NOT the same guarantee as a work's public `img` field. Chloe may set this
+-- to a hotlinked (not downloaded/rehosted) source-page image URL when she's
+-- confident it depicts the specific item the finding describes; left null
+-- for anything not about one specific object (press mentions, publications,
+-- social posts), where the UI shows a category-coded square instead. If the
+-- finding is later promoted into a real work, that work's own `img` still
+-- needs the full verification CLAUDE.md already requires -- this column
+-- never substitutes for that.
+alter table research_finds add column if not exists image_url text;
+
 -- Starter site list, compiled 2026-09-12 via live web search (auction
 -- houses/aggregators) plus the studio's own named museums/galleries.
 -- Safe to re-run -- unique(url) makes this idempotent.

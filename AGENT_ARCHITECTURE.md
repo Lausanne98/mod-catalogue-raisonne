@@ -439,6 +439,43 @@ approved falls through a gap anymore: every approved, unmatched finding
 reliably becomes a real, addressable draft the moment it's approved,
 rather than sitting as a flipped status with no next step.
 
+**Extended 2026-09-12 (same day, follow-up round):** the studio asked what
+Approve actually does in more detail and pushed for the New Entries draft
+to be genuinely useful, not just a title stub. Two changes:
+
+- **Mode C is now explicit about doing a full pass, not just date/medium.**
+  It re-checks the full `works` table itself before accepting "this is
+  new" (Chloe's `matched_work_id` check is conservative and can miss a
+  closer match), actively searches for exhibitions/publications/provenance
+  the same way Mode A does for an already-catalogued work, applies the
+  full CLAUDE.md taxonomy (materials.slug, the most specific series tier,
+  the Early Clay cross-categorization rule, a suggested `secondary_series`
+  noted in `notes` when relevant), and — if something specific is still
+  missing after a real search — either runs a second, targeted Chloe-style
+  pass itself (if invoked in a session that can also run the `researcher`
+  skill) or names the exact gap in `notes` rather than leaving a vague
+  "needs more research."
+- **New Finds cards got a visual rework** (`catalogue_admin_researcher`):
+  a small left-hand thumbnail per finding, same "real photo, or a text
+  placeholder" logic as the public browse/entry pages — a hotlinked
+  `research_finds.image_url` when Chloe is confident it depicts the
+  specific item, or a category-coded square (gallery/auction-house/museum/
+  press/publication/media/social-media/book, each its own color) when the
+  finding isn't about one specific object. The site name (from
+  `research_sites`, or the finding's own URL hostname as a fallback) now
+  shows under the category pill. `image_url` is explicitly documented as
+  an admin-only review convenience, never a rights clearance — a promoted
+  work's own public `img` still needs the full verification CLAUDE.md's
+  legacy-media section already requires.
+
+**Not started yet, queued next by the studio's own sequencing:** a
+password-protected, non-public "Auction Matrix" (AM) admin section —
+aggregating auction data with a generated thumbnail per work, its own
+top-line dashboard nav item. Deliberately held until the Researcher →
+Archivist loop above is solid in practice, per the studio's own
+instruction ("AFTER we have the Researcher > Archivist workflow
+articulated and working").
+
 ### 2. Khalo — Associate Archivist
 - **Role:** Processes and verifies what the Researcher gathers (or, today,
   what it finds itself via direct web search or an uploaded document).

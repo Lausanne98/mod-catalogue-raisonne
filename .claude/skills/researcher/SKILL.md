@@ -65,13 +65,30 @@ For each real candidate found, record:
   If it's plausible but unconfirmed, or clearly not yet catalogued, leave
   this null — matching rigor is Khalo's job once a human pulls this out of
   the bullpen, not something to force here.
+- **`image_url`** — optional. Set this ONLY when the finding is about one
+  specific object (an auction lot, a gallery listing) and you're genuinely
+  confident the image at that URL depicts the actual item described — not
+  a generic lot-of-many photo, not the site's own logo/banner, not a
+  different work pulled in by a loose title match (the exact mistake
+  CLAUDE.md already warns about for the legacy-site migration). Use the
+  source page's own image URL directly (hotlink; never download and
+  re-host it yourself). Leave it null for anything not about one specific
+  object — a press mention, a publication citation, a social post — the
+  New Finds review UI shows a category-coded square for those instead of
+  leaving a blank gap. **This is a small admin-only review thumbnail, not
+  a rights clearance.** It's shown only inside the studio's own review UI,
+  never on the public site, and if this finding is later approved and
+  promoted into a real work, that work's own public `img` field still
+  needs the full separate verification CLAUDE.md's "Pulling media from the
+  legacy site" section already requires — don't treat this field as having
+  already done that.
 
 ## Writing findings
 
 Insert into `research_finds`: `site_id` (if it came from a tracked
 `research_sites` row), `category`, `title`, `finding_text`, `url`,
-`matched_work_id` (or null), `status: 'pending'`. This is the *only* table
-this skill ever writes to.
+`matched_work_id` (or null), `image_url` (or omit/null), `status:
+'pending'`. This is the *only* table this skill ever writes to.
 
 **No admin login needed to run this skill.** `research_sites` is publicly
 readable and `research_finds` accepts an anonymous INSERT (same pattern as
@@ -95,7 +112,7 @@ curl -s "$SUPABASE_URL/rest/v1/works?select=id,cr_number,title,year,medium,tag" 
 # Insert one finding:
 curl -s -X POST "$SUPABASE_URL/rest/v1/research_finds" \
   -H "apikey: $ANON_KEY" -H "Content-Type: application/json" \
-  -d '{"category":"auction-house","title":"...","finding_text":"...","url":"...","matched_work_id":null}'
+  -d '{"category":"auction-house","title":"...","finding_text":"...","url":"...","matched_work_id":null,"image_url":null}'
 ```
 
 **Do not add `-H "Prefer: return=representation"` to the insert.** It's
@@ -120,12 +137,12 @@ to run this skill — that's the point of the RLS design above.
   approved finding, does the actual catalogue-matching and proposal work.
 - **Never invent a finding.** If a site turns up nothing relevant, log
   nothing rather than a vague or speculative entry.
-- **Never attach or reference a third-party image as if rights are
-  settled.** Reading a page to extract text/citation facts is fine
-  research; downloading and republishing someone else's photo is a
-  separate, human, legal decision — describe what an image shows in
-  `finding_text` rather than pulling the image itself, unless it's clearly
-  the studio's own copyrighted material.
+- **Never treat `image_url` as a rights decision.** It's a hotlink for an
+  internal, admin-only review thumbnail (see "What to search and how"
+  above) — not downloading, not republishing, and not a substitute for the
+  real image-rights verification a work needs before anything is shown
+  publicly. Always describe what the image shows in `finding_text` too,
+  never rely on the thumbnail alone to carry that information.
 - **Cite specifically.** The actual URL and the actual claim, not a vague
   summary of "found something."
 
