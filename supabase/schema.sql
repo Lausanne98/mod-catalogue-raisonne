@@ -970,6 +970,17 @@ drop policy if exists "research_finds_admin_delete" on research_finds;
 create policy "research_finds_admin_delete" on research_finds for delete
   using (auth.role() = 'authenticated');
 
+-- A 2026 Supabase platform change requires an explicit GRANT before the
+-- Data API will allow an operation at all, on top of and separate from
+-- the RLS policies above -- tables created earlier in this project kept
+-- their original broader default grants, so this is only needed for
+-- these two new tables. Without this, even a `with check (true)` policy
+-- gets rejected with an RLS-style error before it's ever evaluated.
+grant select on research_sites to anon, authenticated;
+grant insert, update, delete on research_sites to authenticated;
+grant insert on research_finds to anon, authenticated;
+grant select, update, delete on research_finds to authenticated;
+
 -- Starter site list, compiled 2026-09-12 via live web search (auction
 -- houses/aggregators) plus the studio's own named museums/galleries.
 -- Safe to re-run -- unique(url) makes this idempotent.
