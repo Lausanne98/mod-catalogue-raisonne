@@ -201,6 +201,42 @@ check whether a root-level `index.html` alias points at it, not just the
 sibling nav mesh — these stubs are easy to forget since they're outside
 `HTMLs/` and don't show up in a `grep` scoped to that folder.
 
+## Pulling real lot-page thumbnails (2026-09-12)
+
+Real structural limit hit while trying to attach real photos to the 12
+seeded auction findings: this cloud session's network egress is blocked
+(by this repo's own environment policy) for essentially every auction-
+house/marketplace domain -- Phillips, Bonhams, Sotheby's, Rago, Wright,
+Doyle, Toomey, Invaluable, LiveAuctioneers, even the Wayback Machine.
+WebSearch can still find and corroborate a lot page there, but nothing in
+that session can fetch the page's HTML to pull an actual `<img>`/CDN URL --
+confirmed by testing a non-auction control fetch (succeeded) against the
+same auction domains (all blocked) and a direct proxy-status check (denied
+by the permission system). This is an org-level policy, not a bug to route
+around.
+
+`scripts/fetch_lot_image.py` is the fix, same "a cloud session can't reach
+this, a local script can" shape as `archive_indexer.py`/
+`backup_archive.py`: run on your own machine (ordinary internet access),
+it fetches each `research_finds` row's `url` and pulls the page's
+`og:image` meta tag -- the one photo a site's own markup already
+designates as "the photo that represents this listing" (the same tag used
+when a link unfurls on social media), rather than guessing which `<img>`
+on the page is the right one. Reuses the same interactive/stored-
+credential auth as `backup_archive.py` (`~/.modcr_backup_credentials`,
+same file, same account). Defaults to gallery/auction-house findings
+missing an `image_url`; never fabricates one -- a page with no og:image,
+or one that fails to fetch, is reported as not found and left alone.
+
+Real gaps found while researching the original 12 seeded findings, worth
+tracking here rather than only in a chat transcript: "The Shaman's Hut" is
+a 2014 Christie's *exhibition* title covering many objects, not a single
+priced lot -- flagged via `research_finds.notes` rather than backfilled
+with invented specifics. The Terrible Chair Series piece was logged
+against Doyle, but the only lot independently verifiable with matching
+title/medium/date is Rago (same date) -- also flagged via `notes` for a
+human to resolve rather than silently trusting either venue.
+
 ## Raw archive indexing (2026-09-06)
 
 Solves for a real studio need: a photographer's shoot can be 500MB-4GB of
