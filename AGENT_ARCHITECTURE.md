@@ -518,12 +518,21 @@ machines. Replaced with a real ElevenLabs voice per persona, via a new
 streams the resulting MP3 back to the browser — same
 authenticated-admin-only gating as `agent-chat`.
 
-Each persona's voice is a fixed `ELEVENLABS_VOICE_<NAME>` secret (a
-voice_id picked from the studio's own ElevenLabs Voice Library), not a
+Each persona's voice is a fixed `ELEVENLABS_VOICE_<NAME>` secret, not a
 per-session picker — there's no browser-voice list to choose from anymore,
 so the old per-card "Voice" dropdown was removed. Personality brief guiding
-which voice to pick per persona: Chloe: curious, quick, exploratory; Khalo:
+which voice to design per persona: Chloe: curious, quick, exploratory; Khalo:
 measured, precise, a little formal; Timur: plain, technical, low-drama.
+
+**Voice source matters on the Free plan.** A voice picked from ElevenLabs'
+shared community Voice Library is gated behind a paid plan for API use
+(`402 Payment Required` on Free, even though it plays fine in the
+dashboard). A voice generated with Voice Design and saved to your own
+account works on Free regardless of plan tier. Khalo's original voice was
+Voice-Design-generated and worked from the start; Chloe's and Timur's were
+initially picked from library search results and hit the 402 until
+regenerated via Voice Design on 2026-09-12 — use Voice Design for any
+future persona voice, not the Library picker.
 
 Billing: uses the studio's own ElevenLabs account (separate from the
 ElevenReader consumer app subscription, which is a different product with
