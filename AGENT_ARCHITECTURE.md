@@ -234,17 +234,27 @@ the prior round.
 ## The team
 
 ### 1. Chloe — Researcher
-- **Role:** Gathers provenance and exhibition-history research,
-  bibliographic lookups, and raw material (photography, catalogs,
-  documents) into a holding folder for the Archivist to process.
-- **Access:** Web search enabled. Read access to existing catalogue data
-  (to cross-check findings against what's already recorded).
-- **Write access:** None to the database. Saves files to a folder, not to
-  Supabase directly.
-- **Status:** Not yet built as a skill. Khalo (below) currently does its
-  own web research directly (Mode A) rather than consuming Chloe's output
-  — splitting that into a real separate Researcher pass is the next piece
-  of this team to build.
+- **Role:** Two jobs. Outbound: checks a Master Site List (galleries,
+  auction houses, museums, press, publications, media, social media,
+  books) for new mentions or sales of the artist's work. Inbound: gathers
+  provenance/exhibition research and raw material into a holding folder
+  for Khalo to process.
+- **Access:** Web search enabled. Public (unauthenticated) read on
+  `research_sites` and `works`, so the skill runs without any admin login.
+- **Write access:** `research_finds` only, and only inserts (`status:
+  'pending'`) — an intentionally narrow staging table, not a path to
+  `works`/`work_sources`/`staged_works`/`work_revisions`, which stay
+  Khalo's alone. RLS lets an anonymous insert through (same pattern as
+  `public_submissions`) specifically so this skill never needs a stored or
+  requested credential to run.
+- **Built (2026-09-12):** `.claude/skills/researcher/SKILL.md`, plus
+  `research_sites`/`research_finds` in `supabase/schema.sql` and a New
+  Finds / CR Archive / Master Site List review UI on Researcher's Desk
+  (`catalogue_admin_researcher`). The inbound side (raw-material intake,
+  the conversational drop-off flow) is still spec-only — see below.
+- **Not yet built:** the *automatic, scheduled* version of the outbound
+  check — today this skill runs when a Claude Code session is asked to run
+  it, not on a timer. See "Phase 2" further down for what that would take.
 
 #### Spec notes captured 2026-09-06, not yet built
 
@@ -305,14 +315,20 @@ detail:
   as she reliably can, so that Khalo has a properly labeled item to place
   correctly into the catalogue rather than starting from nothing.
 
-Open design questions, deliberately not resolved yet: what table(s) back
-the New Finds bullpen and the CR Archive (extend `source_materials`, or a
-new table per CLAUDE.md's "adding a table is normal" precedent); how
-outbound monitoring is actually triggered on a schedule (a cron-triggered
-Edge Function, most likely, mirroring the existing GitHub Actions
-keep-alive pattern rather than a new paid scheduler); and the UI for the
-draft-catalog-record review/approve/reject/trash flow. Worth a dedicated
-design pass before building, given the size of this feature.
+**Resolved 2026-09-12** (Phase 1 of this spec): the backing tables are
+`research_sites` and `research_finds`, and the review/approve/reject/trash
+UI lives on Researcher's Desk — see "Built" above.
+
+**Still open** (Phase 2 — the *automatic, scheduled* version): today,
+Chloe's outbound check runs when a Claude Code session is asked to run it,
+using this session's own web search — real, but not unattended. Making it
+fire on a timer with nobody asking would mean a scheduled Edge Function
+calling Claude's API with its own web-search tool (the same mechanism
+Timur already uses on demand, on a cron trigger instead of a button click)
+— its own separate build, deliberately not started yet, since Phase 1
+(above) is what makes every research pass land somewhere durable in the
+meantime. The inbound intake flow (drag-and-drop → conversational
+labeling → draft catalog record) is also still spec-only, not built.
 
 #### Starter auction-house site list (compiled 2026-09-12)
 

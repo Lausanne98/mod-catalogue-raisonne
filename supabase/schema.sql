@@ -900,3 +900,100 @@ where w.cr_number = 119
 and not exists (
   select 1 from work_photos wp where wp.work_id = w.id and wp.storage_path = w.id || '/patina-at-talix.jpg'
 );
+
+-- ═══ CHLOE'S OUTBOUND MONITORING — a master site list she checks, and a
+-- "New Finds" bullpen for what turns up, doubling as the "CR Archive" once
+-- reviewed (status distinguishes the two: pending = bullpen, approved/
+-- rejected = archive, trashed = gone). See AGENT_ARCHITECTURE.md's Chloe
+-- section for the full spec this implements. ═══
+create table if not exists research_sites (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  url         text not null unique,
+  category    text not null check (category in ('gallery','auction-house','museum','press','publication','media','social-media','book')),
+  active      boolean not null default true,
+  notes       text,
+  created_at  timestamptz not null default now()
+);
+create index if not exists research_sites_category_idx on research_sites(category);
+
+-- Public SELECT (this is just a list of website names/URLs, nothing
+-- sensitive) is what lets Chloe's skill read the site list using only the
+-- public anon key -- no interactive admin login required to run a research
+-- pass, in this cloud sandbox or any local session. Managing the list
+-- itself (add/edit/remove a site) stays admin-only.
+alter table research_sites enable row level security;
+drop policy if exists "research_sites_anyone_read" on research_sites;
+create policy "research_sites_anyone_read" on research_sites for select
+  using (true);
+drop policy if exists "research_sites_admin_write" on research_sites;
+create policy "research_sites_admin_write" on research_sites for insert
+  with check (auth.role() = 'authenticated');
+drop policy if exists "research_sites_admin_update" on research_sites;
+create policy "research_sites_admin_update" on research_sites for update
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+drop policy if exists "research_sites_admin_delete" on research_sites;
+create policy "research_sites_admin_delete" on research_sites for delete
+  using (auth.role() = 'authenticated');
+
+create table if not exists research_finds (
+  id               uuid primary key default gen_random_uuid(),
+  site_id          uuid references research_sites(id) on delete set null,
+  category         text not null check (category in ('gallery','auction-house','museum','press','publication','media','social-media','book')),
+  title            text not null,
+  finding_text     text not null,
+  url              text,
+  matched_work_id  uuid references works(id) on delete set null,
+  status           text not null default 'pending' check (status in ('pending','approved','rejected','trashed')),
+  discovered_at    timestamptz not null default now(),
+  notes            text
+);
+create index if not exists research_finds_status_idx on research_finds(status);
+create index if not exists research_finds_category_idx on research_finds(category);
+
+-- Same pattern as public_submissions: anyone (including this skill running
+-- with only the public anon key, no admin login) may INSERT a new pending
+-- finding, but reviewing/approving/rejecting/trashing it -- and reading the
+-- bullpen at all -- is admin-only. A pending row can't do any harm sitting
+-- unreviewed; that asymmetry is what lets Chloe run unattended.
+alter table research_finds enable row level security;
+drop policy if exists "research_finds_anyone_insert" on research_finds;
+create policy "research_finds_anyone_insert" on research_finds for insert
+  with check (true);
+drop policy if exists "research_finds_admin_read" on research_finds;
+create policy "research_finds_admin_read" on research_finds for select
+  using (auth.role() = 'authenticated');
+drop policy if exists "research_finds_admin_update" on research_finds;
+create policy "research_finds_admin_update" on research_finds for update
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+drop policy if exists "research_finds_admin_delete" on research_finds;
+create policy "research_finds_admin_delete" on research_finds for delete
+  using (auth.role() = 'authenticated');
+
+-- Starter site list, compiled 2026-09-12 via live web search (auction
+-- houses/aggregators) plus the studio's own named museums/galleries.
+-- Safe to re-run -- unique(url) makes this idempotent.
+insert into research_sites (name, url, category) values
+  ('Christie''s', 'https://www.christies.com', 'auction-house'),
+  ('Sotheby''s', 'https://www.sothebys.com', 'auction-house'),
+  ('Phillips', 'https://www.phillips.com', 'auction-house'),
+  ('Bonhams', 'https://www.bonhams.com', 'auction-house'),
+  ('Rago Arts and Auction Center', 'https://www.ragoarts.com', 'auction-house'),
+  ('Wright', 'https://www.wright20.com', 'auction-house'),
+  ('DOYLE Auctioneers & Appraisers', 'https://www.doyle.com', 'auction-house'),
+  ('Toomey & Co. Auctioneers', 'https://www.toomeyco.com', 'auction-house'),
+  ('Freeman''s | Hindman', 'https://www.freemanshindman.com', 'auction-house'),
+  ('LiveAuctioneers', 'https://www.liveauctioneers.com', 'auction-house'),
+  ('Invaluable', 'https://www.invaluable.com', 'auction-house'),
+  ('MutualArt', 'https://www.mutualart.com', 'auction-house'),
+  ('LotSearch', 'https://www.lotsearch.net', 'auction-house'),
+  ('Artnet', 'https://www.artnet.com', 'auction-house'),
+  ('Artsy', 'https://www.artsy.net', 'gallery'),
+  ('1stDibs', 'https://www.1stdibs.com', 'gallery'),
+  ('David Gill Gallery', 'https://www.davidgillgallery.com', 'gallery'),
+  ('Marlborough Gallery', 'https://www.marlboroughgallery.com', 'gallery'),
+  ('The Metropolitan Museum of Art', 'https://www.metmuseum.org', 'museum'),
+  ('MoMA', 'https://www.moma.org', 'museum'),
+  ('The Bunker (Palm Beach)', 'https://thebunkerartspace.com', 'museum'),
+  ('Pérez Art Museum Miami (PAMM)', 'https://www.pamm.org', 'museum')
+on conflict (url) do nothing;

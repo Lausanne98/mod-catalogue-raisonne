@@ -242,6 +242,41 @@ async function modcrDeleteITSubscription(id){
   const { error } = await modcrSupabase.from('it_subscriptions').delete().eq('id', id);
   if(error) throw error;
 }
+
+// ---- Chloe's outbound monitoring: the master site list, and the New
+// Finds bullpen / CR Archive (same table -- status distinguishes the two).
+// research_finds accepts an anonymous insert by design (see schema.sql),
+// so Chloe's skill can write without an admin login -- everything from
+// here down is the admin-only review side.
+async function modcrFetchResearchSites(){
+  const { data, error } = await modcrSupabase
+    .from('research_sites').select('*').order('category').order('name');
+  if(error) throw error;
+  return data;
+}
+async function modcrAddResearchSite(payload){
+  const { data, error } = await modcrSupabase.from('research_sites').insert(payload).select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrDeleteResearchSite(id){
+  const { error } = await modcrSupabase.from('research_sites').delete().eq('id', id);
+  if(error) throw error;
+}
+async function modcrFetchResearchFinds(){
+  const { data, error } = await modcrSupabase
+    .from('research_finds').select('*').order('discovered_at', { ascending: false });
+  if(error) throw error;
+  return data;
+}
+async function modcrUpdateResearchFind(id, payload){
+  const { error } = await modcrSupabase.from('research_finds').update(payload).eq('id', id);
+  if(error) throw error;
+}
+async function modcrDeleteResearchFind(id){
+  const { error } = await modcrSupabase.from('research_finds').delete().eq('id', id);
+  if(error) throw error;
+}
 async function modcrFetchITGateHash(){
   const { data, error } = await modcrSupabase
     .from('it_access_settings').select('gate_hash').eq('id', 'global').single();
