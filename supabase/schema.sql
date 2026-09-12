@@ -1000,6 +1000,23 @@ alter table research_finds add column if not exists staged_work_id uuid referenc
 -- never substitutes for that.
 alter table research_finds add column if not exists image_url text;
 
+-- Structured (not prose) date/medium, set only when Chloe is confident of
+-- them specifically -- separate from finding_text's free-text narrative so
+-- the auto-promotion rule below (image + at least 2 of name/date/medium/
+-- site) can check them deterministically instead of parsing a sentence.
+alter table research_finds add column if not exists date_display text;
+alter table research_finds add column if not exists medium text;
+
+-- A gallery/auction-house finding this well-documented (a trustworthy
+-- photo plus real specifics, not just a title) skips the manual Approve
+-- step and goes straight to a staged_works draft -- see
+-- catalogue_admin_researcher's qualifiesForAutoPromotion(). Everything
+-- else (thinner findings, and every non-gallery/auction-house category)
+-- still needs a human Approve click, same as before. Auto-promoted rows
+-- are marked status:'approved' with a note explaining it was automatic,
+-- for the same audit-trail reason nothing in this project is ever silent
+-- about what a human decided vs. what a rule decided.
+
 -- Starter site list, compiled 2026-09-12 via live web search (auction
 -- houses/aggregators) plus the studio's own named museums/galleries.
 -- Safe to re-run -- unique(url) makes this idempotent.

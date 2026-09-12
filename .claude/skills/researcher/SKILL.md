@@ -82,13 +82,36 @@ For each real candidate found, record:
   needs the full separate verification CLAUDE.md's "Pulling media from the
   legacy site" section already requires — don't treat this field as having
   already done that.
+- **`date_display`** / **`medium`** — optional, structured versions of
+  facts that also belong in `finding_text`'s prose. Set them only when
+  you're genuinely confident of the specific value (e.g. `date_display:
+  "1993"` or `"c. 1985"`, `medium: "cast bronze"`) — leave both null
+  rather than guess. These exist so the New Finds review UI can check
+  "how well-documented is this finding" deterministically (see "Auto-
+  promotion" below) instead of trying to parse a date or material out of a
+  sentence; they're a supplement to `finding_text`, never a replacement
+  for it.
 
 ## Writing findings
 
 Insert into `research_finds`: `site_id` (if it came from a tracked
 `research_sites` row), `category`, `title`, `finding_text`, `url`,
-`matched_work_id` (or null), `image_url` (or omit/null), `status:
-'pending'`. This is the *only* table this skill ever writes to.
+`matched_work_id` (or null), `image_url` (or omit/null), `date_display`
+(or omit/null), `medium` (or omit/null), `status: 'pending'`. This is the
+*only* table this skill ever writes to.
+
+## Auto-promotion to a draft (gallery / auction-house only)
+
+A finding whose `category` is `gallery` or `auction-house`, that has an
+`image_url`, **and** has at least 2 of {`title`, `date_display`, `medium`,
+a resolvable site/gallery/auction-house name} set gets promoted straight
+to a `staged_works` draft the next time an admin has Researcher's Desk
+open — no human Approve click needed first. Everything else (every other
+category, or a gallery/auction-house finding that's still thin) sits in
+New Finds for a human to review as before. This doesn't change anything
+about how this skill writes a finding — set fields honestly and let the
+review UI decide whether it qualifies; never inflate `date_display` or
+`medium` just to push a finding over the threshold.
 
 **No admin login needed to run this skill.** `research_sites` is publicly
 readable and `research_finds` accepts an anonymous INSERT (same pattern as
@@ -112,7 +135,7 @@ curl -s "$SUPABASE_URL/rest/v1/works?select=id,cr_number,title,year,medium,tag" 
 # Insert one finding:
 curl -s -X POST "$SUPABASE_URL/rest/v1/research_finds" \
   -H "apikey: $ANON_KEY" -H "Content-Type: application/json" \
-  -d '{"category":"auction-house","title":"...","finding_text":"...","url":"...","matched_work_id":null,"image_url":null}'
+  -d '{"category":"auction-house","title":"...","finding_text":"...","url":"...","matched_work_id":null,"image_url":null,"date_display":null,"medium":null}'
 ```
 
 **Do not add `-H "Prefer: return=representation"` to the insert.** It's
