@@ -314,6 +314,43 @@ keep-alive pattern rather than a new paid scheduler); and the UI for the
 draft-catalog-record review/approve/reject/trash flow. Worth a dedicated
 design pass before building, given the size of this feature.
 
+#### Starter auction-house site list (compiled 2026-09-12)
+
+A first pass via live web search, seeding the "given list of sites to
+begin with" the outbound-monitoring spec above calls for. Not
+exhaustive — meant to be added to over time, the way Series already is.
+
+**Direct auction houses with confirmed MOD sales found so far:** Christie's,
+Sotheby's, Phillips, Bonhams (incl. Bonhams Skinner), Rago Arts and Auction
+Center, Wright, DOYLE Auctioneers & Appraisers, Toomey & Co. Auctioneers,
+Freeman's | Hindman, C Doyle Auctioneers & Appraisers, Auctions at
+Showplace, STAIR.
+
+**Aggregators — check these first for cheap, broad coverage of the many
+smaller regional houses neither the studio nor Chloe would otherwise think
+to name individually:** LiveAuctioneers (73 tracked results for MOD, the
+richest single source found — though note liveauctioneers.com specifically
+returned `EGRESS_BLOCKED` when fetched directly from this cloud sandbox;
+web search still surfaces its content, direct page fetches don't), Invaluable,
+MutualArt, LotSearch, Artnet.
+
+**Primary-market marketplaces, not secondary auction — a different `press`/
+`gallery` categorization than the auction-house category above, not to be
+conflated with it:** Artsy (David Gill Gallery consignment listings),
+1stDibs.
+
+**Confirmed specific results found in this pass**, worth Khalo processing
+into `work_sources`/`staged_works` properly rather than left sitting only
+in this list: "Burning Bush" candelabrum ($58,420, Phillips, June 2025);
+"Coral Wave" chair, 1993 ($38,296, Phillips London, 2018); "Faucet," 1986,
+cast bronze (Christie's, July 2015, lot 186; resold Bonhams Sept 2020,
+$2,167); "The Shaman's Hut" (Christie's, 2014); Set of Two 'Talisman'
+Necklaces, 1987 (Sotheby's "Art as Jewelry as Art"); "Wrapped Figure," 1985
+stoneware ($12,600, Rago, Oct 2024); "Apple," 1978, brass (Wright, Oct
+2023); "Torso (Prototype for Steuben Glass)," 2007 (DOYLE, Oct 2023);
+Terrible Chair Series piece, bronze/gold leaf (DOYLE, Sept 2023); 18k gold
+'Palmaceae' necklace (Bonhams); Brooch, c.2000 ($2,489, Toomey, July 2024).
+
 ### 2. Khalo — Associate Archivist
 - **Role:** Processes and verifies what the Researcher gathers (or, today,
   what it finds itself via direct web search or an uploaded document).
