@@ -48,10 +48,23 @@ import getpass
 import html
 import os
 import re
+import ssl
 import sys
 import time
 import urllib.error
 import urllib.request
+
+# macOS's Python (especially the python.org installer) often ships without
+# access to the system's trusted certificate list, which makes every HTTPS
+# request fail with CERTIFICATE_VERIFY_FAILED regardless of this script's
+# own logic. certifi ships its own known-good CA bundle and sidesteps that
+# entirely -- it's already installed as a dependency of the `supabase`
+# package, so this needs no extra `pip install`.
+try:
+    import certifi
+    SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    SSL_CONTEXT = ssl.create_default_context()
 
 SUPABASE_URL = "https://kuyyrygvaotsrhbyjyjw.supabase.co"
 # Public by design -- see supabase/PROGRESS.md. Access control is RLS, not
@@ -108,7 +121,7 @@ def fetch_og_image(page_url):
     raises -- a failure here just means 'not found', logged by the caller."""
     req = urllib.request.Request(page_url, headers={"User-Agent": USER_AGENT})
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with urllib.request.urlopen(req, timeout=15, context=SSL_CONTEXT) as resp:
             raw = resp.read(1_500_000)  # a lot page's <head> is well within this
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ConnectionError) as e:
         return None, f"fetch failed ({e})"
