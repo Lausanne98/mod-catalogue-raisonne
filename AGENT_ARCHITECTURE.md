@@ -174,6 +174,33 @@ of `\'` in a `confirm()` string had been a silent syntax error breaking
 Drafts, not just the one button, since one syntax error anywhere in a
 `<script>` tag prevents the whole tag from parsing.
 
+## Stale login redirect fixed (2026-09-12)
+
+Found while investigating why Researcher's Desk "still looked like v13"
+for the studio — unrelated to that (a stale bookmark), but real: the login
+page's post-auth redirect (`catalogue_admin_login_v64_sans.html` →
+`catalogue_admin_v64_sans.html`) had silently fallen 24 versions behind
+the actual current dashboard (v88 at the time) over many rounds of admin
+work, none of which had ever touched the login page itself. v64's nav
+predates the entire Agents/Drafts/Researcher's Desk/IT Desk feature set —
+Works, Series, Materials, Add a Work, Chronology, View Site only. Anyone
+signing out and back in landed somewhere with no path to any agent page at
+all, silently, with no error to notice.
+
+Fixed by bumping login to v65 (both redirects now target the current
+dashboard) and re-linking every live page that referenced the old login
+version — the full admin nav mesh plus four public pages with a footer
+"Add / Update a Work" link (`catalogue_entry`, `catalogue_guide`,
+`catalogue_landing`, the main `catalogue` page) — plus the four
+root-level `index.html` redirect stubs (`/`, `/admin/`, `/entry/`,
+`/works/`), which are outside the `.._sans.html` versioning scheme
+(edited in place, same as `modcr-client.js`) but were pointing at
+whichever page-version existed when each stub was first written, not
+necessarily the current one. **Lesson for next time a page gets bumped:**
+check whether a root-level `index.html` alias points at it, not just the
+sibling nav mesh — these stubs are easy to forget since they're outside
+`HTMLs/` and don't show up in a `grep` scoped to that folder.
+
 ## Raw archive indexing (2026-09-06)
 
 Solves for a real studio need: a photographer's shoot can be 500MB-4GB of
