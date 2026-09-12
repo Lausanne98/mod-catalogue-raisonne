@@ -252,6 +252,11 @@ the prior round.
   Finds / CR Archive / Master Site List review UI on Researcher's Desk
   (`catalogue_admin_researcher`). The inbound side (raw-material intake,
   the conversational drop-off flow) is still spec-only — see below.
+- **Also built (2026-09-12), the Approve → draft connector:** clicking
+  Approve on a finding with no `matched_work_id` now auto-creates a
+  bare-bones `staged_works` row client-side (title + a note pointing back
+  at the finding; date/medium/series left null on purpose) rather than
+  leaving "approved" as a dead end — see "Chloe → Khalo handoff" below.
 - **Not yet built:** the *automatic, scheduled* version of the outbound
   check — today this skill runs when a Claude Code session is asked to run
   it, not on a timer. See "Phase 2" further down for what that would take.
@@ -367,6 +372,46 @@ stoneware ($12,600, Rago, Oct 2024); "Apple," 1978, brass (Wright, Oct
 Terrible Chair Series piece, bronze/gold leaf (DOYLE, Sept 2023); 18k gold
 'Palmaceae' necklace (Bonhams); Brooch, c.2000 ($2,489, Toomey, July 2024).
 
+#### Chloe → Khalo handoff (built 2026-09-12)
+
+Approving a finding on Researcher's Desk used to just flip
+`research_finds.status` to `approved` and stop — there was no connection
+from there to an actual draft record, so "approved" had nowhere to go. Two
+cases, handled differently:
+
+- **Finding has no `matched_work_id`** (plausibly a previously-uncatalogued
+  work): Approve now also creates a `staged_works` row on the spot
+  (`title` from the finding, `notes` pointing back at the original claim,
+  `source_url`, `source_type` mapped from the finding's `category`,
+  `confidence: 'candidate'`, `status: 'new'`, `source_find_id` linking back
+  to the finding) — this lands it in the **New Entries** tab of Archivist's
+  Drafts, same as any other staged candidate. Deliberately leaves
+  `date_display`/`year`/`medium`/`tag`/`suggested_series` null: guessing
+  those from a finding's short text would be inventing data, which is
+  exactly the discipline this whole pipeline exists to avoid. That
+  research pass is Khalo's Mode C (see above) — invoked separately, not
+  automatically, on the new staged row.
+- **Finding has a `matched_work_id`** (already in the catalogue): no draft
+  is created since the work already exists. The finding is just flagged in
+  its card as ready for Khalo's Mode A, to fold the new lead into that
+  work's existing research.
+
+Two new columns carry the traceability: `staged_works.source_find_id` and
+`research_finds.staged_work_id` (both nullable FKs, added via `alter
+table ... add column if not exists` in `schema.sql`). Both writes happen
+client-side in an authenticated admin session (the Researcher's Desk page
+itself, not a headless skill run) — Chloe's own anonymous-insert access to
+`research_finds` is unaffected and still needs no credential; only the
+human clicking Approve needs to be logged in, which they already are to
+see the New Finds bullpen at all (`research_finds` SELECT is admin-only).
+
+This still isn't the whole pipeline the studio described (scan sites →
+sort into draft entries) running unattended — Mode C still has to be
+invoked, same as Mode A/B always have been. What changed is that nothing
+approved falls through a gap anymore: every approved, unmatched finding
+reliably becomes a real, addressable draft the moment it's approved,
+rather than sitting as a flipped status with no next step.
+
 ### 2. Khalo — Associate Archivist
 - **Role:** Processes and verifies what the Researcher gathers (or, today,
   what it finds itself via direct web search or an uploaded document).
@@ -377,9 +422,11 @@ Terrible Chair Series piece, bronze/gold leaf (DOYLE, Sept 2023); 18k gold
   `work_sources`. Write access to `work_sources`, `staged_works` (via
   `modcrCreateStagedWork`), and `work_revisions` (via
   `modcrProposeRevision`) only — see the write-access model above.
-- **Built:** `.claude/skills/associate-archivist/SKILL.md`. Two entry
-  points — Mode A (research one named work) and Mode B (process an
-  uploaded `source_materials` row, e.g. an exhibition catalog PDF).
+- **Built:** `.claude/skills/associate-archivist/SKILL.md`. Three entry
+  points — Mode A (research one named work), Mode B (process an uploaded
+  `source_materials` row, e.g. an exhibition catalog PDF), and Mode C
+  (2026-09-12: flesh out a bare-bones `staged_works` stub that the Approve
+  → draft connector created from an approved Chloe finding).
 - **Open gap:** the skill doesn't yet have an explicit "this isn't the
   artist's work at all, or is support material — discard" outcome at the
   per-item level (only at the whole-document level, via `source_materials.

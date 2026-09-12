@@ -1,6 +1,6 @@
 ---
 name: associate-archivist
-description: Research a single MOD Catalogue Raisonné work across the open web (auctions, galleries, museums, press, publications), OR process an uploaded source material (an exhibition catalog PDF, a batch of legacy photography in `source_materials`) to find every MOD work it mentions/depicts — and write findings into draft records in Supabase, with a full citation trail. Use when the user asks to research, look up, find sources for, or fill in provenance/exhibition/literature/collector information for a specific work; asks to "run the archivist" on one or more works; or asks to process/mine/go through an uploaded catalog, PDF, or source material.
+description: Research a single MOD Catalogue Raisonné work across the open web (auctions, galleries, museums, press, publications), OR process an uploaded source material (an exhibition catalog PDF, a batch of legacy photography in `source_materials`) to find every MOD work it mentions/depicts, OR flesh out a bare-bones draft that was auto-staged when a human approved one of Chloe's research findings — and write findings into draft records in Supabase, with a full citation trail. Use when the user asks to research, look up, find sources for, or fill in provenance/exhibition/literature/collector information for a specific work; asks to "run the archivist" on one or more works; asks to process/mine/go through an uploaded catalog, PDF, or source material; or asks to research/flesh out/follow up on an approved finding or a new staged-works candidate from Researcher's Desk.
 ---
 
 # Associate Archivist
@@ -19,10 +19,16 @@ Runs in one of two modes, chosen by what triggered it:
   (e.g. an uploaded exhibition catalog PDF), find every MOD work it mentions
   or depicts and fan out findings across potentially many works. See
   "Mode B: processing an uploaded source material" below.
+- **Mode C — flesh out a Chloe-originated candidate.** Given one row in
+  `staged_works` with `source_find_id` set (auto-created the moment a human
+  approves a Chloe finding on Researcher's Desk that isn't matched to an
+  existing work), research it fully and fill in the stub. See "Mode C:
+  fleshing out a Chloe-originated candidate" below.
 
-Both modes write through the same `work_sources` / `staged_works` mechanism
-and the same confidence model and hard rules — Mode B is not a different
-archivist, just a different starting point (a document instead of a name).
+All three modes write through the same `work_sources` / `staged_works`
+mechanism and the same confidence model and hard rules — Modes B and C
+aren't a different archivist, just different starting points (a document,
+or an already-staged stub, instead of a name).
 
 This file is the whole point of the exercise: it is read in full, verbatim,
 every time this skill runs. Nothing about how the Archivist should behave
@@ -53,6 +59,10 @@ run, before searching or reading anything:
 - In Mode A specifically: the target work's current row in full (all
   fields, plus any existing `work_sources` rows for it), so you don't
   re-find what's already there or contradict it silently.
+- In Mode C specifically: the target `staged_works` row in full, plus its
+  linked `research_finds` row (via `source_find_id`) for Chloe's original
+  `finding_text`/`url`/`category` — that's your starting lead, not the
+  whole of what you report back.
 
 ## Mode A: researching a named work
 
@@ -126,6 +136,52 @@ which of the *whole catalogue* this document touches.
    to be irrelevant (e.g. no MOD works in it after all). Leave a short note
    in its `notes` field summarizing what was found, so a second pass over
    the same document doesn't start from zero.
+
+## Mode C: fleshing out a Chloe-originated candidate
+
+Triggered on one `staged_works` row with `source_find_id` set and
+`status: 'new'`. It exists because a human already approved a Chloe finding
+on Researcher's Desk that wasn't matched to any existing work — the row was
+auto-created client-side at that moment with only `title`, `notes`,
+`source_url`, `source_type`, `confidence: 'candidate'`, and `source_find_id`
+populated; every cataloguing field (`date_display`, `year`, `medium`, `tag`,
+`suggested_series`) is still null. That gap is this mode's whole job.
+
+### Steps
+
+1. Load the staged row and its linked `research_finds` row. Treat Chloe's
+   `finding_text` and `url` as your starting lead — a specific claim worth
+   chasing, not a confirmed fact. Same discipline as everywhere else in this
+   skill: a title/lead is not a source until you've actually read a page
+   that corroborates it.
+2. Research it the same way Mode A researches a named work (see "What to
+   search" and "What to extract" above) — auction records, gallery/museum
+   pages, press, publications — trying to establish date, medium, and
+   enough else to make this a real, well-formed candidate rather than a
+   bare title.
+3. Log every source found along the way to `work_sources` as usual —
+   except `work_id` doesn't exist yet for a staged candidate, so these are
+   logged against the staged row conceptually via the `notes` field (a
+   dated, cited addendum) until it's imported and gets a real `work_id`;
+   don't skip citing just because there's no `work_sources` row to hang it
+   on yet.
+4. Update the `staged_works` row itself (via `modcrSaveStagedWork`) with
+   whatever you can now confidently fill in: `date_display`, `year`,
+   `medium`, `tag` (must match a real `materials.slug`, per CLAUDE.md),
+   `suggested_series`, and append your research narrative to `notes` rather
+   than overwriting Chloe's original note. Set `confidence` to `likely` if
+   the work now reads as clearly real and well-sourced, or leave it
+   `candidate` if it's still thin. Set `status: 'reviewing'` once you've
+   done a real pass — never `imported` (that only happens when a human
+   promotes it via the existing New Entries mechanism) and never invent a
+   CR number.
+5. If research turns up nothing beyond what Chloe already found, say so
+   plainly and leave the row as `candidate` / `status: 'new'` rather than
+   padding it out — a thin, honest stub is more useful than a
+   confident-sounding guess.
+
+Mode C never touches `research_finds` itself — that row already did its
+job the moment it produced this staged candidate.
 
 A single catalog can easily touch a dozen works across all three outcomes
 at once (some confirmed, some flagged, one or two staged as new) — process

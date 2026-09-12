@@ -970,16 +970,24 @@ drop policy if exists "research_finds_admin_delete" on research_finds;
 create policy "research_finds_admin_delete" on research_finds for delete
   using (auth.role() = 'authenticated');
 
--- A 2026 Supabase platform change requires an explicit GRANT before the
--- Data API will allow an operation at all, on top of and separate from
--- the RLS policies above -- tables created earlier in this project kept
--- their original broader default grants, so this is only needed for
--- these two new tables. Without this, even a `with check (true)` policy
--- gets rejected with an RLS-style error before it's ever evaluated.
+-- Defensive/documentation only -- anon and authenticated already had these
+-- privileges by default (confirmed via information_schema.role_table_grants
+-- while chasing a 42501 error during the first real insert). The actual
+-- cause of that error was unrelated to grants: see the "Prefer:
+-- return=representation" note in .claude/skills/researcher/SKILL.md.
 grant select on research_sites to anon, authenticated;
 grant insert, update, delete on research_sites to authenticated;
 grant insert on research_finds to anon, authenticated;
 grant select, update, delete on research_finds to authenticated;
+
+-- Approving a Chloe finding with no matched_work_id auto-creates a
+-- bare-bones staged_works draft (client-side, on Researcher's Desk) rather
+-- than leaving an approved finding with nowhere to go -- these two columns
+-- are the traceability link between a finding and the draft it produced.
+-- When matched_work_id is set instead, no draft is created since the work
+-- already exists -- see AGENT_ARCHITECTURE.md.
+alter table staged_works add column if not exists source_find_id uuid references research_finds(id) on delete set null;
+alter table research_finds add column if not exists staged_work_id uuid references staged_works(id) on delete set null;
 
 -- Starter site list, compiled 2026-09-12 via live web search (auction
 -- houses/aggregators) plus the studio's own named museums/galleries.
