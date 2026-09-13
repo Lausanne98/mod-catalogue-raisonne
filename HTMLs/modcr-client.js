@@ -165,6 +165,41 @@ async function modcrDeleteSeries(slug){
   if(error) throw error;
 }
 
+// ---- Shared text-cleanup helpers (research_finds -> staged_works -> intake) ----
+// Kept here, not duplicated per page, so title/tag parsing behaves
+// identically wherever it runs: at auto-promotion time (Researcher's Desk),
+// at render time (Archivist's Drafts, as a safety net for older drafts
+// promoted before this existed), and at intake-fill time. Pure functions --
+// neither touches the database.
+
+// A source title routinely has the date jammed onto the end (an auction lot
+// title, a museum label) -- "Brooch, c. 2000" when the date already has its
+// own field. Strips a trailing date fragment so Title doesn't repeat it;
+// falls back to the original title if stripping would empty it out (e.g. a
+// title that's genuinely just a year).
+function modcrStripRedundantDateFromTitle(title){
+  if(!title) return title;
+  const cleaned = title
+    .replace(/[,\s]*[\(\[]?\s*c\.?\s*\d{4}s?\s*[\)\]]?\s*$/i, '')
+    .replace(/,\s*$/, '')
+    .trim();
+  return cleaned || title;
+}
+
+// Best-effort lead material guess from a free-text medium description (e.g.
+// "bronze with a baroque cultured pearl" -> bronze). Callers should only use
+// the result as a fallback when nothing more confident (a human, or Khalo's
+// research) has already set a tag -- never overrides one. The full
+// descriptive text always stays in medium regardless of what this returns.
+function modcrGuessTagFromMedium(mediumText, materialsList){
+  if(!mediumText || !materialsList) return null;
+  const lower = mediumText.toLowerCase();
+  const candidates = materialsList
+    .filter(m => lower.includes(m.slug.toLowerCase()) || lower.includes(m.label.toLowerCase()))
+    .sort((a, b) => b.label.length - a.label.length);
+  return candidates[0]?.slug || null;
+}
+
 // ---- Materials admin (add/remove a Medium value) ----
 async function modcrFetchMaterials(){
   const { data, error } = await modcrSupabase.from('materials').select('*').order('label');
