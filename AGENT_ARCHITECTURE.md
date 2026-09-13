@@ -693,6 +693,20 @@ persona, since the reason is the audience, not any one character's voice.
 agent-voice`) before it takes effect — a schema/table change doesn't cover
 this, since Edge Function code changes need their own deploy step.
 
+**Outage, found and fixed same day (2026-09-13):** the deploy that shipped
+the speed/stability settings above left the function completely broken —
+every request, including a bare `OPTIONS` preflight that never reaches any
+of this logic, returned a `504` (confirmed via `query_logs` against
+`function_edge_logs`: 100% `504` from that deploy onward, versions 5 and 6
+both). `get_edge_function` also came back with an empty `index.ts`, meaning
+the deployed bundle didn't actually contain the source — not an ElevenLabs-
+side or code-logic problem, a bad deploy. Redeployed clean from the
+repo's `index.ts` (now version 7); `get_edge_function` returns the full,
+correct source and a live `OPTIONS` request returns `200` immediately, with
+logs confirming it. If a future deploy of this function goes quiet
+(Play buttons erroring or timing out site-wide), check `get_edge_function`
+for an empty/truncated file before debugging application logic.
+
 Billing: uses the studio's own ElevenLabs account (separate from the
 ElevenReader consumer app subscription, which is a different product with
 no API access) — starting on the Free tier for this beta/internal-testing
