@@ -64,6 +64,87 @@ run, before searching or reading anything:
   `finding_text`/`url`/`category` — that's your starting lead, not the
   whole of what you report back.
 
+## Field extraction protocol (all modes)
+
+This is the checklist for turning a source document or page into
+structured fields rather than a paragraph a human has to re-read and
+re-transcribe later. It applies whenever this skill finds real material
+about a work — Mode A researching a named work, Mode B mining a document,
+and Mode C fleshing out a Chloe-originated candidate all extract against
+the same list: **Title, Date, Material, Dimensions, Category (tag),
+Series/Subseries, Provenance, Exhibitions, Publications/Citations.**
+
+- **Title** is the work's actual name only. Sources routinely jam other
+  facts into a title string — an auction lot title like `"Reclining
+  Figure, 1993, cast bronze, 14 x 22 x 9 in."`, or a museum label reading
+  `"Untitled (1985), ceramic"`. Strip the date/material/dimensions back
+  out of a title like that and file them in their own fields below — never
+  leave a date sitting only inside a title while the date field stays
+  blank. If Chloe already logged a finding with the date/medium still
+  stuck in its `title` (see the researcher skill's own "Pull these out of
+  the title" section), that's exactly the kind of gap this mode exists to
+  close.
+- **Date** goes in `date_display` (the display string as the source gives
+  it — `"1993"`, `"c. 1985"`, `"1990s"`) and `year` (a plain number for
+  sorting, your best confident reading of `date_display` when it's not
+  already a bare year). Straightforward when a source states a year
+  outright; when it doesn't, say so rather than guessing one.
+- **Material** goes in both `medium` (the descriptive label as the source
+  states it, e.g. "Raku ceramic," "cast bronze with silver") and `tag`
+  (the taxonomy-constrained filter value from CLAUDE.md's Medium list —
+  must match a real `materials.slug`, never an invented or nearest-fit
+  value).
+- **Dimensions** go in `dimensions`, captured as the source states them
+  (imperial, metric, or both if given) — `"14 x 22 x 9 in. (35.6 x 55.9 x
+  22.9 cm)"` rather than paraphrased.
+- **Category/Series/Subseries** — apply CLAUDE.md's two-tier taxonomy:
+  decide `tag` (material) first, then find the most specific `series` that
+  genuinely fits — a granular named sub-series (`tattooed`, `thorn-men`,
+  etc.) before falling back to a broad bucket. Check the Early Clay
+  cross-categorization rule (ceramic + pre-2000) before ever considering
+  `series: 'early-clay'` directly, and never set it directly unless the
+  work is actually ceramic. If a second category plausibly applies (e.g. a
+  jewelry piece from a limited-edition run), that's a `secondary_series`
+  candidate — note it explicitly rather than picking one primary series
+  and dropping the other.
+- **Provenance** is the ownership chain, dated wherever the source allows
+  it — "Studio of the artist; [gallery], [city]; [collection], acquired
+  [year]" reads as a real provenance line; "has had owners" does not.
+  - **Museum listings specifically:** don't assume a museum page means the
+    work is in that museum's permanent collection — a museum's own site
+    can just as easily be documenting a past loan exhibition. Determine
+    which it actually is from what the page says, and state that
+    explicitly (e.g. "in [Museum]'s permanent collection" vs. "exhibited
+    at [Museum] in [year], collection unstated"). If it is a permanent-
+    collection holding, look for and record the acquisition year and
+    method if the museum's own page states one (e.g. "Acquired 2004, gift
+    of [donor]" or "Purchased 1998") — record it in `collection` and/or
+    `provenance` with that date, not just "owned by [Museum]."
+- **Exhibitions** — for each show found, capture venue, exhibition title,
+  city (if not obvious from the venue name), and the date or date range,
+  formatted as a real citation line rather than a vague mention (e.g.
+  "Perez Art Museum Miami, *[Exhibition Title]*, 2019"). Actively look for
+  the **curator's name** if the source lists one (a checklist, a press
+  release, a catalog title page) and include it in the citation (e.g.
+  "...2019, curated by [Name]") — don't stop looking the moment venue and
+  year are confirmed if a curator credit is sitting right there in the
+  same source.
+- **Publications/Literature/Citations** — format as a real bibliographic
+  citation: author, title (italicized in the citation text), publisher or
+  journal, year, and page number if the source gives one. "Cited in a
+  book" is not a citation; "[Author], *[Title]*, [Publisher], [Year], p.
+  [N]" is.
+
+**The general rule underneath all of the above: never leave a fact sitting
+only in a free-text blob (`finding_text`, `notes`, or a compound `title`)
+when a structured field exists to hold it.** A date, a material, a set of
+dimensions, or a curator's name mentioned in prose but not filed into its
+own field is a fact this pipeline can't act on downstream — the intake
+form pre-fill, the auto-promotion check, and a future chronological
+renumbering pass all read structured fields, not paragraphs. If something
+genuinely doesn't fit any of the fields above, that's what `notes` is for
+— but check the list twice before defaulting a fact there.
+
 ## Mode A: researching a named work
 
 ### What to search
@@ -90,6 +171,10 @@ For each work, look for material relevant to these fields specifically:
 public (e.g. a museum accession page, a published exhibition checklist —
 never scrape or publish private individuals' names from something like a
 leaked auction result unless it's the institution's own public record).
+Extract each of these into its own structured field rather than leaving it
+inside a prose note — see "Field extraction protocol" above for the full
+checklist, including the museum permanent-collection/acquisition-date rule
+and the exhibition curator-name rule.
 
 ## Mode B: processing an uploaded source material
 
@@ -167,10 +252,16 @@ populated; every cataloguing field (`date_display`, `year`, `medium`, `tag`,
 3. If it's still genuinely new, research it the same way Mode A researches
    a named work (see "What to search" and "What to extract" above) —
    auction records, gallery/museum pages, press, publications. Don't stop
-   at date and medium: actively look for **exhibitions, literature/
-   publication citations, and provenance** too, exactly as thoroughly as
-   Mode A would for a work that's already catalogued. A candidate that only
-   ever gets a date and a medium is half-done.
+   at date and medium: actively look for **dimensions, exhibitions
+   (including curator names when listed), literature/publication
+   citations, and provenance (including permanent-collection/acquisition-
+   date status for a museum listing)** too, per the "Field extraction
+   protocol" section above, exactly as thoroughly as Mode A would for a
+   work that's already catalogued. A candidate that only ever gets a date
+   and a medium is half-done. If Chloe's original title still has the date
+   or medium stuck inside it (a compound auction-lot-style title), pull
+   those back out into `date_display`/`medium` rather than leaving `title`
+   as-is just because it came pre-filled.
 4. Apply the full taxonomy from CLAUDE.md, not just "pick a plausible tag":
    - `tag` must match a real `materials.slug` — don't invent or reuse the
      nearest existing one for something that isn't actually that material.
@@ -205,7 +296,7 @@ populated; every cataloguing field (`date_display`, `year`, `medium`, `tag`,
    on yet.
 7. Update the `staged_works` row itself (via `modcrSaveStagedWork`) with
    whatever you can now confidently fill in: `date_display`, `year`,
-   `medium`, `tag`, `suggested_series`, and append your research narrative
+   `medium`, `dimensions`, `tag`, `suggested_series`, and append your research narrative
    to `notes` rather than overwriting Chloe's original note. Set
    `confidence` to `likely` if the work now reads as clearly real and
    well-sourced, or leave it `candidate` if it's still thin. Set `status:

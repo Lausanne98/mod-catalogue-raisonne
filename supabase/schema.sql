@@ -130,6 +130,13 @@ alter table works add column if not exists inscriptions text;
 alter table works add column if not exists collection text;
 alter table works add column if not exists revisions text;
 
+-- Self-healing: auction/sale history (results, prices) -- a second
+-- deliberate exception to the admin/public field-parity rule alongside
+-- `flag` (see CLAUDE.md). Distinct from `provenance` (public, curated
+-- ownership history): this is where a specific sale's price and estimate
+-- live, and it must never reach the public entry page.
+alter table works add column if not exists auction_history text;
+
 -- Self-healing: add photo_credit -- unlike other optional fields, this and
 -- title_source display with a studio default on the entry page rather than
 -- hiding when unset (see CLAUDE.md "Default display values"), so an admin
@@ -1014,6 +1021,12 @@ alter table research_finds add column if not exists image_url text;
 -- site) can check them deterministically instead of parsing a sentence.
 alter table research_finds add column if not exists date_display text;
 alter table research_finds add column if not exists medium text;
+
+-- Same reasoning as date_display/medium above -- a structured slot for a
+-- dimension string Chloe is confident of (e.g. "14 x 22 x 9 in."), so it
+-- doesn't end up buried only in finding_text and lost when a finding is
+-- promoted into a staged_works draft.
+alter table research_finds add column if not exists dimensions text;
 
 -- A gallery/auction-house finding this well-documented (a trustworthy
 -- photo plus real specifics, not just a title) skips the manual Approve

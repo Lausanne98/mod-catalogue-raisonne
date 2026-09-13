@@ -183,9 +183,11 @@ slipped once already). Current full set, admin field ↔ entry page display:
 title, cr_number, series ↔ header/breadcrumb/sidebar, date_display/year ↔ date line,
 medium ↔ medium line, tag ↔ classification pill, dimensions/title_source/inscriptions/
 `collection` ↔ data table rows, description/provenance/exhibitions/literature/remarks
-↔ their sections, `revisions` ↔ Entry Revisions section. The one deliberate
-exception is `flag` — admin-only by design, a data-quality note for the Manage Works
-view, never meant to surface publicly. `collection` (e.g. "The artist's collection")
+↔ their sections, `revisions` ↔ Entry Revisions section. There are two deliberate
+exceptions, both admin-only by design and never meant to surface publicly: `flag`
+(a data-quality note for the Manage Works view) and `auction_history` (added
+2026-09-13 — a sale's price/estimate, distinct from `provenance`'s curated public
+ownership history). `collection` (e.g. "The artist's collection")
 and `revisions` (free text, one dated entry per line, same "date, then note" pattern
 as Provenance/Exhibitions/Literature — admin-authored, not an automatic change log)
 were added 2026-08-18 to close the last two gaps against the May reference design.

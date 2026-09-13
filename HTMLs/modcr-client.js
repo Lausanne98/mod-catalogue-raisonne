@@ -64,6 +64,9 @@ function modcrAdaptWork(row){
     isUnlocated: !!row.is_unlocated,
     img,
     flag: row.flag || undefined,
+    // Admin-only, alongside flag -- see CLAUDE.md "Admin/front-end field
+    // parity" -- never rendered on the public entry page.
+    auctionHistory: row.auction_history || '',
   };
 }
 

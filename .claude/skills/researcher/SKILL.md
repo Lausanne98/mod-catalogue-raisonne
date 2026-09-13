@@ -82,29 +82,55 @@ For each real candidate found, record:
   needs the full separate verification CLAUDE.md's "Pulling media from the
   legacy site" section already requires — don't treat this field as having
   already done that.
-- **`date_display`** / **`medium`** — optional, structured versions of
-  facts that also belong in `finding_text`'s prose. Set them only when
-  you're genuinely confident of the specific value (e.g. `date_display:
-  "1993"` or `"c. 1985"`, `medium: "cast bronze"`) — leave both null
-  rather than guess. These exist so the New Finds review UI can check
-  "how well-documented is this finding" deterministically (see "Auto-
-  promotion" below) instead of trying to parse a date or material out of a
+- **`date_display`** / **`medium`** / **`dimensions`** — optional,
+  structured versions of facts that also belong in `finding_text`'s prose.
+  Set them only when you're genuinely confident of the specific value
+  (e.g. `date_display: "1993"` or `"c. 1985"`, `medium: "cast bronze"`,
+  `dimensions: "14 x 22 x 9 in."`) — leave any of them null rather than
+  guess. These exist so the New Finds review UI can check "how
+  well-documented is this finding" deterministically (see "Auto-promotion"
+  below) instead of trying to parse a date, material, or size out of a
   sentence; they're a supplement to `finding_text`, never a replacement
   for it.
+
+## Pull these out of the title, not just the prose
+
+Source titles routinely jam multiple facts into one string — an auction
+lot title like `"Reclining Figure, 1993, cast bronze, 14 x 22 x 9 in."`,
+or a gallery listing headed `"Untitled (1985), ceramic"`. When that
+happens:
+
+- **`title` stays just the work's actual name** — `"Reclining Figure"`,
+  not the whole lot-title string with the date/medium/dimensions still
+  stuck to it.
+- The date goes in `date_display` (`"1993"`), the material in `medium`
+  (`"cast bronze"`), the size in `dimensions` (`"14 x 22 x 9 in."`) — each
+  in its own field, not left sitting only inside `title` or buried in
+  `finding_text`'s prose where a human or the auto-promotion check can't
+  see it as a fact.
+- If the source's title is genuinely just a name with nothing else in it,
+  leave it alone — this is about not letting a compound title stand in
+  for fields that exist to hold those facts individually, not about
+  rewriting a clean title unnecessarily.
+
+A finding with a date sitting only inside `title` and `date_display` left
+null is not "good enough because it's in there somewhere" — it's a
+findable fact that didn't get filed where the rest of the pipeline
+(auto-promotion, and eventually the intake form) actually looks for it.
 
 ## Writing findings
 
 Insert into `research_finds`: `site_id` (if it came from a tracked
 `research_sites` row), `category`, `title`, `finding_text`, `url`,
 `matched_work_id` (or null), `image_url` (or omit/null), `date_display`
-(or omit/null), `medium` (or omit/null), `status: 'pending'`. This is the
-*only* table this skill ever writes to.
+(or omit/null), `medium` (or omit/null), `dimensions` (or omit/null),
+`status: 'pending'`. This is the *only* table this skill ever writes to.
 
 ## Auto-promotion to a draft (gallery / auction-house only)
 
 A finding whose `category` is `gallery` or `auction-house`, that has an
 `image_url`, **and** has at least 2 of {`title`, `date_display`, `medium`,
-a resolvable site/gallery/auction-house name} set gets promoted straight
+`dimensions`, a resolvable site/gallery/auction-house name} set gets promoted straight
 to a `staged_works` draft the next time an admin has Researcher's Desk
 open — no human Approve click needed first. Everything else (every other
 category, or a gallery/auction-house finding that's still thin) sits in
@@ -135,7 +161,7 @@ curl -s "$SUPABASE_URL/rest/v1/works?select=id,cr_number,title,year,medium,tag" 
 # Insert one finding:
 curl -s -X POST "$SUPABASE_URL/rest/v1/research_finds" \
   -H "apikey: $ANON_KEY" -H "Content-Type: application/json" \
-  -d '{"category":"auction-house","title":"...","finding_text":"...","url":"...","matched_work_id":null,"image_url":null,"date_display":null,"medium":null}'
+  -d '{"category":"auction-house","title":"...","finding_text":"...","url":"...","matched_work_id":null,"image_url":null,"date_display":null,"medium":null,"dimensions":null}'
 ```
 
 **Do not add `-H "Prefer: return=representation"` to the insert.** It's
