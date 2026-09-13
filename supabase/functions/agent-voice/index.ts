@@ -121,6 +121,17 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           text: trimmedText,
           model_id: "eleven_flash_v2_5",
+          // Calm, unhurried delivery is a deliberate requirement here (the
+          // primary listener is an 80-year-old artist) -- speed below 1.0
+          // slows the pace, higher stability keeps delivery steady/even
+          // rather than energetic. ElevenLabs' documented range for speed
+          // is roughly 0.7-1.2; 0.85 is noticeably slower while staying
+          // natural rather than robotic-sounding.
+          voice_settings: {
+            speed: 0.85,
+            stability: 0.75,
+            similarity_boost: 0.8,
+          },
         }),
       },
     );

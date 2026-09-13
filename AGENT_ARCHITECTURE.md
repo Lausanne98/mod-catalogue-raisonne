@@ -681,6 +681,18 @@ initially picked from library search results and hit the 402 until
 regenerated via Voice Design on 2026-09-12 — use Voice Design for any
 future persona voice, not the Library picker.
 
+**Pace and delivery (2026-09-13): calm, unhurried speech is a deliberate
+requirement, not a style preference** — the primary listener is the artist
+herself, age 80. `agent-voice/index.ts` now sends `voice_settings: { speed:
+0.85, stability: 0.75, similarity_boost: 0.8 }` on every call, for all
+three personas: `speed` below 1.0 slows the pace (ElevenLabs' documented
+range is roughly 0.7-1.2), higher `stability` keeps delivery steady and
+even rather than energetic/varied. Applies uniformly rather than per-
+persona, since the reason is the audience, not any one character's voice.
+**Requires redeploying the Edge Function** (`supabase functions deploy
+agent-voice`) before it takes effect — a schema/table change doesn't cover
+this, since Edge Function code changes need their own deploy step.
+
 Billing: uses the studio's own ElevenLabs account (separate from the
 ElevenReader consumer app subscription, which is a different product with
 no API access) — starting on the Free tier for this beta/internal-testing
