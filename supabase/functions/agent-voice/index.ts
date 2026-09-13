@@ -108,39 +108,55 @@ Deno.serve(async (req) => {
 
   const trimmedText = text.slice(0, MAX_TEXT_LENGTH);
 
+  // A bare fetch() has no timeout of its own -- if ElevenLabs (or the
+  // network path to it) ever stalls instead of erroring quickly, this would
+  // otherwise hang until the platform's own execution ceiling kills it
+  // (minutes later, as an opaque "failed to fetch" with no useful detail on
+  // the client). 20s is generous for a short TTS clip; timing out fast and
+  // logging why is far more useful than a silent multi-minute hang.
+  const ELEVENLABS_TIMEOUT_MS = 20_000;
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), ELEVENLABS_TIMEOUT_MS);
+
   try {
-    const elevenResponse = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY,
-          "Content-Type": "application/json",
-          "Accept": "audio/mpeg",
-        },
-        body: JSON.stringify({
-          text: trimmedText,
-          model_id: "eleven_flash_v2_5",
-          // Calm, unhurried delivery is a deliberate requirement here (the
-          // primary listener is an 80-year-old artist) -- speed below 1.0
-          // slows the pace, higher stability keeps delivery steady/even
-          // rather than energetic. ElevenLabs' documented range for speed
-          // is roughly 0.7-1.2; 0.85 is noticeably slower while staying
-          // natural rather than robotic-sounding.
-          voice_settings: {
-            speed: 0.85,
-            stability: 0.75,
-            similarity_boost: 0.8,
+    let elevenResponse: Response;
+    try {
+      elevenResponse = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        {
+          method: "POST",
+          headers: {
+            "xi-api-key": ELEVENLABS_API_KEY,
+            "Content-Type": "application/json",
+            "Accept": "audio/mpeg",
           },
-        }),
-      },
-    );
+          body: JSON.stringify({
+            text: trimmedText,
+            model_id: "eleven_flash_v2_5",
+            // Calm, unhurried delivery is a deliberate requirement here (the
+            // primary listener is an 80-year-old artist) -- speed below 1.0
+            // slows the pace, higher stability keeps delivery steady/even
+            // rather than energetic. ElevenLabs' documented range for speed
+            // is roughly 0.7-1.2; 0.85 is noticeably slower while staying
+            // natural rather than robotic-sounding.
+            voice_settings: {
+              speed: 0.85,
+              stability: 0.75,
+              similarity_boost: 0.8,
+            },
+          }),
+          signal: timeoutController.signal,
+        },
+      );
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!elevenResponse.ok) {
       const detail = await elevenResponse.text();
       console.error("ElevenLabs API error:", elevenResponse.status, detail);
       return jsonResponse(
-        { error: "The voice service couldn't generate audio right now. Try again in a moment." },
+        { error: `The voice service returned an error (${elevenResponse.status}). Try again in a moment.` },
         502,
       );
     }
@@ -151,6 +167,13 @@ Deno.serve(async (req) => {
       headers: { ...CORS_HEADERS, "Content-Type": "audio/mpeg" },
     });
   } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      console.error(`ElevenLabs request timed out after ${ELEVENLABS_TIMEOUT_MS}ms for agentKey=${agentKey}`);
+      return jsonResponse(
+        { error: "The voice service took too long to respond. Try again in a moment." },
+        504,
+      );
+    }
     console.error("Voice generation failed:", err);
     return jsonResponse(
       { error: "The voice service couldn't generate audio right now. Try again in a moment." },
