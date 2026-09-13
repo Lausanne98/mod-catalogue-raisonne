@@ -4,6 +4,15 @@ Historical build narrative (schema bugs found/fixed, the original migration,
 early smoke tests) lives in git history for this file — this doc tracks
 current state only, not how we got here.
 
+## MCP access
+A Supabase MCP server is connected with direct `execute_sql` / `apply_migration`
+tools against the live project (`kuyyrygvaotsrhbyjyjw`). Use it directly for
+queries and schema changes instead of asking the user to paste SQL into the
+Supabase SQL Editor — that workaround is no longer necessary. This is a scoped
+project-access path, separate from the `service_role` secret key below (still
+never shared with Claude). Creating an admin user is still dashboard-only
+(Authentication → Users) with no MCP equivalent.
+
 ## Project
 - Supabase project URL: `https://kuyyrygvaotsrhbyjyjw.supabase.co`
 - Publishable (anon) key: `sb_publishable_s1HGNRWL1LbiCXzFDK4igg_41mnArJx`
