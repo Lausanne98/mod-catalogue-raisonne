@@ -399,6 +399,14 @@ drop policy if exists "staged_works_admin_only" on staged_works;
 create policy "staged_works_admin_only" on staged_works for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- Self-healing: the Draft Entry bar (Archivist's Drafts) shows an icon and
+-- dimensions alongside title/date/medium -- neither existed on this table.
+-- image_url is copied in at promotion time from the source finding
+-- (research_finds.image_url) rather than joined at read time, so a
+-- manually-created staged work (no source_find_id) can still carry its own.
+alter table staged_works add column if not exists image_url text;
+alter table staged_works add column if not exists dimensions text;
+
 -- ═══ AGENT SETTINGS (global on/off switch for agent engagement) ═══
 -- A single row. Any agent (Khalo today; Chloe/Timur once built) must check
 -- engagement_enabled before doing ANY work -- research, writes, everything

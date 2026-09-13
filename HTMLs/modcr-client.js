@@ -302,6 +302,14 @@ async function modcrFetchStagedWorks(){
   if(error) throw error;
   return data;
 }
+// Used by the intake form's from_draft prefill path -- it doesn't otherwise
+// load the staged_works list, just the one row being turned into an entry.
+async function modcrFetchStagedWorkById(id){
+  const { data, error } = await modcrSupabase
+    .from('staged_works').select('*').eq('id', id).maybeSingle();
+  if(error) throw error;
+  return data;
+}
 async function modcrCreateStagedWork(payload){
   const { data, error } = await modcrSupabase.from('staged_works').insert(payload).select().single();
   if(error) throw error;
