@@ -101,6 +101,9 @@ const SYSTEM_PROMPT = `You are Khalo, the Associate Archivist for the Michele Ok
 ## What you were given
 The first user message contains: the citation anchor (publication/document name) to use for every citation from this document, a full current listing of the \`works\` table and the \`staged_works\` table (id, CR#/title, date, medium, tag/series, status) to match against, the valid \`materials.slug\` and \`series.slug\` taxonomy values, and then the actual document as native PDF/image content — read all of it, every page, not just the cover or index.
 
+## Write as you go — do not save it all for one big summary at the end
+Read, then act, work by work — never read the entire document first and only describe what you found afterward. The moment you're confident about one work, call the tool for it immediately (get_work/get_staged_work to check, then log_work_source/propose_work_revision/create_staged_work/update_staged_work to record it), then move to the next work. A message that only narrates candidates in prose without calling the matching tool has not accomplished anything — narrating "CR 12 should get a citation" is not the same as calling log_work_source for CR 12, and this run will explicitly reject a finish call that describes findings you never actually logged. If the document is long, that's fine — you have many tool-call turns; use them to work through it incrementally, not to produce one exhaustive essay before you've written a single row.
+
 ## For every work the document names or depicts
 1. Try to match it against BOTH the \`works\` listing and the \`staged_works\` listing given to you (title, date, medium — confirm a fuzzy title match against date/medium before treating it as the same work, never on title alone). Checking \`works\` alone and missing an existing staged draft is exactly how a duplicate New Entries row happens.
 2. **Matches an existing work, confidently** — call get_work to see its full current fields and existing citations (don't re-cite something already logged, and don't propose text that contradicts what's already there — if it would contradict, log a flagged work_source instead and leave the field alone). Log every extracted fact with log_work_source. For append-safe narrative facts (see REVISABLE_FIELDS in the propose_work_revision tool), also call propose_work_revision so it reaches a human via the Revisions tab. For a singular-value fact (a dimension, a medium/tag/series correction, a date), log it via log_work_source only — mention it by CR number in your final summary so a human can enter it directly in Manage Works.
@@ -474,11 +477,18 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
     const messages: any[] = [{ role: "user", content: initialUserContent }];
 
     let finishResult: { outcome: string; summary: string } | null = null;
-    const MAX_ITERATIONS = 40;
+    // Tracks real writes (not get_work/get_staged_work reads, not finish
+    // itself) so a `finish` call describing findings it never actually
+    // logged/proposed/staged can be caught and rejected rather than accepted
+    // at face value -- a prose summary of what COULD be written is not the
+    // same as it having been written.
+    const WRITE_TOOLS = new Set(["log_work_source", "propose_work_revision", "create_staged_work", "update_staged_work"]);
+    let writeCount = 0;
+    const MAX_ITERATIONS = 60;
     for (let i = 0; i < MAX_ITERATIONS && !finishResult; i++) {
       const response = await anthropic.messages.create({
         model: "claude-sonnet-5",
-        max_tokens: 4096,
+        max_tokens: 8192,
         system: SYSTEM_PROMPT,
         tools: TOOLS,
         messages,
@@ -490,23 +500,54 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
       // deno-lint-ignore no-explicit-any
       const toolUses = response.content.filter((b: any) => b.type === "tool_use");
       if (toolUses.length === 0) {
-        messages.push({ role: "user", content: "Please call the finish tool now with your outcome and summary." });
+        // The model answered in prose without calling anything -- this is
+        // exactly how a real pass used to stall out into "I analyzed the
+        // whole document but wrote nothing" (see commit history). Push it
+        // back to actual tool calls, never toward finishing early.
+        messages.push({
+          role: "user",
+          content:
+            "You responded without calling a tool. Do not just describe findings in prose -- call log_work_source / propose_work_revision / create_staged_work / update_staged_work now for the specific findings you just described, one at a time. Only call finish once you've actually made those calls.",
+        });
         continue;
       }
 
       // deno-lint-ignore no-explicit-any
       const toolResults: any[] = [];
+      let sawFinish: { outcome: string; summary: string } | null = null;
       for (const tu of toolUses) {
         if (tu.name === "finish") {
-          finishResult = tu.input as { outcome: string; summary: string };
-          toolResults.push({ type: "tool_result", tool_use_id: tu.id, content: "Recorded." });
-          continue;
+          sawFinish = tu.input as { outcome: string; summary: string };
+          continue; // handled after the loop, once writeCount for this turn is known
         }
         try {
           const result = await execTool(tu.name, tu.input);
+          if (WRITE_TOOLS.has(tu.name)) writeCount++;
           toolResults.push({ type: "tool_result", tool_use_id: tu.id, content: JSON.stringify(result) });
         } catch (err) {
           toolResults.push({ type: "tool_result", tool_use_id: tu.id, content: JSON.stringify({ error: String(err) }), is_error: true });
+        }
+      }
+      if (sawFinish) {
+        if (writeCount === 0 && sawFinish.outcome !== "rejected") {
+          // Caught exactly the failure mode from the first real run: a
+          // detailed summary of candidates that were never actually logged.
+          // Refuse it and send the model back to do the real writes.
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: toolUses.find((t) => t.name === "finish")!.id,
+            content:
+              'Rejected: you called finish with outcome "' + sawFinish.outcome +
+              '" but made zero log_work_source/propose_work_revision/create_staged_work/update_staged_work calls this entire run. A summary of candidates you identified is not a result -- call the appropriate tool now for each confident finding, then call finish again.',
+            is_error: true,
+          });
+        } else {
+          finishResult = sawFinish;
+          toolResults.push({
+            tool_use_id: toolUses.find((t) => t.name === "finish")!.id,
+            type: "tool_result",
+            content: "Recorded.",
+          });
         }
       }
       messages.push({ role: "user", content: toolResults });
