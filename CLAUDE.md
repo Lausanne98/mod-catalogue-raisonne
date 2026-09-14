@@ -157,6 +157,22 @@ script then this file, rather than duplicating client setup or a hardcoded
 rule above doesn't apply to it directly — but it's shared by every admin and
 public page, so treat changes to it as touching all of them at once.
 
+## Source PDFs (catalogs, e-cats) don't live in Supabase long-term
+A source PDF's *derived* JPEGs and extracted text belong in
+`source_materials`/`source-materials` (that's the whole point of
+`scripts/catalog_pdf_extractor.py` — see the associate-archivist skill's
+"Processing a catalog PDF extraction batch" section). The PDF itself does
+not: the real archive location is an external hard drive, same as raw TIFF
+masters (see `scripts/archive_indexer.py`). A small PDF (well under
+Supabase's project upload cap) can be uploaded directly to
+`source_materials` as a `kind: 'pdf'` row for convenience when there's no
+EXHD workflow set up yet — that's tolerated, not the target state. Once a
+dedicated external-drive folder for source PDFs exists, move any
+Supabase-hosted PDF there and stop uploading new ones directly; a large PDF
+(Supabase's cap rejects raw e-cats in the 100MB+ range outright) never had
+the option anyway and always needs `catalog_pdf_extractor.py` run against
+the local file first.
+
 ## Credentials / secrets
 This repo is public (served via GitHub Pages) — never commit a password, API
 secret key, or other credential into any file that goes into git, regardless

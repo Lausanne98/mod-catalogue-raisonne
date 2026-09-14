@@ -137,7 +137,14 @@ Series/Subseries, Provenance, Exhibitions, Publications/Citations.**
   citation: author, title (italicized in the citation text), publisher or
   journal, year, and page number if the source gives one. "Cited in a
   book" is not a citation; "[Author], *[Title]*, [Publisher], [Year], p.
-  [N]" is.
+  [N]" is. **Page number specifically: always include it when the source
+  makes it available** — a `source_materials` row from
+  `catalog_pdf_extractor.py` always has one (it's right in the row's own
+  "From catalog: [label], page N" tag), so there is never an excuse to
+  drop it for that path. Use this exact citation shape every time a
+  publication gets logged, for every work, so the Publications section
+  reads as one uniform protocol across the whole catalogue rather than a
+  different format per session or per document.
 
 **The general rule underneath all of the above: never leave a fact sitting
 only in a free-text blob (`finding_text`, `notes`, or a compound `title`)
@@ -238,7 +245,20 @@ which of the *whole catalogue* this document touches.
    whatever field prompted the match. A document that confirms a work's
    date via a caption still counts as a publication citation for that work;
    don't let literature citation depend on whether something else also
-   needed updating.
+   needed updating. Cite it the same uniform way every time — title, page
+   number when the source gives one, per the "Field extraction protocol"
+   citation format above — never a bare "mentioned in [document]."
+7a. **Read each page's text for what it says, not just what it's attached
+    to** — a catalog entry's own prose routinely references *other*
+    exhibitions or publications this work has appeared in ("previously
+    exhibited at...", "as illustrated in...", "first shown in..."). Treat
+    each such mention as its own citable fact: log it as an additional
+    `exhibitions`/`literature` entry for that work (via the same
+    `work_sources`/`work_revisions` path as step 3), attributed to what the
+    catalog text itself states, not just to the catalog as the sole source.
+    A single page can legitimately add three citations for one work this
+    way — don't stop at "this document mentions the work" once the work's
+    own entry, read closely, mentions two more things worth citing.
 8. When done, update the `source_materials` row itself: `status: 'matched'`
    if it produced at least one confirmed, updated, or newly staged finding,
    `flagged` if only ambiguous matches came of it, `rejected` if the
@@ -272,15 +292,36 @@ together and report on it as a set, not as unrelated single-image finds.
   it as a work's `image_url`/photo candidate as-is; note that it needs
   manual cropping first, the same way a still-thin Chloe finding gets
   flagged for a follow-up pass rather than used as-is.
-- **A real extracted image row already meets this project's photo-sizing
-  convention** (resized and tagged 72 DPI by the script itself) — safe to
-  set as a new staged work's `image_url` directly (hotlink the storage
-  URL, same as any other candidate photo) once you're confident it's
-  the right photo for the right work. For an already-existing work, this
-  is still a *candidate* photo, not something to attach directly —
-  flag it in `work_sources`/the work's `flag` field for a human to review
-  and attach via Manage Works, the same boundary Mode A already holds for
-  every other kind of finding on a live work.
+- **No photo goes up with a visible border, mat, or surrounding page
+  background still in the frame — a work photo shows only the work.**
+  This applies to a full-page fallback (never attach one directly, per
+  above) but also to a *real* extracted embedded image that still shows a
+  sliver of the printed page, a drop shadow, or a mount around the piece
+  — extraction alone doesn't guarantee a clean crop. Before setting
+  anything as a photo candidate, look at it: if it isn't cropped tight to
+  the work itself, it isn't done yet.
+- **A real extracted image row that IS already a clean, tight crop**
+  (and meets this project's photo-sizing convention — resized and tagged
+  72 DPI by the script itself) — safe to set as a new staged work's
+  `image_url` directly (hotlink the storage URL, same as any other
+  candidate photo) once you're confident it's the right photo for the
+  right work. For an already-existing work, this is still a *candidate*
+  photo, not something to attach directly — flag it in
+  `work_sources`/the work's `flag` field for a human to review and attach
+  via Manage Works, the same boundary Mode A already holds for every
+  other kind of finding on a live work.
+- **Anything short of a clean, tight, right-work photo gets a note asking
+  for better, not silence and not a compromise image.** Use the same
+  `Needs a source image:` line from "Hard rules" below for "no usable
+  photo at all," and a parallel `Needs a cleaner photo:` line — same
+  place (`flag` for an existing work, staged-row `notes` for a new
+  candidate) — when a photo exists and is the right work, but still needs
+  manual cropping or a better source scan before it's fit to publish
+  (e.g. "Needs a cleaner photo: only a full-page fallback found on p. 14,
+  needs cropping to the work" or "Needs a cleaner photo: embedded image
+  still shows the printed page edge, needs a tighter crop"). Either way,
+  this is a request the studio can act on later, not a reason to attach
+  what's on hand just to fill the field.
 
 ## Mode C: fleshing out a Chloe-originated candidate
 
