@@ -321,6 +321,10 @@ async function modcrDeleteResearchSite(id){
   const { error } = await modcrSupabase.from('research_sites').delete().eq('id', id);
   if(error) throw error;
 }
+async function modcrUpdateResearchSite(id, payload){
+  const { error } = await modcrSupabase.from('research_sites').update(payload).eq('id', id);
+  if(error) throw error;
+}
 async function modcrFetchResearchFinds(){
   const { data, error } = await modcrSupabase
     .from('research_finds').select('*').order('discovered_at', { ascending: false });

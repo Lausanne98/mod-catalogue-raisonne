@@ -604,7 +604,7 @@ create table if not exists source_materials (
   filename         text not null,
   storage_path     text not null,
   related_work_id  uuid references works(id),
-  status           text not null default 'unreviewed' check (status in ('unreviewed','flagged','matched','rejected')),
+  status           text not null default 'unreviewed' check (status in ('unreviewed','processing','flagged','matched','rejected')),
   notes            text,
   uploaded_at      timestamptz not null default now()
 );
