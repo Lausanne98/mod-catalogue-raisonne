@@ -96,10 +96,10 @@ const REVISABLE_FIELDS = [
   "revisions",
 ] as const;
 
-const SYSTEM_PROMPT = `You are Khalo, the Associate Archivist for the Michele Oka Doner Catalogue Raisonné project, running your automated Mode B pass: given one uploaded source document (a catalog PDF, or a set of page images extracted from one, all sharing one citation anchor), find every MOD work it mentions or depicts and write findings into draft/staging records — never into a live work directly, never published.
+const SYSTEM_PROMPT = `You are Khalo, the Associate Archivist for the Michele Oka Doner Catalogue Raisonné project, running your automated Mode B pass: given one uploaded source document (a catalog PDF, a set of page images extracted from one, or the extracted text of a single pasted web page — an auction lot, gallery, or press page — all sharing one citation anchor), find every MOD work it mentions or depicts and write findings into draft/staging records — never into a live work directly, never published.
 
 ## What you were given
-The first user message contains: the citation anchor (publication/document name) to use for every citation from this document, a full current listing of the \`works\` table and the \`staged_works\` table (id, CR#/title, date, medium, tag/series, status) to match against, the valid \`materials.slug\` and \`series.slug\` taxonomy values, and then the actual document as native PDF/image content — read all of it, every page, not just the cover or index.
+The first user message contains: the citation anchor (a real URL, when this source is a pasted link, or a publication/document name otherwise) to use for every citation from this document, a full current listing of the \`works\` table and the \`staged_works\` table (id, CR#/title, date, medium, tag/series, status) to match against, the valid \`materials.slug\` and \`series.slug\` taxonomy values, and then the actual source content — either native PDF/image content (read all of it, every page, not just the cover or index) or the extracted text of a single web page. A single pasted link is exactly one page's worth of content — treat it the same as Mode A researching a lead, not as a multi-page catalog to mine exhaustively.
 
 ## Write as you go — do not save it all for one big summary at the end
 Read, then act, work by work — never read the entire document first and only describe what you found afterward. The moment you're confident about one work, call the tool for it immediately (get_work/get_staged_work to check, then log_work_source/propose_work_revision/create_staged_work/update_staged_work to record it), then move to the next work. A message that only narrates candidates in prose without calling the matching tool has not accomplished anything — narrating "CR 12 should get a citation" is not the same as calling log_work_source for CR 12, and this run will explicitly reject a finish call that describes findings you never actually logged. If the document is long, that's fine — you have many tool-call turns; use them to work through it incrementally, not to produce one exhaustive essay before you've written a single row.
@@ -389,14 +389,31 @@ function appendNote(existing: string | null | undefined, line: string): string {
 
 // ---- The actual pass, run in the background --------------------------------
 
+// Very lightweight HTML->text extraction for a pasted link -- no DOM parser
+// dependency, just strip script/style blocks and tags, then collapse
+// whitespace. Good enough for Claude to read the page's actual content;
+// this isn't trying to preserve layout, just get the words onto the page.
+function extractTextFromHtml(html: string): string {
+  const noScripts = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ");
+  const noTags = noScripts.replace(/<[^>]+>/g, " ");
+  const decoded = noTags
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  return decoded.replace(/\s+/g, " ").trim();
+}
+
 async function runPass(sourceMaterialIds: string[]): Promise<void> {
-  let rows: { id: string; kind: string; filename: string; storage_path: string; notes: string | null }[] = [];
+  let rows: { id: string; kind: string; filename: string; storage_path: string | null; url: string | null; notes: string | null }[] = [];
   try {
     await adminDb.from("source_materials").update({ status: "processing", progress: "Starting…" }).in("id", sourceMaterialIds);
 
     const { data: fetchedRows, error: rowsErr } = await adminDb
       .from("source_materials")
-      .select("id, kind, filename, storage_path, notes")
+      .select("id, kind, filename, storage_path, url, notes")
       .in("id", sourceMaterialIds);
     if (rowsErr) throw rowsErr;
     if (!fetchedRows || fetchedRows.length === 0) throw new Error("No matching source_materials rows.");
@@ -426,6 +443,39 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
     // deno-lint-ignore no-explicit-any
     const docBlocks: any[] = [];
     for (const row of rows) {
+      if (row.kind === "url") {
+        if (!row.url) {
+          groundingLines.push(`\n(source_materials row ${row.id} is kind:url but has no url set — skipped.)`);
+          continue;
+        }
+        try {
+          const resp = await fetch(row.url, {
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; MOD-CR-Archivist/1.0)" },
+            signal: AbortSignal.timeout(20000),
+          });
+          if (!resp.ok) {
+            groundingLines.push(`\n(Could not fetch ${row.url}: HTTP ${resp.status} — skipped.)`);
+            continue;
+          }
+          const html = await resp.text();
+          // A generous but bounded cap -- real lot/press pages are a few KB
+          // to a few hundred KB of markup; this keeps one bad page from
+          // blowing the whole run's context budget.
+          const text = extractTextFromHtml(html).slice(0, 60000);
+          docBlocks.push({
+            type: "text",
+            text: `source_materials row id ${row.id} — pasted link: ${row.url}\n\nExtracted page text:\n${text}${row.notes ? `\n\nExisting notes already on this row: ${row.notes}` : ""}`,
+          });
+        } catch (err) {
+          groundingLines.push(`\n(Could not fetch ${row.url}: ${String(err)} — skipped.)`);
+        }
+        continue;
+      }
+
+      if (!row.storage_path) {
+        groundingLines.push(`\n(source_materials row ${row.id} (${row.filename}) has no storage_path — skipped.)`);
+        continue;
+      }
       const { data: fileBlob, error: dlErr } = await adminDb.storage.from("source-materials").download(row.storage_path);
       if (dlErr || !fileBlob) {
         groundingLines.push(`\n(Could not download ${row.filename}: ${dlErr?.message ?? "unknown error"} — skipped.)`);
@@ -457,7 +507,7 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
       for (const r of rows) {
         await adminDb
           .from("source_materials")
-          .update({ status: "flagged", notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass could not download this file — needs a human look.`) })
+          .update({ status: "flagged", progress: null, notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass could not fetch/download this source — needs a human look.`) })
           .eq("id", r.id);
       }
       return;
@@ -468,7 +518,7 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
       {
         type: "text",
         text:
-          `Process the following source document${rows.length > 1 ? "s (all one batch, sharing one citation anchor)" : ""} per Mode B. Citation anchor / publication name to use: "${citationAnchor}"${rows.length > 1 ? ` (batch of ${rows.length} pages/images)` : ""}.\n\nCurrent catalogue state for matching:\n${groundingLines.join("\n")}`,
+          `Process the following source document${rows.length > 1 ? "s (all one batch, sharing one citation anchor)" : ""} per Mode B. Citation anchor / URL / publication name to use: "${citationAnchor}"${rows.length > 1 ? ` (batch of ${rows.length} pages/images)` : ""}.\n\nCurrent catalogue state for matching:\n${groundingLines.join("\n")}`,
       },
       ...docBlocks,
     ];

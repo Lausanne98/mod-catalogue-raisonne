@@ -600,9 +600,15 @@ create policy "public_submissions_admin_delete" on public_submissions for delete
 -- here; this bucket only ever holds working copies for review.
 create table if not exists source_materials (
   id               uuid primary key default gen_random_uuid(),
-  kind             text not null default 'image' check (kind in ('pdf','image')),
+  kind             text not null default 'image' check (kind in ('pdf','image','url')),
   filename         text not null,
-  storage_path     text not null,
+  -- Null for kind='url' (nothing uploaded -- there's no storage object, just
+  -- a live web page fetched at processing time). Always set for pdf/image.
+  storage_path     text,
+  -- Only set for kind='url' -- the page to fetch and read at processing
+  -- time, e.g. a single auction lot, gallery, or press page pasted in
+  -- directly rather than uploaded as a file.
+  url              text,
   related_work_id  uuid references works(id),
   status           text not null default 'unreviewed' check (status in ('unreviewed','processing','flagged','matched','rejected')),
   notes            text,

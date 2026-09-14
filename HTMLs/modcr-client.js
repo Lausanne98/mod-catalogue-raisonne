@@ -507,9 +507,21 @@ async function modcrUpdateSourceMaterial(id, patch){
   if(error) throw error;
 }
 async function modcrDeleteSourceMaterial(id, storagePath){
-  await modcrSupabase.storage.from('source-materials').remove([storagePath]);
+  // kind:'url' rows have no storage object (nothing was ever uploaded) --
+  // only attempt the storage removal when there's actually a path.
+  if(storagePath) await modcrSupabase.storage.from('source-materials').remove([storagePath]);
   const { error } = await modcrSupabase.from('source_materials').delete().eq('id', id);
   if(error) throw error;
+}
+// A pasted link (an auction lot, gallery, or press page) instead of an
+// uploaded file -- nothing goes to Storage; process-source-material fetches
+// the live page itself at processing time.
+async function modcrAddUrlSourceMaterial(url){
+  const { data, error } = await modcrSupabase.from('source_materials')
+    .insert({ kind: 'url', filename: url, url, storage_path: null })
+    .select().single();
+  if(error) throw error;
+  return data;
 }
 
 // ---- Archive Index (metadata-only record of a photographer's raw archive
