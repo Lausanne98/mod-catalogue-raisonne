@@ -97,6 +97,39 @@ work is the filter value and must match a `series.slug` (internal slugs may diff
 from display labels for historical reasons — see the `seriesLabels` map in
 `catalogue_entry_v6_sans.html` and the `SERIES` object in `catalogue_v10_sans.html`).
 
+## Tag/series inference rules (for intake and automated research)
+When a human or an automated pass (Khalo's Mode B, Researcher's Desk's
+`promoteFindingToDraft`) is deriving `tag`/`suggested_series` from a free-text
+`medium` string rather than being told them directly, these rules apply —
+codified after several staged_works records got mistagged this way:
+
+- **`tag` is always the base material alone, never a compound descriptive
+  phrase.** "Organic material in abaca paper" is a medium description, not a
+  tag — the tag is `paper` (the more specific material actually named), never
+  `organic-material`. `organic-material` is a last-resort tag for when nothing
+  more specific applies (e.g. "wax and organic material," no other named
+  material) — never picked just because it's a plausible catch-all when a more
+  specific material also appears in the same string. (`modcrGuessTagFromMedium`
+  in `modcr-client.js` partitions candidates so `organic-material` never wins
+  over a more specific match, even when its label is textually longer.)
+- **Bronze and other metal objects: wearable → jewelry, everything else →
+  bronze-works (Sculpture).** A wearable object type in the title/medium
+  (necklace, brooch, pendant, ring, bracelet, earring, cuff, or similar) means
+  `jewelry`; otherwise (a faucet, a bowl, a figure, a candelabra, a chair) it's
+  `bronze-works`, regardless of the material being precious (bronze, silver,
+  gold) — a bowl or sculpture in silver is still Sculpture, not Jewelry, just
+  because the material overlaps with what jewelry is often made of.
+- **All clay/ceramic work is Sculpture by default.** Any work tagged `ceramic`
+  (terra-cotta, porcelain, stoneware, earthenware, etc.) gets `bronze-works`
+  unless a more specific named sub-series clearly fits (e.g. `tattooed-dolls`).
+  Independent of the Early Clay cross-categorization rule below, which is about
+  the *filter* a pre-2000 ceramic work also shows up under, not its own series.
+- **Never invent a tag for a material that isn't in the taxonomy.** A medium
+  like "brass," with no matching `materials.slug`, does not get mapped to the
+  nearest existing tag (e.g. `bronze`) — leave tag/series unset and flag it for
+  a human decision (new material vs. mislabel) instead of silently reusing
+  whatever tag looks close.
+
 ## Cross-categorization rule
 Any work with medium/tag "ceramic" and a date before 2000 is cross-categorized into
 the "Early Clay" series automatically, in addition to its own assigned series — this
