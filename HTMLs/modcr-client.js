@@ -214,7 +214,52 @@ function modcrGuessTagFromMedium(mediumText, materialsList){
   const candidates = materialsList
     .filter(m => lower.includes(m.slug.toLowerCase()) || lower.includes(m.label.toLowerCase()))
     .sort((a, b) => b.label.length - a.label.length);
+  // organic-material is a catch-all label ("Organic Material") that's longer
+  // than most specific materials it can co-occur with in a medium string
+  // (e.g. "Organic material in abaca paper" also matches "Paper") -- never
+  // let it win the longest-label sort; only fall back to it when nothing
+  // more specific matched.
+  const specific = candidates.filter(m => m.slug !== 'organic-material');
+  if(specific.length) return specific[0].slug;
   return candidates[0]?.slug || null;
+}
+
+// Mirrors the research_sites seed list in supabase/schema.sql -- shared by
+// Archivist's Drafts (draftSourceLabel) and the intake form's draft-prefill
+// so a citation's domain reads as a real auction house name in both places
+// instead of a raw URL.
+const MODCR_AUCTION_HOUSE_DOMAINS = {
+  'sothebys.com': "Sotheby's", 'christies.com': "Christie's", 'phillips.com': 'Phillips',
+  'bonhams.com': 'Bonhams', 'ragoarts.com': 'Rago Arts and Auction Center', 'wright20.com': 'Wright',
+  'doyle.com': 'DOYLE Auctioneers & Appraisers', 'toomeyco.com': 'Toomey & Co. Auctioneers',
+  'freemanshindman.com': "Freeman's | Hindman", 'liveauctioneers.com': 'LiveAuctioneers',
+  'invaluable.com': 'Invaluable', 'mutualart.com': 'MutualArt', 'lotsearch.net': 'LotSearch',
+  'artnet.com': 'Artnet', 'cowans.com': "Cowan's Auctions, Inc.", 'cowanauctions.com': "Cowan's Auctions, Inc.",
+};
+function modcrGuessAuctionHouseFromUrl(url){
+  if(!url) return null;
+  try{
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    return MODCR_AUCTION_HOUSE_DOMAINS[host] || null;
+  }catch(e){ return null; }
+}
+
+// Pulls a "Month D, YYYY" / "D Month YYYY" / "YYYY-MM-DD" / "MM/DD/YYYY"
+// date out of free-text research notes (e.g. "sold at Wright, October 4,
+// 2023") -- used to populate a structured auction-record date field instead
+// of leaving it blank while the same date sits buried in a citation dump.
+const MODCR_MONTH_NAMES = 'January|February|March|April|May|June|July|August|September|October|November|December';
+function modcrExtractDateFromText(text){
+  if(!text) return null;
+  let m = text.match(new RegExp(`\\b(${MODCR_MONTH_NAMES})\\s+(\\d{1,2}),?\\s+(\\d{4})\\b`, 'i'));
+  if(m) return `${m[1]} ${m[2]}, ${m[3]}`;
+  m = text.match(new RegExp(`\\b(\\d{1,2})\\s+(${MODCR_MONTH_NAMES})\\s+(\\d{4})\\b`, 'i'));
+  if(m) return `${m[1]} ${m[2]} ${m[3]}`;
+  m = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = text.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
+  if(m) return `${m[1]}/${m[2]}/${m[3]}`;
+  return null;
 }
 
 // Pulls a remote (usually auction-house/gallery) image in via the
