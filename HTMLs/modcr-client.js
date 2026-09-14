@@ -11,6 +11,23 @@ const MODCR_SUPABASE_URL = 'https://kuyyrygvaotsrhbyjyjw.supabase.co';
 const MODCR_SUPABASE_ANON_KEY = 'sb_publishable_s1HGNRWL1LbiCXzFDK4igg_41mnArJx';
 const modcrSupabase = supabase.createClient(MODCR_SUPABASE_URL, MODCR_SUPABASE_ANON_KEY);
 
+// supabase-js's functions.invoke() throws a generic FunctionsHttpError for
+// ANY non-2xx response -- its own .message is just "Edge Function returned a
+// non-2xx status code" regardless of what the function actually said (e.g.
+// process-source-material's 409 "Already processing: ... wait for it to
+// finish" body, which is far more useful than "non-2xx" but isn't surfaced
+// unless something goes and reads it). The real body only lives on
+// error.context, the raw Response, and has to be read back out manually.
+async function modcrUnwrapFunctionError(error){
+  if(error?.context && typeof error.context.json === 'function'){
+    try{
+      const body = await error.context.json();
+      if(body?.error) return new Error(body.error);
+    }catch(_e){ /* body wasn't JSON -- fall back to the generic message */ }
+  }
+  return error;
+}
+
 // crypto.randomUUID() only exists in a secure context (HTTPS/localhost) --
 // on plain HTTP it's undefined, and calling it threw an uncaught error that
 // silently broke every photo/audio upload for a work that was already

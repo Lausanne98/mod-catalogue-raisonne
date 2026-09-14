@@ -135,7 +135,13 @@ alter table works add column if not exists revisions text;
 -- `flag` (see CLAUDE.md). Distinct from `provenance` (public, curated
 -- ownership history): this is where a specific sale's price and estimate
 -- live, and it must never reach the public entry page.
-alter table works add column if not exists auction_history text;
+--
+-- jsonb array of structured records, not free text (migrated 2026-09-14):
+-- [{ house, title, date, estimate, sold }, ...], one object per recorded
+-- sale so the admin intake form can present broken-out fields (Auction
+-- House / Lot Title / Date / Est. Price / Sold Price) instead of one
+-- freeform paragraph. Any field can be null if unknown. Defaults to '[]'.
+alter table works add column if not exists auction_history jsonb default '[]'::jsonb;
 
 -- Self-healing: add photo_credit -- unlike other optional fields, this and
 -- title_source display with a studio default on the entry page rather than

@@ -234,7 +234,12 @@ medium ↔ medium line, tag ↔ classification pill, dimensions/title_source/ins
 exceptions, both admin-only by design and never meant to surface publicly: `flag`
 (a data-quality note for the Manage Works view) and `auction_history` (added
 2026-09-13 — a sale's price/estimate, distinct from `provenance`'s curated public
-ownership history). `collection` (e.g. "The artist's collection")
+ownership history; restructured 2026-09-14 from one free-text field into a jsonb
+array of per-sale records — `{house, title, date, estimate, sold, note}` — so the
+intake form can present broken-out House/Title/Date/Est./Sold fields with an Add
+Sale Record row instead of one paragraph to hand-parse; `note` is a catch-all for
+anything that doesn't fit those five, including the citation dump the "New Entry
+from Draft" prefill still parks here). `collection` (e.g. "The artist's collection")
 and `revisions` (free text, one dated entry per line, same "date, then note" pattern
 as Provenance/Exhibitions/Literature — admin-authored, not an automatic change log)
 were added 2026-08-18 to close the last two gaps against the May reference design.
