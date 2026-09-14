@@ -99,7 +99,7 @@ const REVISABLE_FIELDS = [
 const SYSTEM_PROMPT = `You are Khalo, the Associate Archivist for the Michele Oka Doner Catalogue Raisonné project, running your automated Mode B pass: given one uploaded source document (a catalog PDF, a set of page images extracted from one, or the extracted text of a single pasted web page — an auction lot, gallery, or press page — all sharing one citation anchor), find every MOD work it mentions or depicts and write findings into draft/staging records — never into a live work directly, never published.
 
 ## What you were given
-The first user message contains: the citation anchor (a real URL, when this source is a pasted link, or a publication/document name otherwise) to use for every citation from this document, a full current listing of the \`works\` table and the \`staged_works\` table (id, CR#/title, date, medium, tag/series, status) to match against, the valid \`materials.slug\` and \`series.slug\` taxonomy values, and then the actual source content — either native PDF/image content (read all of it, every page, not just the cover or index) or the extracted text of a single web page. A single pasted link is exactly one page's worth of content — treat it the same as Mode A researching a lead, not as a multi-page catalog to mine exhaustively.
+The first user message contains: the citation anchor (a real URL, when this source is a pasted link, or a publication/document name otherwise) to use for every citation from this document, a full current listing of the \`works\` table and the \`staged_works\` table (id, CR#/title, date, medium, tag/series, status) to match against, the valid \`materials.slug\` and \`series.slug\` taxonomy values, and then the actual source content — either native PDF/image content (read all of it, every page, not just the cover or index) or the extracted text of a single web page, marked with [IMAGE #N] where a photo appeared in the page's own markup — a downloaded candidate for some of those numbers may follow as its own image content block (see rule 8 below), when the page had real photos worth fetching. A single pasted link is exactly one page's worth of content — treat it the same as Mode A researching a lead, not as a multi-page catalog to mine exhaustively.
 
 ## Write as you go — do not save it all for one big summary at the end
 Read, then act, work by work — never read the entire document first and only describe what you found afterward. The moment you're confident about one work, call the tool for it immediately (get_work/get_staged_work to check, then log_work_source/propose_work_revision/create_staged_work/update_staged_work to record it), then move to the next work. A message that only narrates candidates in prose without calling the matching tool has not accomplished anything — narrating "CR 12 should get a citation" is not the same as calling log_work_source for CR 12, and this run will explicitly reject a finish call that describes findings you never actually logged. If the document is long, that's fine — you have many tool-call turns; use them to work through it incrementally, not to produce one exhaustive essay before you've written a single row.
@@ -112,7 +112,7 @@ Read, then act, work by work — never read the entire document first and only d
 5. **Not in either table at all** — call create_staged_work. This is the New Entries tab; never invent a cr_number.
 6. **Every work touched in steps 2-5 — matched or newly staged — gets this document logged as a Publications/Literature citation too**, not just whatever field prompted the match. Format every citation uniformly: publication/document title, and a page number whenever you have one (a page-image row's own filename/notes tag it directly — never drop it when it's right there). "Mentioned in [document]" is not a citation; "[Publication/Document], p. [N]" is, same shape every time.
 7. **Read each page's own text for what it says, not just what it's attached to.** A catalog entry's prose routinely references OTHER exhibitions or publications this same work has appeared in ("previously exhibited at...", "as illustrated in..."). Treat each such mention as its own citable fact for that work — log and, where append-safe, propose it too. A single page can legitimately add several citations to one work.
-8. **Photos**: never attach a full-page render, or any image that still shows a border/mat/page background around the artwork, as a work's photo. A full extracted image that's already a tight, clean crop of just the work is fine to set as a NEW staged work's image_url directly — but "tight crop" and "good enough quality" are two separate checks, do both. A phone photo of a printed catalog page (visible halftone dots, moiré pattern, blur, glare, or generally low resolution) is real, common source material — it can still be used, it should never be silently discarded — but it is not the same as a clean digital scan, and that distinction matters. When the ONLY available image for a work is one of these lower-quality captures, it's fine to still set it as a new staged work's image_url (better than no image at all), but you MUST also flag the quality issue — never attach it silently as if it were a clean source. For an EXISTING work, any candidate photo is still just a candidate regardless of quality — never set image_url on a live work yourself; note it for human review via a flagged work_source instead. Whenever a work has no usable photo at all, propose_work_revision on field: flag with a line starting exactly "Needs a source image:" plus what's missing and why (or append_note with that same line, for a staged candidate). Whenever a photo exists and is the right work but isn't a clean tight crop, OR is usable but visibly low-quality (blurry, low-resolution, moiré/halftone pattern from photographing a printed page, glare), use a line starting exactly "Needs a cleaner photo:" describing specifically which of these applies (e.g. "Needs a cleaner photo: usable but shows halftone/moiré from a phone photo of a printed auction listing — a cleaner scan or the auction house's own digital image would be better") — same placement rules as the source-image note. Never attach a genuinely wrong-work or unverifiable image just to fill the field — an unset image renders as a clean placeholder on purpose — but a verified-correct, merely-lower-quality image is a candidate worth keeping (with the flag), not something to withhold.
+8. **Photos**: for a pasted-link source, a downloaded candidate photo (when one was found and fetched) appears as its own image content block right after the extracted text, each one labeled with which [IMAGE #N] marker it corresponds to and the real URL it came from — look at it the same way you'd look at a PDF page image. Position near a lot's description is a hint about which work a candidate belongs to, never proof by itself: confirm the picture actually matches the work's medium/form/other stated details before treating it as verified, and ignore a candidate that's clearly page furniture (a logo, an unrelated thumbnail, a different lot) rather than assuming the nearest marker number is automatically right. When a candidate IS a confirmed, real photo of the specific work, its own URL (not a marker number) is what goes in image_url. Never attach a full-page render, or any image that still shows a border/mat/page background around the artwork, as a work's photo. A full extracted image that's already a tight, clean crop of just the work is fine to set as a NEW staged work's image_url directly — but "tight crop" and "good enough quality" are two separate checks, do both. A phone photo of a printed catalog page (visible halftone dots, moiré pattern, blur, glare, or generally low resolution) is real, common source material — it can still be used, it should never be silently discarded — but it is not the same as a clean digital scan, and that distinction matters. When the ONLY available image for a work is one of these lower-quality captures, it's fine to still set it as a new staged work's image_url (better than no image at all), but you MUST also flag the quality issue — never attach it silently as if it were a clean source. For an EXISTING work, any candidate photo is still just a candidate regardless of quality — never set image_url on a live work yourself; note it for human review via a flagged work_source instead. Whenever a work has no usable photo at all, propose_work_revision on field: flag with a line starting exactly "Needs a source image:" plus what's missing and why (or append_note with that same line, for a staged candidate). Whenever a photo exists and is the right work but isn't a clean tight crop, OR is usable but visibly low-quality (blurry, low-resolution, moiré/halftone pattern from photographing a printed page, glare), use a line starting exactly "Needs a cleaner photo:" describing specifically which of these applies (e.g. "Needs a cleaner photo: usable but shows halftone/moiré from a phone photo of a printed auction listing — a cleaner scan or the auction house's own digital image would be better") — same placement rules as the source-image note. Never attach a genuinely wrong-work or unverifiable image just to fill the field — an unset image renders as a clean placeholder on purpose — but a verified-correct, merely-lower-quality image is a candidate worth keeping (with the flag), not something to withhold.
 
 ## Field extraction protocol
 Extract into structured fields, never leave a fact sitting only in prose: Title (an auction/gallery listing routinely comes as one compound string like \`"Faucet," 1986, cast bronze\` — the title field gets ONLY the name, \`Faucet\`, with the date and medium pulled out into date_display/year/medium instead; a trailing year or material after a comma, in parentheses, or after the closing quote is exactly the pattern to strip, every time, not just when it's convenient. If the source gives no real name at all — only a bare material/date description like "cast bronze and crystal work, c. 2005" — do not carry that description into title as if it were a name; use \`Untitled\` for title and put the real description in medium/notes instead), Date (date_display as the source states it, year as a plain number), Material (medium = descriptive label, tag = the matching materials.slug — never invent one), Dimensions (as stated), Series (the most specific series.slug that fits — a named sub-series before a broad bucket; never set a work's own series to early-clay unless its tag is literally ceramic, per the cross-categorization rule: a ceramic work dated before 2000 shows under Early Clay automatically via live filter logic, it does not need series set to early-clay directly), Provenance (dated ownership chain; for a museum listing, state plainly whether it's a permanent-collection holding or a past loan/exhibition, and record acquisition year/method if given), Exhibitions (venue, exhibition title, city, date, and curator name if listed), Publications/Literature (see citation format above).
@@ -395,21 +395,57 @@ function appendNote(existing: string | null | undefined, line: string): string {
 
 // ---- The actual pass, run in the background --------------------------------
 
-// Very lightweight HTML->text extraction for a pasted link -- no DOM parser
-// dependency, just strip script/style blocks and tags, then collapse
-// whitespace. Good enough for Claude to read the page's actual content;
-// this isn't trying to preserve layout, just get the words onto the page.
-function extractTextFromHtml(html: string): string {
-  const noScripts = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ");
-  const noTags = noScripts.replace(/<[^>]+>/g, " ");
-  const decoded = noTags
+function decodeHtmlEntities(s: string): string {
+  return s
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
-  return decoded.replace(/\s+/g, " ").trim();
+}
+
+// A real lot/listing photo's URL is routinely disqualified by nothing more
+// than being a logo, icon, or 1x1 tracking pixel sitting elsewhere on the
+// same page -- filter those out before ever spending a fetch on them.
+// Deliberately conservative (a false negative just means one fewer
+// candidate; a false positive wastes a fetch and a look, not a mistake).
+function looksLikeSiteChrome(url: string): boolean {
+  return /\b(logo|icon|favicon|sprite|spinner|loading|placeholder|avatar|badge|pixel|blank|1x1|tracking|social)\b/i.test(url);
+}
+
+// Same "strip tags to plain text" pass as before, except an <img> tag is
+// replaced with an inline [IMAGE #N] marker instead of just vanishing --
+// this is the only positional signal Khalo gets for matching a downloaded
+// candidate photo (pushed as a separate image content block, see
+// buildInitialCheckpoint) back to the specific lot/work description it
+// appeared next to on the page. No DOM parser, so "next to" is approximate
+// (reading order of the raw markup, not rendered layout) -- exactly why the
+// system prompt requires confirming the match against the surrounding text,
+// never trusting position alone.
+function extractTextAndImages(html: string, baseUrl: string): { text: string; candidates: { n: number; url: string }[] } {
+  const noScripts = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ");
+  const candidates: { n: number; url: string }[] = [];
+  let n = 0;
+  const withMarkers = noScripts.replace(/<img\b[^>]*>/gi, (tag) => {
+    const srcMatch = tag.match(/\b(?:src|data-src|data-lazy-src|data-original)\s*=\s*["']([^"']+)["']/i);
+    const srcsetMatch = tag.match(/\bsrcset\s*=\s*["']([^"'\s]+)/i);
+    const raw = srcMatch?.[1] ?? srcsetMatch?.[1];
+    if (!raw || raw.startsWith("data:")) return " ";
+    let resolved: string;
+    try {
+      resolved = new URL(raw, baseUrl).toString();
+    } catch {
+      return " ";
+    }
+    if (looksLikeSiteChrome(resolved)) return " ";
+    n++;
+    candidates.push({ n, url: resolved });
+    return ` [IMAGE #${n}] `;
+  });
+  const noTags = withMarkers.replace(/<[^>]+>/g, " ");
+  const decoded = decodeHtmlEntities(noTags);
+  return { text: decoded.replace(/\s+/g, " ").trim(), candidates };
 }
 
 // Edge Functions have a hard wall-clock ceiling regardless of
@@ -492,11 +528,57 @@ async function buildInitialCheckpoint(
         // A generous but bounded cap -- real lot/press pages are a few KB
         // to a few hundred KB of markup; this keeps one bad page from
         // blowing the whole run's context budget.
-        const text = extractTextFromHtml(html).slice(0, 60000);
+        const { text: rawText, candidates } = extractTextAndImages(html, row.url);
+        const text = rawText.slice(0, 60000);
         docBlocks.push({
           type: "text",
-          text: `source_materials row id ${row.id} — pasted link: ${row.url}\n\nExtracted page text:\n${text}${row.notes ? `\n\nExisting notes already on this row: ${row.notes}` : ""}`,
+          text: `source_materials row id ${row.id} — pasted link: ${row.url}\n\nExtracted page text (an [IMAGE #N] marker shows where a photo appeared in the page's own markup -- reading-order position only, not verified layout; a downloaded candidate for some of these numbers follows below when one was fetched):\n${text}${row.notes ? `\n\nExisting notes already on this row: ${row.notes}` : ""}`,
         });
+
+        // Download a bounded number of candidate photos so Khalo can
+        // actually SEE them and verify a match, the same way it already
+        // does for a PDF page -- previously a pasted link could never
+        // produce a real photo at all, since the plain-text extraction
+        // discarded every <img> tag before Khalo ever saw the page.
+        // Deliberately conservative: a handful of real auction/gallery
+        // photos is the common case, not dozens, and every download eats
+        // into this batch's wall-clock budget.
+        const MAX_IMAGE_CANDIDATES = 10;
+        const IMAGE_FETCH_BUDGET_MS = 30_000;
+        const imageFetchStart = Date.now();
+        let fetchedImages = 0;
+        for (const c of candidates.slice(0, MAX_IMAGE_CANDIDATES)) {
+          if (Date.now() - imageFetchStart > IMAGE_FETCH_BUDGET_MS) {
+            groundingLines.push(`\n(Stopped fetching candidate images for ${row.url} after ${fetchedImages} — ran out of time budget for this page.)`);
+            break;
+          }
+          try {
+            const imgResp = await fetch(c.url, {
+              headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36" },
+              signal: AbortSignal.timeout(8000),
+            });
+            if (!imgResp.ok) continue;
+            const contentType = imgResp.headers.get("content-type") ?? "";
+            if (!contentType.startsWith("image/")) continue;
+            const imgBuffer = await imgResp.arrayBuffer();
+            // 8MB/image -- generous for a real lot photo, small enough that
+            // a handful of these can't blow the request's own size limits.
+            if (imgBuffer.byteLength > 8 * 1024 * 1024) continue;
+            docBlocks.push({
+              type: "image",
+              source: { type: "base64", media_type: contentType.split(";")[0], data: encodeBase64(new Uint8Array(imgBuffer)) },
+            });
+            docBlocks.push({
+              type: "text",
+              text: `The image immediately above is candidate [IMAGE #${c.n}] (${c.url}) from ${row.url}. Only use it as a work's image_url if you can actually confirm from this picture that it depicts that specific work -- its reading-order position near a lot's text is a hint about which work it might belong to, never proof. If it's clearly unrelated (site chrome, an unrelated work, a different lot), ignore it.`,
+            });
+            fetchedImages++;
+          } catch {
+            // Same treatment as a failed page fetch -- skip silently, this
+            // is expected often enough (dead links, hotlink protection,
+            // timeouts) not to be worth a grounding-line note per image.
+          }
+        }
       } catch (err) {
         groundingLines.push(`\n(Could not fetch ${row.url}: ${String(err)} — skipped.)`);
       }
