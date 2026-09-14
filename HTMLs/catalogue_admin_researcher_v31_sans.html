@@ -250,7 +250,7 @@
   <div class="header-nav">
     <a href="catalogue_admin_v97_sans.html">Dashboard</a>
     <a href="catalogue_admin_manage_v100_sans.html">Works</a>
-    <a href="catalogue_intake_v107_sans.html">Add a Work</a>
+    <a href="catalogue_intake_v108_sans.html">Add a Work</a>
     <a href="catalogue_admin_chronology_v48_sans.html">Chronology</a>
     <a href="catalogue_admin_sources_v34_sans.html">Sources</a>
     <div class="nav-dropdown" id="agentsNavDropdown">
@@ -846,7 +846,7 @@ function findBar(f){
     : f.status === 'approved' ? '<span class="find-status-pill approved">Approved</span>'
     : '<span class="find-status-pill rejected">Rejected</span>';
   return `
-    <div class="find-bar ${clickable ? 'clickable' : ''}" data-id="${f.id}" ${clickable ? `onclick="location.href='catalogue_intake_v107_sans.html?from_draft=${f.staged_work_id}'"` : ''}>
+    <div class="find-bar ${clickable ? 'clickable' : ''}" data-id="${f.id}" ${clickable ? `onclick="location.href='catalogue_intake_v108_sans.html?from_draft=${f.staged_work_id}'"` : ''}>
       <div class="find-bar-thumb">${findThumb(f)}</div>
       <div class="find-bar-fields">
         ${findBarFieldHtml('Title', f.title || 'Untitled')}

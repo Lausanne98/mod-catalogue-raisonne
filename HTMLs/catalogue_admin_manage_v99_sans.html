@@ -162,7 +162,7 @@
   <div class="header-title">MOD CR — Admin</div>
   <div class="header-nav">
     <a href="catalogue_admin_v97_sans.html">Dashboard</a>
-    <a href="catalogue_intake_v107_sans.html">Add a Work</a>
+    <a href="catalogue_intake_v108_sans.html">Add a Work</a>
     <a href="catalogue_admin_chronology_v48_sans.html">Chronology</a>
     <a href="catalogue_admin_sources_v34_sans.html">Sources</a>
     <div class="nav-dropdown" id="agentsNavDropdown">
@@ -444,7 +444,7 @@ function renderSpreadsheet(){
     }).join('');
     // Every cell in the row navigates to that work's intake/edit form --
     // there's no separate Edit link column anymore.
-    return `<tr onclick="location.href='catalogue_intake_v107_sans.html?edit=${w.id}'">${cells}</tr>`;
+    return `<tr onclick="location.href='catalogue_intake_v108_sans.html?edit=${w.id}'">${cells}</tr>`;
   }).join('');
 }
 
@@ -480,7 +480,7 @@ function render(){
     return;
   }
   tbody.innerHTML = sorted.map(w=>{
-    return `<tr class="row-clickable" onclick="location.href='catalogue_intake_v107_sans.html?edit=${w.id}'">
+    return `<tr class="row-clickable" onclick="location.href='catalogue_intake_v108_sans.html?edit=${w.id}'">
       <td>${w.img?`<img class="row-thumb" src="${w.img}" alt="" onerror="this.style.visibility='hidden'">`:''}</td>
       <td class="row-title">${w.title}${!w.published?` <span class="draft-badge-sm">Draft</span>`:''}${w.flag?` <span class="flag-badge" title="${w.flag}"><span class="icon-mono">⚠</span> needs review</span>`:''}</td>
       <td>${w.cr}</td>
@@ -488,7 +488,7 @@ function render(){
       <td>${materialLabels[w.tag] || ''}</td>
       <td>${seriesLabels[w.series] || ''}</td>
       <td><div class="row-actions" onclick="event.stopPropagation()">
-        <a href="catalogue_intake_v107_sans.html?edit=${w.id}">Edit</a>
+        <a href="catalogue_intake_v108_sans.html?edit=${w.id}">Edit</a>
         <button class="del-link" onclick="deleteWork('${w.dbId}','${w.title.replace(/'/g,"\\'")}')">Delete</button>
       </div></td>
     </tr>`;
