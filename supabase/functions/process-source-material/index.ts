@@ -392,7 +392,7 @@ function appendNote(existing: string | null | undefined, line: string): string {
 async function runPass(sourceMaterialIds: string[]): Promise<void> {
   let rows: { id: string; kind: string; filename: string; storage_path: string; notes: string | null }[] = [];
   try {
-    await adminDb.from("source_materials").update({ status: "processing" }).in("id", sourceMaterialIds);
+    await adminDb.from("source_materials").update({ status: "processing", progress: "Starting…" }).in("id", sourceMaterialIds);
 
     const { data: fetchedRows, error: rowsErr } = await adminDb
       .from("source_materials")
@@ -551,6 +551,16 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
         }
       }
       messages.push({ role: "user", content: toolResults });
+
+      // Real, current step progress -- not a time estimate (there isn't a
+      // reliable one for a tool loop of unknown length), just an honest
+      // "here's where it actually is" for the Researcher's Desk progress bar.
+      if (!finishResult) {
+        await adminDb
+          .from("source_materials")
+          .update({ progress: `Step ${i + 1} of up to ${MAX_ITERATIONS} — ${writeCount} finding${writeCount === 1 ? "" : "s"} logged so far.` })
+          .in("id", sourceMaterialIds);
+      }
     }
 
     const finalStatus = finishResult?.outcome ?? "flagged";
@@ -560,7 +570,7 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
     for (const r of rows) {
       await adminDb
         .from("source_materials")
-        .update({ status: finalStatus, notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass: ${finalSummary}`) })
+        .update({ status: finalStatus, progress: null, notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass: ${finalSummary}`) })
         .eq("id", r.id);
     }
   } catch (err) {
@@ -570,7 +580,7 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
       for (const r of freshRows ?? []) {
         await adminDb
           .from("source_materials")
-          .update({ status: "flagged", notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass failed with an error: ${String(err)}. Needs a human look.`) })
+          .update({ status: "flagged", progress: null, notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass failed with an error: ${String(err)}. Needs a human look.`) })
           .eq("id", r.id);
       }
     } catch (cleanupErr) {

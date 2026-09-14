@@ -606,7 +606,14 @@ create table if not exists source_materials (
   related_work_id  uuid references works(id),
   status           text not null default 'unreviewed' check (status in ('unreviewed','processing','flagged','matched','rejected')),
   notes            text,
-  uploaded_at      timestamptz not null default now()
+  uploaded_at      timestamptz not null default now(),
+  -- Live "Step N of M -- K findings logged so far" text, written by
+  -- process-source-material on every loop iteration while status is
+  -- 'processing' and cleared once it lands on a final status. Not a time
+  -- estimate (there isn't a reliable one for an agentic tool loop of
+  -- unknown length) -- just real, current step progress for the Researcher's
+  -- Desk progress bar to reflect instead of a purely cosmetic animation.
+  progress         text
 );
 create index if not exists source_materials_status_idx on source_materials(status);
 
