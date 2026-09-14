@@ -39,6 +39,21 @@ first, edit the copy, and leave the old version byte-identical (verify with
 `git diff <initial-commit-sha> -- <path>`). Never skip a version number, never drop
 the `_sans` suffix. Superseded versions eventually move to `Archive/`.
 
+### Stable entry points (root-level redirect stubs)
+Two plain, unversioned files sit at the repo root and are exempt from the rule
+above — they're meant to be edited in place, the same as `HTMLs/modcr-client.js`:
+`index.html` (the site root, `cr.micheleokadoner.com/`) redirects to the current
+`catalogue_landing_vN_sans.html`, and `admin.html` (`cr.micheleokadoner.com/admin`)
+redirects to the current `catalogue_admin_vN_sans.html` — a stable link the studio
+can bookmark once instead of re-finding/re-bookmarking a version number every time
+the Dashboard bumps (this was a recurring point of confusion before `admin.html`
+existed). **Whenever `catalogue_landing_*` or `catalogue_admin_*` (the Dashboard
+specifically, not other admin pages) gets a new version, update the matching root
+stub's `url=` target in the same change** — otherwise the stable link silently
+points at a stale version again. Every other admin page is already reachable from
+the Dashboard's own nav, which stays in sync as part of normal version-bump
+cross-reference upkeep, so it doesn't need its own root-level stub.
+
 ## Work taxonomy
 Every catalogued work has two independent classifications, filterable separately:
 
