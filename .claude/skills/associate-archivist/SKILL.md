@@ -434,6 +434,18 @@ Sources." so it surfaces in Manage Works for a human to judge.
   CLAUDE.md already requires for the legacy-site migration: confirm the
   image actually depicts this specific work, and don't assume reproduction
   rights — flag it rather than attaching it if either is unclear.
+- **A work worth having a better (or any) photo, with none found or
+  confident enough to use, gets a source-image request instead of silence.**
+  Append to the work's `flag` field (existing work) or the staged row's
+  `notes` (new candidate) a line starting `Needs a source image:` followed
+  by exactly what's missing and why — e.g. "Needs a source image: only a
+  thumbnail-sized crop found in [source], too small to use" or "Needs a
+  source image: mentioned in [source] with no photo at all." This is a
+  request for the studio to supply or approve one, not a placeholder guess
+  — never attach a low-confidence or undersized image just to fill the
+  field (see CLAUDE.md's legacy-image-migration caution: an unset `img`
+  renders as a clean placeholder on purpose, which is preferable to a wrong
+  or unverifiable photo).
 - **Never invent a source.** If nothing turns up, log nothing rather than
   filling in a plausible-sounding but unsourced claim. Silence is a valid,
   honest result.
