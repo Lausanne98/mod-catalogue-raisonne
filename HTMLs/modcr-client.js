@@ -200,6 +200,26 @@ function modcrGuessTagFromMedium(mediumText, materialsList){
   return candidates[0]?.slug || null;
 }
 
+// Pulls a remote (usually auction-house/gallery) image in via the
+// fetch-remote-image Edge Function rather than a direct browser fetch() --
+// confirmed by hand that none of these sources send Access-Control-Allow-
+// Origin, so a same-origin-restricted browser fetch() is silently blocked
+// by CORS every time even though the image loads fine as a plain <img src>.
+// Edge Functions aren't subject to browser CORS, so the same request works
+// server-side. Returns a File ready to drop into a pendingPhotos-style
+// upload queue, or throws if the source couldn't be fetched.
+async function modcrFetchRemoteImageAsFile(url, filenameBase){
+  const { data, error } = await modcrSupabase.functions.invoke('fetch-remote-image', { body: { url } });
+  if(error) throw error;
+  if(data?.error) throw new Error(data.error);
+  const contentType = data.contentType || 'image/jpeg';
+  const binary = atob(data.base64);
+  const bytes = new Uint8Array(binary.length);
+  for(let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const ext = contentType.split('/')[1] || 'jpg';
+  return new File([bytes], `${filenameBase || 'draft-source'}.${ext}`, { type: contentType });
+}
+
 // ---- Materials admin (add/remove a Medium value) ----
 async function modcrFetchMaterials(){
   const { data, error } = await modcrSupabase.from('materials').select('*').order('label');
