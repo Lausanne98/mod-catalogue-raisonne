@@ -55,7 +55,11 @@ run, before searching or reading anything:
 - The full current `works` table (id, cr_number, title, year, medium, tag,
   series) — in Mode A so you know what's already on record for the target
   work before searching; in Mode B because you need the whole list to match
-  against, not just one row.
+  against, not just one row. **In Mode B, also load the full current
+  `staged_works` table** — a document can depict something already sitting
+  in New Entries just as easily as something already live, and checking
+  `works` alone risks creating a duplicate draft for a piece that's already
+  there.
 - In Mode A specifically: the target work's current row in full (all
   fields, plus any existing `work_sources` rows for it), so you don't
   re-find what's already there or contradict it silently.
@@ -188,11 +192,18 @@ which of the *whole catalogue* this document touches.
 
 1. Fetch the file from the `source-materials` bucket (signed URL via
    `modcrSourceMaterialUrl`, or the equivalent direct Storage REST call) and
-   read it in full — every page of a catalog, not just the cover/index.
+   read it in full — every page of a catalog, not just the cover/index. Also
+   load the **full current `staged_works` table**, not just `works` — a
+   document can just as easily depict something already sitting in New
+   Entries (not yet imported) as something already live. Both are "already
+   exists," just at different stages.
 2. For each MOD work the document names or depicts, try to match it against
-   the `works` table already loaded (title, date, medium — a fuzzy title
+   **both** `works` and `staged_works` (title, date, medium — a fuzzy title
    match should still be confirmed against date/medium before treating it
    as the same work; see "Verification" below, same standard as Mode A).
+   Checking `works` alone and missing an existing draft is exactly how a
+   duplicate New Entries row happens — always check both before deciding
+   something is new.
 3. **Matches an existing work, confidently** — log a `work_sources` row
    (`field` set to whichever it actually is: `exhibitions`, `literature`,
    `provenance`, etc.) with `confidence: confirmed`, then propose it as a
@@ -202,25 +213,74 @@ which of the *whole catalogue* this document touches.
    exhibition catalog specifically, the proposed text should read like a
    real citation — venue, exhibition title, year — not just "mentioned in
    a catalog."
-4. **Matches, but ambiguously** (title's close but nothing to confirm
+4. **Matches an existing `staged_works` draft (status `new` or
+   `reviewing`, not yet imported)** — never create a second staged row for
+   the same piece. Update the existing draft (via `modcrSaveStagedWork`)
+   with whatever new facts this document adds that it didn't already have,
+   and append a dated, cited note to its `notes` rather than overwriting
+   what's there — same "add, don't duplicate or overwrite" discipline as
+   everywhere else in this skill.
+5. **Matches, but ambiguously** (title's close but nothing to confirm
    medium/date against, or the document doesn't clearly distinguish two
    similarly-named works) — log as `confidence: flagged` only, and set/
    append the work's `flag` field with a short pointer (e.g. "Possible PAMM
    exhibition citation, unverified — see Work Sources"). Never touch the
    real `exhibitions`/`provenance`/etc. text for a flagged match.
-5. **Depicts or names a work not currently in `works` at all** — create a
-   `staged_works` row via `modcrCreateStagedWork` (`source_type:
-   'publication'`, `notes` explaining what the document shows and why it
-   reads as a genuine, previously uncatalogued work), exactly as a
-   web-sourced discovery would in Mode A — this is the **New Entries** tab
-   of Archivist's Drafts. Do not guess a CR number — that's assigned only
-   on import, per CLAUDE.md.
-6. When done, update the `source_materials` row itself: `status: 'matched'`
-   if it produced at least one confirmed or staged finding, `flagged` if
-   only ambiguous matches came of it, `rejected` if the document turned out
-   to be irrelevant (e.g. no MOD works in it after all). Leave a short note
-   in its `notes` field summarizing what was found, so a second pass over
-   the same document doesn't start from zero.
+6. **Depicts or names a work not currently in `works` or `staged_works` at
+   all** — create a `staged_works` row via `modcrCreateStagedWork`
+   (`source_type: 'publication'`, `notes` explaining what the document
+   shows and why it reads as a genuine, previously uncatalogued work),
+   exactly as a web-sourced discovery would in Mode A — this is the **New
+   Entries** tab of Archivist's Drafts. Do not guess a CR number — that's
+   assigned only on import, per CLAUDE.md.
+7. **Every work touched in steps 3-6 — matched or newly staged — gets this
+   document logged as a Publications/Literature citation**, not just
+   whatever field prompted the match. A document that confirms a work's
+   date via a caption still counts as a publication citation for that work;
+   don't let literature citation depend on whether something else also
+   needed updating.
+8. When done, update the `source_materials` row itself: `status: 'matched'`
+   if it produced at least one confirmed, updated, or newly staged finding,
+   `flagged` if only ambiguous matches came of it, `rejected` if the
+   document turned out to be irrelevant (e.g. no MOD works in it after
+   all). Leave a short note in its `notes` field summarizing what was
+   found, so a second pass over the same document doesn't start from zero.
+
+### Processing a catalog PDF extraction batch
+
+`scripts/catalog_pdf_extractor.py` runs locally against a real catalog PDF
+too large to hand to this skill directly (Supabase rejects uploads over
+~50MB outright), and uploads several `kind: 'image'` `source_materials`
+rows instead — one per extracted photo (or, when a page had no separable
+embedded image, one full-page fallback render, clearly marked as such in
+its own notes). Each row's `notes` already contains that page's full
+extracted text, so read it directly rather than looking for a separate
+text dump. Treat every row sharing the same label prefix (visible in each
+row's `notes`, e.g. "From catalog: Christie's, [sale], [date], page N")
+as one document for the purposes of this mode — process the whole batch
+together and report on it as a set, not as unrelated single-image finds.
+
+- **Matching a photo to a title/lot**: use that row's own page text — an
+  auction catalog's per-lot layout almost always has the lot number,
+  title, date, and medium as text on or near the same page as its photo.
+  A full-page-fallback row (no separable image was found) may show
+  multiple lots' worth of text; say plainly which lot the row's image
+  most likely corresponds to, or that it's ambiguous, rather than
+  guessing silently.
+- **A full-page fallback row is not yet a usable work photo** — it still
+  has surrounding page layout in it, not just the artwork. Don't attach
+  it as a work's `image_url`/photo candidate as-is; note that it needs
+  manual cropping first, the same way a still-thin Chloe finding gets
+  flagged for a follow-up pass rather than used as-is.
+- **A real extracted image row already meets this project's photo-sizing
+  convention** (resized and tagged 72 DPI by the script itself) — safe to
+  set as a new staged work's `image_url` directly (hotlink the storage
+  URL, same as any other candidate photo) once you're confident it's
+  the right photo for the right work. For an already-existing work, this
+  is still a *candidate* photo, not something to attach directly —
+  flag it in `work_sources`/the work's `flag` field for a human to review
+  and attach via Manage Works, the same boundary Mode A already holds for
+  every other kind of finding on a live work.
 
 ## Mode C: fleshing out a Chloe-originated candidate
 
