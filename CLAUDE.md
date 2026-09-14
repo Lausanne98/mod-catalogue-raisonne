@@ -40,19 +40,35 @@ first, edit the copy, and leave the old version byte-identical (verify with
 the `_sans` suffix. Superseded versions eventually move to `Archive/`.
 
 ### Stable entry points (root-level redirect stubs)
-Two plain, unversioned files sit at the repo root and are exempt from the rule
-above — they're meant to be edited in place, the same as `HTMLs/modcr-client.js`:
-`index.html` (the site root, `cr.micheleokadoner.com/`) redirects to the current
-`catalogue_landing_vN_sans.html`, and `admin.html` (`cr.micheleokadoner.com/admin`)
-redirects to the current `catalogue_admin_vN_sans.html` — a stable link the studio
-can bookmark once instead of re-finding/re-bookmarking a version number every time
-the Dashboard bumps (this was a recurring point of confusion before `admin.html`
-existed). **Whenever `catalogue_landing_*` or `catalogue_admin_*` (the Dashboard
-specifically, not other admin pages) gets a new version, update the matching root
-stub's `url=` target in the same change** — otherwise the stable link silently
-points at a stale version again. Every other admin page is already reachable from
-the Dashboard's own nav, which stays in sync as part of normal version-bump
-cross-reference upkeep, so it doesn't need its own root-level stub.
+`index.html` (`cr.micheleokadoner.com/`) and `admin/index.html`
+(`cr.micheleokadoner.com/admin`) are plain, unversioned redirect stubs, exempt
+from the rule above and meant to be edited in place, the same as
+`HTMLs/modcr-client.js`. `index.html` redirects straight to the current
+`catalogue_landing_vN_sans.html`. `admin/index.html` is a two-hop chain, not a
+direct link to the Dashboard: it redirects to `catalogue_admin_login_vN_sans.html`,
+which (in its own inline script, not a CLAUDE.md-visible `url=` target) redirects
+again — to the current `catalogue_admin_vN_sans.html` if a session already
+exists, or after a successful sign-in otherwise. This chain existed before an
+`admin.html` root-level stub was tried and found dead: GitHub Pages resolves
+`/admin` to the `admin/index.html` **directory** index, not a same-named flat
+file at the root, so a competing root `admin.html` is never actually reached —
+don't recreate one.
+
+**Three places all have to agree, or `/admin` silently lands on a stale
+version** — this already happened once (`admin/index.html` and the login
+page's two hardcoded redirects had drifted to a version several bumps behind,
+undetected for a long time because normal version-bump cross-reference sweeps
+only ever grep for `href="..."` link patterns, not the `window.location.href =
+'...'` JS string literals the login page uses):
+1. `index.html`'s `url=` target, whenever `catalogue_landing_*` bumps.
+2. `admin/index.html`'s `url=` target, whenever `catalogue_admin_login_*` bumps.
+3. `catalogue_admin_login_*`'s own two `window.location.href` lines (one after
+   a successful password sign-in, one for an already-signed-in session), whenever
+   `catalogue_admin_*` (the Dashboard specifically, not other admin pages) bumps.
+Every other admin page is already reachable from the Dashboard's own nav, which
+stays in sync as part of normal version-bump cross-reference upkeep, so it
+doesn't need its own root-level stub — only the Dashboard does, because it's
+the one thing meant to be reachable before you've navigated anywhere at all.
 
 ## Work taxonomy
 Every catalogued work has two independent classifications, filterable separately:

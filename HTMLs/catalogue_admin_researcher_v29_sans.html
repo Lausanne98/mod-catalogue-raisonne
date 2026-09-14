@@ -248,7 +248,7 @@
     </div>
     <a href="catalogue_admin_it_v31_sans.html">IT</a>
     <a href="catalogue_v75_sans.html">View Site</a>
-    <button onclick="modcrLogOut('catalogue_admin_login_v67_sans.html')">Log Out</button>
+    <button onclick="modcrLogOut('catalogue_admin_login_v68_sans.html')">Log Out</button>
   </div>
 </header>
 
@@ -960,7 +960,7 @@ async function loadResearchSites(){
 }
 
 (async function(){
-  await modcrRequireAuth('catalogue_admin_login_v67_sans.html');
+  await modcrRequireAuth('catalogue_admin_login_v68_sans.html');
   try{ tagMaterials = await modcrFetchMaterials(); }catch(e){ console.error('Could not load materials taxonomy', e); }
   await loadResearchFinds();
   await loadResearchSites();

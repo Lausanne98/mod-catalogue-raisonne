@@ -144,20 +144,20 @@
   <div class="header-nav">
     <a href="catalogue_admin_v97_sans.html">Dashboard</a>
     <a href="catalogue_admin_manage_v99_sans.html">Works</a>
-    <a href="catalogue_intake_v101_sans.html">Add a Work</a>
+    <a href="catalogue_intake_v107_sans.html">Add a Work</a>
     <a href="catalogue_admin_sources_v34_sans.html">Sources</a>
     <div class="nav-dropdown" id="agentsNavDropdown">
       <button class="nav-dropdown-trigger" onclick="toggleNavDropdown(event)">Agents ▾</button>
       <div class="nav-dropdown-menu">
         <a href="catalogue_admin_agents_v31_sans.html">CR Team</a>
-        <a href="catalogue_admin_drafts_v31_sans.html">Archivist's Desk</a>
-        <a href="catalogue_admin_researcher_v23_sans.html">Researcher's Desk</a>
+        <a href="catalogue_admin_drafts_v35_sans.html">Archivist's Desk</a>
+        <a href="catalogue_admin_researcher_v29_sans.html">Researcher's Desk</a>
         <a href="catalogue_admin_it_v31_sans.html">IT</a>
       </div>
     </div>
     <a href="catalogue_admin_it_v31_sans.html">IT</a>
     <a href="catalogue_v75_sans.html">View Site</a>
-    <button onclick="modcrLogOut('catalogue_admin_login_v67_sans.html')">Log Out</button>
+    <button onclick="modcrLogOut('catalogue_admin_login_v68_sans.html')">Log Out</button>
   </div>
 </header>
 
@@ -433,7 +433,7 @@ async function loadEvents(){
 });
 
 (async function(){
-  await modcrRequireAuth('catalogue_admin_login_v67_sans.html');
+  await modcrRequireAuth('catalogue_admin_login_v68_sans.html');
   await loadDecades();
   await loadEvents();
 })();

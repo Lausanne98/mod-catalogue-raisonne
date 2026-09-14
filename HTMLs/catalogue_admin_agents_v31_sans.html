@@ -150,21 +150,21 @@
   <div class="header-nav">
     <a href="catalogue_admin_v97_sans.html">Dashboard</a>
     <a href="catalogue_admin_manage_v99_sans.html">Works</a>
-    <a href="catalogue_intake_v101_sans.html">Add a Work</a>
+    <a href="catalogue_intake_v107_sans.html">Add a Work</a>
     <a href="catalogue_admin_chronology_v48_sans.html">Chronology</a>
     <a href="catalogue_admin_sources_v34_sans.html">Sources</a>
     <div class="nav-dropdown" id="agentsNavDropdown">
       <button class="nav-dropdown-trigger nav-dark" onclick="toggleNavDropdown(event)">Agents ▾</button>
       <div class="nav-dropdown-menu">
         <a href="catalogue_admin_agents_v31_sans.html">CR Team</a>
-        <a href="catalogue_admin_drafts_v31_sans.html">Archivist's Desk</a>
-        <a href="catalogue_admin_researcher_v23_sans.html">Researcher's Desk</a>
+        <a href="catalogue_admin_drafts_v35_sans.html">Archivist's Desk</a>
+        <a href="catalogue_admin_researcher_v29_sans.html">Researcher's Desk</a>
         <a href="catalogue_admin_it_v31_sans.html">IT</a>
       </div>
     </div>
     <a href="catalogue_admin_it_v31_sans.html">IT</a>
     <a href="catalogue_v75_sans.html">View Site</a>
-    <button onclick="modcrLogOut('catalogue_admin_login_v67_sans.html')">Log Out</button>
+    <button onclick="modcrLogOut('catalogue_admin_login_v68_sans.html')">Log Out</button>
   </div>
 </header>
 
@@ -194,12 +194,12 @@
 
   <!-- AGENT CARDS -->
   <div class="agent-grid">
-    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_researcher_v23_sans.html')">
+    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_researcher_v29_sans.html')">
       <div class="agent-name">Chloe</div>
       <div class="agent-role">Researcher</div>
       <span class="status-pill notbuilt">Not yet built</span>
       <div class="agent-desc">Gathers provenance research, exhibition history, and raw material into a holding folder for Khalo to sort through. Read-only against the database — never writes.</div>
-      <a class="agent-goto" href="catalogue_admin_researcher_v23_sans.html">Open Researcher's Desk →</a>
+      <a class="agent-goto" href="catalogue_admin_researcher_v29_sans.html">Open Researcher's Desk →</a>
       <div class="card-actions">
         <button class="btn" onclick="toggleOverview('chloe')">Overview</button>
         <button class="btn play" onclick="speakAgent('chloe', overviews.chloe, this)" aria-label="Play" title="Play">🔊</button>
@@ -215,12 +215,12 @@
       </div>
     </div>
 
-    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_drafts_v31_sans.html')">
+    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_drafts_v35_sans.html')">
       <div class="agent-name">Khalo</div>
       <div class="agent-role">Associate Archivist</div>
       <span class="status-pill built">Built</span>
       <div class="agent-desc">Processes and verifies research, matches it against the catalogue, and proposes new entries or revisions — never writes to a live work directly.</div>
-      <a class="agent-goto" href="catalogue_admin_drafts_v31_sans.html">Open Archivist's Drafts →</a>
+      <a class="agent-goto" href="catalogue_admin_drafts_v35_sans.html">Open Archivist's Drafts →</a>
       <div class="card-actions">
         <button class="btn" onclick="toggleOverview('khalo')">Overview</button>
         <button class="btn play" onclick="speakAgent('khalo', overviews.khalo, this)" aria-label="Play" title="Play">🔊</button>
@@ -498,12 +498,12 @@ async function loadBriefing(){
   try{
     const staged = await modcrFetchStagedWorks();
     const newCount = staged.filter(s => s.status === 'new').length;
-    lines.push(`<li><strong>${newCount}</strong> new draft${newCount === 1 ? '' : 's'} in New Entries awaiting review. <a href="catalogue_admin_drafts_v31_sans.html">Go to Archivist's Drafts →</a></li>`);
+    lines.push(`<li><strong>${newCount}</strong> new draft${newCount === 1 ? '' : 's'} in New Entries awaiting review. <a href="catalogue_admin_drafts_v35_sans.html">Go to Archivist's Drafts →</a></li>`);
   }catch(e){ lines.push('<li>Could not load New Entries count.</li>'); }
 
   try{
     const revisions = await modcrFetchWorkRevisions('pending');
-    lines.push(`<li><strong>${revisions.length}</strong> proposed revision${revisions.length === 1 ? '' : 's'} awaiting approval. <a href="catalogue_admin_drafts_v31_sans.html">Go to Archivist's Drafts →</a></li>`);
+    lines.push(`<li><strong>${revisions.length}</strong> proposed revision${revisions.length === 1 ? '' : 's'} awaiting approval. <a href="catalogue_admin_drafts_v35_sans.html">Go to Archivist's Drafts →</a></li>`);
   }catch(e){ lines.push('<li>Could not load Revisions count.</li>'); }
 
   try{
@@ -518,7 +518,7 @@ async function loadBriefing(){
 }
 
 (async function(){
-  await modcrRequireAuth('catalogue_admin_login_v67_sans.html');
+  await modcrRequireAuth('catalogue_admin_login_v68_sans.html');
   await loadBriefing();
 })();
 </script>
