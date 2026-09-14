@@ -267,22 +267,34 @@ mockup's pill duplicated Medium verbatim, which was flagged separately as a
 redundant-data-display bug earlier in the project; this keeps the mockup's visual
 slot and position but not that specific duplication.
 
-**(2026-09-14) All sections continue in the right-hand meta column, next to the
-image — not full-width below it.** Description, Provenance, Exhibition History,
-Publications/Literature, Artist's Annotations, Related Works, Process, Remarks,
-How to Cite, and Entry Revisions (`#sections`, built in `initEntry()`) live
-*inside* `.meta-col`, right after the classification pill — matching a real
-catalogue raisonné reference layout (checked against the Roy Lichtenstein CR site),
-where the image sits in the wide left column and every category continues in the
-narrower right column beside it, however long that makes the column. `.entry-top`
-uses `align-items: start` so the image column isn't stretched to match the meta
-column's height. Grids inside those sections that assumed the old full-960px-wide
-context (`.related-grid`) were changed from a fixed column count to
-`auto-fill`/`minmax` so they degrade gracefully at ~300px instead of squeezing four
-columns into a third of the space; `.process-grid` already used `auto-fill` and
-needed no change. If this page changes again, treat the current live entry page
-file as the source of truth for exactly which sections live where — don't move
-`#sections` back below the image thinking that's a restoration of something.
+**(2026-09-14, refined same day — see below) Most sections continue in the
+right-hand meta column, next to the image — not full-width below it.**
+Description, Provenance, Exhibition History, Publications/Literature, Artist's
+Annotations, Process, Remarks, How to Cite, and Entry Revisions (`#sections`,
+built in `initEntry()`) live *inside* `.meta-col`, right after the
+classification pill — matching a real catalogue raisonné reference layout
+(checked against the Roy Lichtenstein CR site), where the image sits in the
+wide left column and every category continues in the narrower right column
+beside it, however long that makes the column. `.entry-top` uses
+`align-items: start` so the image column isn't stretched to match the meta
+column's height. `.process-grid` already used `auto-fill`/`minmax` and needed
+no change for this width.
+
+**Related Works is the one exception — it's full-width, below `.entry-top`,
+not in the meta column.** Squeezing an 8-item grid into ~300px alongside
+everything else read as cramped, so it was pulled back out into its own
+`#section-related-wrap` div, a direct sibling of `.entry-top` inside
+`.entry-body` (so it inherits that container's own 960px-max centered width
+for free — see `.entry-body > *`). `.related-grid` uses
+`auto-fill`/`minmax(200px,1fr)`, sized for a ~960px-wide row rather than the
+~300px column it briefly lived in. The main image itself was also shrunk
+(`.main-img-wrap`/its `img`, `min-height`/`max-height` 750px → 560px) — at
+750px next to a meta column padded out with every other section, the image
+read as oversized relative to the reference layout. If this page changes
+again, treat the current live entry page file as the source of truth for
+exactly which sections live where — don't move Related Works back into
+`#sections`, and don't move `#sections` itself back below the image, thinking
+either is a restoration of something.
 
 ---
 
