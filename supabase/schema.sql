@@ -1031,6 +1031,19 @@ grant select, update, delete on research_finds to authenticated;
 alter table staged_works add column if not exists source_find_id uuid references research_finds(id) on delete set null;
 alter table research_finds add column if not exists staged_work_id uuid references staged_works(id) on delete set null;
 
+-- The OTHER traceability link, for the other intake path: a document
+-- processed via process-source-material (Khalo's automated pass, see that
+-- Edge Function) can stage brand-new candidate works directly, with no
+-- research_finds row involved at all -- previously there was no way to see
+-- "what did this document actually produce?" from Researcher's Desk short
+-- of reading the row's own prose summary. One source material can produce
+-- many staged works (a whole catalog PDF stages dozens), so unlike
+-- source_find_id/staged_work_id above this is one-directional: the child
+-- (staged_works) holds the FK, there's no scalar column back on
+-- source_materials for it to point to.
+alter table staged_works add column if not exists source_material_id uuid references source_materials(id) on delete set null;
+create index if not exists staged_works_source_material_id_idx on staged_works(source_material_id);
+
 -- Small reference thumbnail for the New Finds card, admin-only display --
 -- NOT the same guarantee as a work's public `img` field. Chloe may set this
 -- to a hotlinked (not downloaded/rehosted) source-page image URL when she's

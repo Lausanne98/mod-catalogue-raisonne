@@ -283,7 +283,7 @@ const TOOLS: Anthropic.Tool[] = [
 // ---- Tool execution ---------------------------------------------------------
 
 // deno-lint-ignore no-explicit-any
-async function execTool(name: string, input: any): Promise<unknown> {
+async function execTool(name: string, input: any, sourceMaterialId: string | null): Promise<unknown> {
   switch (name) {
     case "get_work": {
       const { data: work, error } = await adminDb.from("works").select("*").eq("id", input.work_id).maybeSingle();
@@ -352,6 +352,12 @@ async function execTool(name: string, input: any): Promise<unknown> {
           confidence: "candidate",
           status: "new",
           notes: input.notes,
+          // So Researcher's Desk can show "this document produced N drafts"
+          // directly, instead of that only being discoverable by reading the
+          // row's own prose summary -- see the migration for why this is a
+          // column on staged_works (one source can stage many works) rather
+          // than the reverse.
+          source_material_id: sourceMaterialId,
         })
         .select()
         .single();
@@ -655,7 +661,7 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
           continue; // handled after the loop, once writeCount for this turn is known
         }
         try {
-          const result = await execTool(tu.name, tu.input);
+          const result = await execTool(tu.name, tu.input, sourceMaterialIds[0] ?? null);
           if (WRITE_TOOLS.has(tu.name)) writeCount++;
           toolResults.push({ type: "tool_result", tool_use_id: tu.id, content: JSON.stringify(result) });
         } catch (err) {
