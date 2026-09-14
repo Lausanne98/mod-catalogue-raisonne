@@ -619,7 +619,15 @@ create table if not exists source_materials (
   -- estimate (there isn't a reliable one for an agentic tool loop of
   -- unknown length) -- just real, current step progress for the Researcher's
   -- Desk progress bar to reflect instead of a purely cosmetic animation.
-  progress         text
+  progress         text,
+  -- Saved conversation state ({messages, totalIterations, writeCount}) when
+  -- a pass gets cut off by the Edge Function platform's wall-clock ceiling
+  -- (150s free / 400s paid -- a real agentic pass over a full document
+  -- routinely exceeds this) before it finishes. process-source-material
+  -- reads this back to resume exactly where it left off instead of starting
+  -- over, self-invoking the next batch automatically. Cleared once a run
+  -- reaches a final status.
+  checkpoint       jsonb
 );
 create index if not exists source_materials_status_idx on source_materials(status);
 

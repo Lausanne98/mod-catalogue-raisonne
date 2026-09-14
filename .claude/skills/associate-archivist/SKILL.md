@@ -322,6 +322,24 @@ together and report on it as a set, not as unrelated single-image finds.
   still shows the printed page edge, needs a tighter crop"). Either way,
   this is a request the studio can act on later, not a reason to attach
   what's on hand just to fill the field.
+- **A verified, properly-cropped photo that's just genuinely low quality
+  (e.g. a phone photo of a printed auction listing — visible halftone
+  dots, moiré pattern, blur, glare, or just low resolution) is a
+  different case from the cropping issues above, and gets handled
+  differently.** No amount of further processing fixes moiré baked in
+  from photographing a printed page — the only real fix is a better
+  source entirely, which the studio may not have. Cropping issues above
+  mean "not yet usable, don't attach it"; a low-quality-but-verified,
+  correctly-cropped image means "usable now, better than no image, but
+  say so" — set it as a new staged work's `image_url` (or note it as a
+  candidate for an existing work, same as any other candidate photo) AND
+  append a `Needs a cleaner photo:` line naming the specific quality
+  problem (e.g. "Needs a cleaner photo: usable but shows visible
+  halftone/moiré from a phone photo of a printed catalog page — a
+  cleaner scan or the auction house's own digital image would be
+  better"). Never silently attach a low-quality image as if it were a
+  clean source, and never withhold a verified-correct image purely
+  because its quality is poor — flag it and use it.
 
 ## Mode C: fleshing out a Chloe-originated candidate
 

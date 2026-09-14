@@ -112,7 +112,7 @@ Read, then act, work by work — never read the entire document first and only d
 5. **Not in either table at all** — call create_staged_work. This is the New Entries tab; never invent a cr_number.
 6. **Every work touched in steps 2-5 — matched or newly staged — gets this document logged as a Publications/Literature citation too**, not just whatever field prompted the match. Format every citation uniformly: publication/document title, and a page number whenever you have one (a page-image row's own filename/notes tag it directly — never drop it when it's right there). "Mentioned in [document]" is not a citation; "[Publication/Document], p. [N]" is, same shape every time.
 7. **Read each page's own text for what it says, not just what it's attached to.** A catalog entry's prose routinely references OTHER exhibitions or publications this same work has appeared in ("previously exhibited at...", "as illustrated in..."). Treat each such mention as its own citable fact for that work — log and, where append-safe, propose it too. A single page can legitimately add several citations to one work.
-8. **Photos**: never attach a full-page render, or any image that still shows a border/mat/page background around the artwork, as a work's photo. A full extracted image that's already a tight, clean crop of just the work is fine to set as a NEW staged work's image_url directly. For an EXISTING work, any candidate photo is still just a candidate — never set image_url on a live work yourself; note it for human review via a flagged work_source instead. Whenever a work has no usable photo at all, propose_work_revision on field: flag with a line starting exactly "Needs a source image:" plus what's missing and why (or append_note with that same line, for a staged candidate). Whenever a photo exists and is the right work but isn't a clean tight crop yet, use a line starting exactly "Needs a cleaner photo:" instead, same placement rules. Never attach a low-confidence, undersized, or uncropped image just to fill the field — an unset image renders as a clean placeholder on purpose.
+8. **Photos**: never attach a full-page render, or any image that still shows a border/mat/page background around the artwork, as a work's photo. A full extracted image that's already a tight, clean crop of just the work is fine to set as a NEW staged work's image_url directly — but "tight crop" and "good enough quality" are two separate checks, do both. A phone photo of a printed catalog page (visible halftone dots, moiré pattern, blur, glare, or generally low resolution) is real, common source material — it can still be used, it should never be silently discarded — but it is not the same as a clean digital scan, and that distinction matters. When the ONLY available image for a work is one of these lower-quality captures, it's fine to still set it as a new staged work's image_url (better than no image at all), but you MUST also flag the quality issue — never attach it silently as if it were a clean source. For an EXISTING work, any candidate photo is still just a candidate regardless of quality — never set image_url on a live work yourself; note it for human review via a flagged work_source instead. Whenever a work has no usable photo at all, propose_work_revision on field: flag with a line starting exactly "Needs a source image:" plus what's missing and why (or append_note with that same line, for a staged candidate). Whenever a photo exists and is the right work but isn't a clean tight crop, OR is usable but visibly low-quality (blurry, low-resolution, moiré/halftone pattern from photographing a printed page, glare), use a line starting exactly "Needs a cleaner photo:" describing specifically which of these applies (e.g. "Needs a cleaner photo: usable but shows halftone/moiré from a phone photo of a printed auction listing — a cleaner scan or the auction house's own digital image would be better") — same placement rules as the source-image note. Never attach a genuinely wrong-work or unverifiable image just to fill the field — an unset image renders as a clean placeholder on purpose — but a verified-correct, merely-lower-quality image is a candidate worth keeping (with the flag), not something to withhold.
 
 ## Field extraction protocol
 Extract into structured fields, never leave a fact sitting only in prose: Title (strip date/material/dimensions back out of a compound title into their own fields), Date (date_display as the source states it, year as a plain number), Material (medium = descriptive label, tag = the matching materials.slug — never invent one), Dimensions (as stated), Series (the most specific series.slug that fits — a named sub-series before a broad bucket; never set a work's own series to early-clay unless its tag is literally ceramic, per the cross-categorization rule: a ceramic work dated before 2000 shows under Early Clay automatically via live filter logic, it does not need series set to early-clay directly), Provenance (dated ownership chain; for a museum listing, state plainly whether it's a permanent-collection holding or a past loan/exhibition, and record acquisition year/method if given), Exhibitions (venue, exhibition title, city, date, and curator name if listed), Publications/Literature (see citation format above).
@@ -406,136 +406,218 @@ function extractTextFromHtml(html: string): string {
   return decoded.replace(/\s+/g, " ").trim();
 }
 
-async function runPass(sourceMaterialIds: string[]): Promise<void> {
-  let rows: { id: string; kind: string; filename: string; storage_path: string | null; url: string | null; notes: string | null }[] = [];
-  try {
-    await adminDb.from("source_materials").update({ status: "processing", progress: "Starting…" }).in("id", sourceMaterialIds);
+// Edge Functions have a hard wall-clock ceiling regardless of
+// EdgeRuntime.waitUntil() -- 150s on the Free plan, 400s on paid (see
+// https://supabase.com/docs/guides/troubleshooting/edge-function-wall-clock-time-limit-reached-Nk38bW).
+// A real agentic pass over a full document routinely exceeds that: the
+// first live run got silently killed mid-flight, stuck at status
+// 'processing' forever with no chance for any cleanup code to run. Rather
+// than fight the platform limit, this batches the loop -- each invocation
+// runs for a bounded time/iteration budget, then checkpoints its full
+// conversation state and hands off to a fresh invocation of itself to
+// continue, repeating until finish is actually called or a hard safety
+// cap is hit. BATCH_WALL_CLOCK_BUDGET_MS is deliberately conservative
+// (well under even the Free-plan ceiling) to leave room for the checkpoint
+// write and handoff call themselves to complete before the platform kills
+// the invocation.
+const BATCH_WALL_CLOCK_BUDGET_MS = 100_000;
+const MAX_BATCH_ITERATIONS = 30;
+// Circuit breaker across the WHOLE checkpoint chain, not just one batch --
+// bounds worst-case cost if a document is pathological and never converges
+// on calling finish.
+const MAX_TOTAL_ITERATIONS = 200;
 
+type Checkpoint = {
+  // deno-lint-ignore no-explicit-any
+  messages: any[];
+  totalIterations: number;
+  writeCount: number;
+};
+
+// Tracks real writes (not get_work/get_staged_work reads, not finish
+// itself) so a `finish` call describing findings it never actually
+// logged/proposed/staged can be caught and rejected rather than accepted
+// at face value -- a prose summary of what COULD be written is not the
+// same as it having been written.
+const WRITE_TOOLS = new Set(["log_work_source", "propose_work_revision", "create_staged_work", "update_staged_work"]);
+
+async function buildInitialCheckpoint(
+  rows: { id: string; kind: string; filename: string; storage_path: string | null; url: string | null; notes: string | null }[],
+): Promise<Checkpoint | null> {
+  const [{ data: works }, { data: staged }, { data: materials }, { data: series }] = await Promise.all([
+    adminDb.from("works").select("id, cr_number, title, date_display, year, medium, tag, series, flag").order("cr_number"),
+    adminDb.from("staged_works").select("id, title, date_display, year, medium, tag, status, source_type"),
+    adminDb.from("materials").select("slug, label"),
+    adminDb.from("series").select("slug, label, parent_slug"),
+  ]);
+
+  const groundingLines: string[] = [];
+  groundingLines.push(`Valid materials.slug values (tag field): ${(materials ?? []).map((m) => `${m.slug} ("${m.label}")`).join(", ")}`);
+  groundingLines.push(`Valid series.slug values: ${(series ?? []).map((s) => `${s.slug} ("${s.label}")`).join(", ")}`);
+  groundingLines.push(`\nCurrent works table (${(works ?? []).length} rows) — id | CR# | title | date | medium | tag | series | flag:`);
+  for (const w of works ?? []) {
+    groundingLines.push(
+      `- ${w.id} | CR ${w.cr_number} | ${w.title} | ${w.date_display ?? w.year ?? "no date"} | ${w.medium ?? "?"} | tag:${w.tag ?? "?"} | series:${w.series}${w.flag ? ` | FLAGGED: ${w.flag}` : ""}`,
+    );
+  }
+  groundingLines.push(`\nCurrent staged_works table (${(staged ?? []).length} rows, New Entries not yet imported) — id | title | date | medium | tag | status:`);
+  for (const s of staged ?? []) {
+    groundingLines.push(`- ${s.id} | ${s.title ?? "(untitled)"} | ${s.date_display ?? s.year ?? "no date"} | ${s.medium ?? "?"} | tag:${s.tag ?? "?"} | status:${s.status}`);
+  }
+
+  // deno-lint-ignore no-explicit-any
+  const docBlocks: any[] = [];
+  for (const row of rows) {
+    if (row.kind === "url") {
+      if (!row.url) {
+        groundingLines.push(`\n(source_materials row ${row.id} is kind:url but has no url set — skipped.)`);
+        continue;
+      }
+      try {
+        const resp = await fetch(row.url, {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; MOD-CR-Archivist/1.0)" },
+          signal: AbortSignal.timeout(20000),
+        });
+        if (!resp.ok) {
+          groundingLines.push(`\n(Could not fetch ${row.url}: HTTP ${resp.status} — skipped.)`);
+          continue;
+        }
+        const html = await resp.text();
+        // A generous but bounded cap -- real lot/press pages are a few KB
+        // to a few hundred KB of markup; this keeps one bad page from
+        // blowing the whole run's context budget.
+        const text = extractTextFromHtml(html).slice(0, 60000);
+        docBlocks.push({
+          type: "text",
+          text: `source_materials row id ${row.id} — pasted link: ${row.url}\n\nExtracted page text:\n${text}${row.notes ? `\n\nExisting notes already on this row: ${row.notes}` : ""}`,
+        });
+      } catch (err) {
+        groundingLines.push(`\n(Could not fetch ${row.url}: ${String(err)} — skipped.)`);
+      }
+      continue;
+    }
+
+    if (!row.storage_path) {
+      groundingLines.push(`\n(source_materials row ${row.id} (${row.filename}) has no storage_path — skipped.)`);
+      continue;
+    }
+    const { data: fileBlob, error: dlErr } = await adminDb.storage.from("source-materials").download(row.storage_path);
+    if (dlErr || !fileBlob) {
+      groundingLines.push(`\n(Could not download ${row.filename}: ${dlErr?.message ?? "unknown error"} — skipped.)`);
+      continue;
+    }
+    const bytes = new Uint8Array(await fileBlob.arrayBuffer());
+    const base64 = encodeBase64(bytes);
+    if (row.kind === "pdf") {
+      docBlocks.push({
+        type: "document",
+        source: { type: "base64", media_type: "application/pdf", data: base64 },
+        title: row.filename,
+      });
+      if (row.notes) {
+        docBlocks.push({ type: "text", text: `Existing notes already on this source_materials row (id ${row.id}): ${row.notes}` });
+      }
+    } else {
+      const ext = row.filename.split(".").pop()?.toLowerCase();
+      const mediaType = ext === "png" ? "image/png" : "image/jpeg";
+      docBlocks.push({ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } });
+      docBlocks.push({
+        type: "text",
+        text: `source_materials row id ${row.id}, filename "${row.filename}". Notes/page text for this image:\n${row.notes ?? "(none)"}`,
+      });
+    }
+  }
+
+  if (docBlocks.length === 0) return null;
+
+  const citationAnchor = rows[0].filename;
+  const initialUserContent = [
+    {
+      type: "text",
+      text:
+        `Process the following source document${rows.length > 1 ? "s (all one batch, sharing one citation anchor)" : ""} per Mode B. Citation anchor / URL / publication name to use: "${citationAnchor}"${rows.length > 1 ? ` (batch of ${rows.length} pages/images)` : ""}.\n\nCurrent catalogue state for matching:\n${groundingLines.join("\n")}`,
+    },
+    ...docBlocks,
+  ];
+
+  return { messages: [{ role: "user", content: initialUserContent }], totalIterations: 0, writeCount: 0 };
+}
+
+// Hands off to a fresh invocation of this same function to continue from a
+// saved checkpoint -- an ordinary function-to-function fetch() call
+// (Supabase explicitly supports this pattern, budgeted generously at
+// 5,000 requests/min per chain -- see "Recursive / Nested Function Calls"
+// in their docs), authenticated as the service role rather than a user
+// session since nothing about this call goes through a browser. Retries a
+// couple of times before giving up, since a failed handoff would otherwise
+// strand the row at 'processing' forever with no one watching for it.
+async function continueViaSelfInvoke(ids: string[]): Promise<boolean> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/process-source-material`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getServiceRoleKey()}` },
+        body: JSON.stringify({ source_material_ids: ids, __internal_resume: true }),
+      });
+      if (resp.ok) return true;
+      console.error(`continueViaSelfInvoke attempt ${attempt + 1} failed: HTTP ${resp.status}`, await resp.text());
+    } catch (err) {
+      console.error(`continueViaSelfInvoke attempt ${attempt + 1} threw:`, err);
+    }
+    if (attempt < 2) await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+  }
+  return false;
+}
+
+async function runPass(sourceMaterialIds: string[]): Promise<void> {
+  const batchStart = Date.now();
+  let rows: { id: string; kind: string; filename: string; storage_path: string | null; url: string | null; notes: string | null; checkpoint: Checkpoint | null }[] = [];
+  try {
     const { data: fetchedRows, error: rowsErr } = await adminDb
       .from("source_materials")
-      .select("id, kind, filename, storage_path, url, notes")
+      .select("id, kind, filename, storage_path, url, notes, checkpoint")
       .in("id", sourceMaterialIds);
     if (rowsErr) throw rowsErr;
     if (!fetchedRows || fetchedRows.length === 0) throw new Error("No matching source_materials rows.");
     rows = fetchedRows;
 
-    const [{ data: works }, { data: staged }, { data: materials }, { data: series }] = await Promise.all([
-      adminDb.from("works").select("id, cr_number, title, date_display, year, medium, tag, series, flag").order("cr_number"),
-      adminDb.from("staged_works").select("id, title, date_display, year, medium, tag, status, source_type"),
-      adminDb.from("materials").select("slug, label"),
-      adminDb.from("series").select("slug, label, parent_slug"),
-    ]);
+    // Resuming is keyed purely on a saved checkpoint being present, not on
+    // how this invocation was triggered -- a manual Process click on a row
+    // that still has a checkpoint (e.g. an automatic handoff previously
+    // failed) picks up exactly where it left off, same as the automatic
+    // self-invoke path does.
+    const existingCheckpoint = rows[0]?.checkpoint ?? null;
+    const resuming = !!existingCheckpoint?.messages?.length;
 
-    const groundingLines: string[] = [];
-    groundingLines.push(`Valid materials.slug values (tag field): ${(materials ?? []).map((m) => `${m.slug} ("${m.label}")`).join(", ")}`);
-    groundingLines.push(`Valid series.slug values: ${(series ?? []).map((s) => `${s.slug} ("${s.label}")`).join(", ")}`);
-    groundingLines.push(`\nCurrent works table (${(works ?? []).length} rows) — id | CR# | title | date | medium | tag | series | flag:`);
-    for (const w of works ?? []) {
-      groundingLines.push(
-        `- ${w.id} | CR ${w.cr_number} | ${w.title} | ${w.date_display ?? w.year ?? "no date"} | ${w.medium ?? "?"} | tag:${w.tag ?? "?"} | series:${w.series}${w.flag ? ` | FLAGGED: ${w.flag}` : ""}`,
-      );
-    }
-    groundingLines.push(`\nCurrent staged_works table (${(staged ?? []).length} rows, New Entries not yet imported) — id | title | date | medium | tag | status:`);
-    for (const s of staged ?? []) {
-      groundingLines.push(`- ${s.id} | ${s.title ?? "(untitled)"} | ${s.date_display ?? s.year ?? "no date"} | ${s.medium ?? "?"} | tag:${s.tag ?? "?"} | status:${s.status}`);
+    if (!resuming) {
+      await adminDb.from("source_materials").update({ status: "processing", progress: "Starting…", checkpoint: null }).in("id", sourceMaterialIds);
+    } else {
+      await adminDb.from("source_materials").update({ status: "processing", progress: `Resuming from step ${existingCheckpoint!.totalIterations}…` }).in("id", sourceMaterialIds);
     }
 
-    // deno-lint-ignore no-explicit-any
-    const docBlocks: any[] = [];
-    for (const row of rows) {
-      if (row.kind === "url") {
-        if (!row.url) {
-          groundingLines.push(`\n(source_materials row ${row.id} is kind:url but has no url set — skipped.)`);
-          continue;
-        }
-        try {
-          const resp = await fetch(row.url, {
-            headers: { "User-Agent": "Mozilla/5.0 (compatible; MOD-CR-Archivist/1.0)" },
-            signal: AbortSignal.timeout(20000),
-          });
-          if (!resp.ok) {
-            groundingLines.push(`\n(Could not fetch ${row.url}: HTTP ${resp.status} — skipped.)`);
-            continue;
-          }
-          const html = await resp.text();
-          // A generous but bounded cap -- real lot/press pages are a few KB
-          // to a few hundred KB of markup; this keeps one bad page from
-          // blowing the whole run's context budget.
-          const text = extractTextFromHtml(html).slice(0, 60000);
-          docBlocks.push({
-            type: "text",
-            text: `source_materials row id ${row.id} — pasted link: ${row.url}\n\nExtracted page text:\n${text}${row.notes ? `\n\nExisting notes already on this row: ${row.notes}` : ""}`,
-          });
-        } catch (err) {
-          groundingLines.push(`\n(Could not fetch ${row.url}: ${String(err)} — skipped.)`);
-        }
-        continue;
-      }
-
-      if (!row.storage_path) {
-        groundingLines.push(`\n(source_materials row ${row.id} (${row.filename}) has no storage_path — skipped.)`);
-        continue;
-      }
-      const { data: fileBlob, error: dlErr } = await adminDb.storage.from("source-materials").download(row.storage_path);
-      if (dlErr || !fileBlob) {
-        groundingLines.push(`\n(Could not download ${row.filename}: ${dlErr?.message ?? "unknown error"} — skipped.)`);
-        continue;
-      }
-      const bytes = new Uint8Array(await fileBlob.arrayBuffer());
-      const base64 = encodeBase64(bytes);
-      if (row.kind === "pdf") {
-        docBlocks.push({
-          type: "document",
-          source: { type: "base64", media_type: "application/pdf", data: base64 },
-          title: row.filename,
-        });
-        if (row.notes) {
-          docBlocks.push({ type: "text", text: `Existing notes already on this source_materials row (id ${row.id}): ${row.notes}` });
-        }
-      } else {
-        const ext = row.filename.split(".").pop()?.toLowerCase();
-        const mediaType = ext === "png" ? "image/png" : "image/jpeg";
-        docBlocks.push({ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } });
-        docBlocks.push({
-          type: "text",
-          text: `source_materials row id ${row.id}, filename "${row.filename}". Notes/page text for this image:\n${row.notes ?? "(none)"}`,
-        });
-      }
-    }
-
-    if (docBlocks.length === 0) {
+    const checkpoint: Checkpoint = resuming ? existingCheckpoint! : (await buildInitialCheckpoint(rows))!;
+    if (!checkpoint) {
       for (const r of rows) {
         await adminDb
           .from("source_materials")
-          .update({ status: "flagged", progress: null, notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass could not fetch/download this source — needs a human look.`) })
+          .update({ status: "flagged", progress: null, checkpoint: null, notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass could not fetch/download this source — needs a human look.`) })
           .eq("id", r.id);
       }
       return;
     }
 
-    const citationAnchor = rows[0].filename;
-    const initialUserContent = [
-      {
-        type: "text",
-        text:
-          `Process the following source document${rows.length > 1 ? "s (all one batch, sharing one citation anchor)" : ""} per Mode B. Citation anchor / URL / publication name to use: "${citationAnchor}"${rows.length > 1 ? ` (batch of ${rows.length} pages/images)` : ""}.\n\nCurrent catalogue state for matching:\n${groundingLines.join("\n")}`,
-      },
-      ...docBlocks,
-    ];
-
-    // deno-lint-ignore no-explicit-any
-    const messages: any[] = [{ role: "user", content: initialUserContent }];
-
+    const messages = checkpoint.messages;
+    let totalIterations = checkpoint.totalIterations;
+    let writeCount = checkpoint.writeCount;
     let finishResult: { outcome: string; summary: string } | null = null;
-    // Tracks real writes (not get_work/get_staged_work reads, not finish
-    // itself) so a `finish` call describing findings it never actually
-    // logged/proposed/staged can be caught and rejected rather than accepted
-    // at face value -- a prose summary of what COULD be written is not the
-    // same as it having been written.
-    const WRITE_TOOLS = new Set(["log_work_source", "propose_work_revision", "create_staged_work", "update_staged_work"]);
-    let writeCount = 0;
-    const MAX_ITERATIONS = 60;
-    for (let i = 0; i < MAX_ITERATIONS && !finishResult; i++) {
+    let batchIterations = 0;
+
+    while (
+      !finishResult &&
+      totalIterations < MAX_TOTAL_ITERATIONS &&
+      batchIterations < MAX_BATCH_ITERATIONS &&
+      Date.now() - batchStart < BATCH_WALL_CLOCK_BUDGET_MS
+    ) {
       const response = await anthropic.messages.create({
         model: "claude-sonnet-5",
         max_tokens: 8192,
@@ -559,6 +641,8 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
           content:
             "You responded without calling a tool. Do not just describe findings in prose -- call log_work_source / propose_work_revision / create_staged_work / update_staged_work now for the specific findings you just described, one at a time. Only call finish once you've actually made those calls.",
         });
+        totalIterations++;
+        batchIterations++;
         continue;
       }
 
@@ -601,6 +685,8 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
         }
       }
       messages.push({ role: "user", content: toolResults });
+      totalIterations++;
+      batchIterations++;
 
       // Real, current step progress -- not a time estimate (there isn't a
       // reliable one for a tool loop of unknown length), just an honest
@@ -608,20 +694,66 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
       if (!finishResult) {
         await adminDb
           .from("source_materials")
-          .update({ progress: `Step ${i + 1} of up to ${MAX_ITERATIONS} — ${writeCount} finding${writeCount === 1 ? "" : "s"} logged so far.` })
+          .update({ progress: `Step ${totalIterations} of up to ${MAX_TOTAL_ITERATIONS} — ${writeCount} finding${writeCount === 1 ? "" : "s"} logged so far.` })
           .in("id", sourceMaterialIds);
       }
     }
 
-    const finalStatus = finishResult?.outcome ?? "flagged";
-    const finalSummary =
-      finishResult?.summary ??
-      "Automated pass hit its iteration limit without calling finish — needs a human look at what was actually written (check Work Sources / New Entries / Revisions for this document's citation).";
-    for (const r of rows) {
-      await adminDb
-        .from("source_materials")
-        .update({ status: finalStatus, progress: null, notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass: ${finalSummary}`) })
-        .eq("id", r.id);
+    if (finishResult) {
+      const finalStatus = finishResult.outcome;
+      for (const r of rows) {
+        await adminDb
+          .from("source_materials")
+          .update({ status: finalStatus, progress: null, checkpoint: null, notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass: ${finishResult.summary}`) })
+          .eq("id", r.id);
+      }
+      return;
+    }
+
+    if (totalIterations >= MAX_TOTAL_ITERATIONS) {
+      // Circuit breaker -- this document never converged on calling finish
+      // across the whole checkpoint chain. Give up honestly rather than
+      // burning cost indefinitely.
+      for (const r of rows) {
+        await adminDb
+          .from("source_materials")
+          .update({
+            status: "flagged",
+            progress: null,
+            checkpoint: null,
+            notes: appendNote(
+              r.notes,
+              `[${new Date().toISOString()}] Automated pass hit its ${MAX_TOTAL_ITERATIONS}-step safety cap without calling finish (${writeCount} findings logged) — needs a human look at what was actually written (check Work Sources / New Entries / Revisions for this document's citation).`,
+            ),
+          })
+          .eq("id", r.id);
+      }
+      return;
+    }
+
+    // Ran out of this batch's time/iteration budget without finishing --
+    // save exactly where we are and hand off to a fresh invocation.
+    const nextCheckpoint: Checkpoint = { messages, totalIterations, writeCount };
+    await adminDb
+      .from("source_materials")
+      .update({ progress: `Paused after step ${totalIterations} of up to ${MAX_TOTAL_ITERATIONS} — continuing automatically…`, checkpoint: nextCheckpoint })
+      .in("id", sourceMaterialIds);
+
+    const handedOff = await continueViaSelfInvoke(sourceMaterialIds);
+    if (!handedOff) {
+      // Leave the checkpoint in place (never discard real progress) but
+      // drop status back to 'flagged' so the Process button is clickable
+      // again -- a manual re-click resumes from this exact checkpoint.
+      for (const r of rows) {
+        await adminDb
+          .from("source_materials")
+          .update({
+            status: "flagged",
+            progress: null,
+            notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass paused at step ${totalIterations} (${writeCount} findings logged) but couldn't hand off to continue automatically — click Process again to resume from here.`),
+          })
+          .eq("id", r.id);
+      }
     }
   } catch (err) {
     console.error("process-source-material pass failed:", err);
@@ -645,23 +777,34 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
-  // Defense-in-depth: verify the caller's Supabase session directly, even
-  // though this function's own JWT verification (default-on) already blocks
-  // unauthenticated calls before this code runs.
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const {
-    data: { user },
-  } = await callerClient.auth.getUser();
-  if (!user) return jsonResponse({ error: "Unauthorized" }, 401);
-
-  let body: { source_material_ids?: string[]; source_material_id?: string };
+  let body: { source_material_ids?: string[]; source_material_id?: string; __internal_resume?: boolean };
   try {
     body = await req.json();
   } catch {
     return jsonResponse({ error: "Invalid JSON body" }, 400);
+  }
+
+  const authHeader = req.headers.get("Authorization") ?? "";
+  // Internal batch-continuation calls (see continueViaSelfInvoke) are this
+  // function calling itself server-to-server -- authenticated with the
+  // service-role secret, which only this function itself ever holds, not a
+  // user session. Everything else goes through the normal admin-session
+  // check.
+  const isInternalResume = body.__internal_resume === true && authHeader === `Bearer ${getServiceRoleKey()}`;
+  if (body.__internal_resume === true && !isInternalResume) {
+    return jsonResponse({ error: "Unauthorized" }, 401);
+  }
+  if (!isInternalResume) {
+    // Defense-in-depth: verify the caller's Supabase session directly, even
+    // though this function's own JWT verification (default-on) already
+    // blocks unauthenticated calls before this code runs.
+    const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const {
+      data: { user },
+    } = await callerClient.auth.getUser();
+    if (!user) return jsonResponse({ error: "Unauthorized" }, 401);
   }
 
   const ids = body.source_material_ids ?? (body.source_material_id ? [body.source_material_id] : []);
@@ -672,12 +815,18 @@ Deno.serve(async (req) => {
   if (!existing || existing.length !== ids.length) {
     return jsonResponse({ error: "One or more source_material ids were not found." }, 404);
   }
-  const alreadyRunning = existing.filter((r) => r.status === "processing");
-  if (alreadyRunning.length) {
-    return jsonResponse(
-      { error: `Already processing: ${alreadyRunning.map((r) => r.filename).join(", ")}. Wait for it to finish before starting another pass.` },
-      409,
-    );
+  // A resume call is expected to find these rows still 'processing' (that's
+  // exactly the state a mid-run checkpoint leaves them in) -- only a fresh
+  // user-triggered start needs to guard against double-starting a run
+  // that's already genuinely in flight.
+  if (!isInternalResume) {
+    const alreadyRunning = existing.filter((r) => r.status === "processing");
+    if (alreadyRunning.length) {
+      return jsonResponse(
+        { error: `Already processing: ${alreadyRunning.map((r) => r.filename).join(", ")}. Wait for it to finish before starting another pass.` },
+        409,
+      );
+    }
   }
 
   // deno-lint-ignore no-explicit-any
