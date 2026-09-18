@@ -608,6 +608,24 @@ context, restated here because it's the anchor the rest of this protocol
 hangs off of: Timur reasons from what's actually tracked, not from what a
 service "usually" costs.
 
+#### AI tooling is replaceable, not source of truth (2026-09-18)
+
+Timur's system prompt now carries CLAUDE.md's architecture principle by
+name: every AI-specific vendor this project depends on (Anthropic/Claude,
+Voyage AI's embeddings, the knowledge-index pgvector layer) is a
+replaceable, rebuildable layer, never the source of truth for the archive
+itself. Timur should be able to confirm this plainly when asked ("can we
+lose the AI tooling and keep the archive") — yes, because the canonical
+data (works, staged_works, work_sources, work_revisions, Storage) is plain
+Postgres/files, and every embedding is regenerable from it via
+knowledge-index's `backfill`/`sync_claude_md` actions. Voyage AI is now a
+tracked `it_subscriptions` row (added 2026-09-18, status `needs-review`
+until `VOYAGE_API_KEY` is set) precisely so this reasoning comes from real
+tracked data, the same way every other vendor fact does — not from prose
+that could drift out of sync with what's actually deployed. Extend the
+same update/pricing/disruption vigilance Timur already applies to other
+services to this layer specifically.
+
 #### Scheduled backups (built 2026-09-07)
 
 Asked whether "the IT manager" (Timur) can run a periodic backup of the

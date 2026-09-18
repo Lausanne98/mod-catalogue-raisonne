@@ -533,6 +533,11 @@ select 'Anthropic API (Claude)', 'Pay-as-you-go API credits', 'https://console.a
   'Powers the agent chat feature (Supabase Edge Function agent-chat) via the ANTHROPIC_API_KEY secret. Billing account is shared with the separate CE project -- not MOD-CR-exclusive spend.'
 where not exists (select 1 from it_subscriptions where service_name = 'Anthropic API (Claude)');
 
+insert into it_subscriptions (service_name, plan, login_url, status, notes)
+select 'Voyage AI', 'Pay-as-you-go API credits', 'https://dashboard.voyageai.com', 'needs-review',
+  'Generates embeddings (voyage-3, 1024 dims) for the knowledge-index Edge Function -- powers semantic search over CLAUDE.md''s classification rules and works/staged_works/source_materials, used by Khalo''s search_classification_rules and search_similar_works tools. Code is deployed but requires a VOYAGE_API_KEY secret (Project Settings -> Edge Functions -> Secrets) not yet added -- until then, every search call returns an error and Khalo''s two knowledge-index tools degrade to "no results" rather than failing the whole run. Per CLAUDE.md''s architecture principle, this is a replaceable layer: all canonical data stays in plain Postgres tables, and every embedding here is regenerable from that data at any time.'
+where not exists (select 1 from it_subscriptions where service_name = 'Voyage AI');
+
 update it_subscriptions
 set notes = 'Host is Pair Networks (pair.com), not Bluehost -- MX is mail3.g1.pair.com, account appears to be under "donerstudiollc." Log in at pair.com to manage DNS.' ||
   E'\n\nOpen items (found 2026-09-06):\n' ||

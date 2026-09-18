@@ -208,6 +208,23 @@ script then this file, rather than duplicating client setup or a hardcoded
 rule above doesn't apply to it directly — but it's shared by every admin and
 public page, so treat changes to it as touching all of them at once.
 
+## Architecture principle: AI tooling is replaceable, never source of truth
+Treat all AI-specific tooling — embedding providers, vector indexes, agent
+frameworks (Voyage AI, the knowledge-index function, Claude/Anthropic itself,
+any future equivalent) — as a replaceable, rebuildable layer, never as the
+source of truth for anything. All canonical archive data — artwork records,
+titles, images, provenance, and matching decisions — must live in plain,
+portable formats in the core Supabase database (`works`, `staged_works`,
+`work_sources`, `work_revisions`, Storage buckets), independent of any AI
+vendor. Vector embeddings must be regenerable from that core data at any
+time (see "Knowledge index" below — `backfill` recomputes them from the
+live rows, `sync_claude_md` recomputes them from this file) — an embedding
+column going stale, wrong, or entirely dropped is an inconvenience to
+rebuild, never a data-loss event. If a future change ever makes an AI
+vendor or its output load-bearing for something a human couldn't
+reconstruct from the plain data alone, that's a design mistake to fix, not
+a tradeoff to accept.
+
 ## Knowledge index (semantic search for Khalo & co's sorting protocols)
 `supabase/functions/knowledge-index` is a pgvector-backed semantic search
 layer, separate from Khalo's own Mode B function, covering three things —
