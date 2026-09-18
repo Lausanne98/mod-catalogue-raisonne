@@ -17,7 +17,8 @@
 //      embedding it lets a new source be checked against prior source text.
 //
 // Actions (POST body: { action, ... }):
-//   sync_claude_md      { markdown }                         -- full replace
+//   sync_claude_md      { markdown? }  -- full replace; fetches CLAUDE.md from
+//                                         GitHub when markdown isn't given
 //   backfill             { collection?: 'works'|'staged_works'|'source_materials'|'all', limit? }
 //   search               { collection, query, top_k? }
 //
@@ -93,6 +94,14 @@ function toVectorLiteral(embedding: number[]): string {
 
 // ---- sync_claude_md ---------------------------------------------------------
 
+// This repo is public (see CLAUDE.md's "Credentials / secrets") -- fetching
+// CLAUDE.md straight from GitHub means sync_claude_md needs no request body
+// at all, rather than requiring the whole file to be pasted into the call
+// (impractical from a browser console, and one more place content could go
+// stale relative to what's actually committed). Pass `markdown` explicitly
+// to override this for a one-off test against local, not-yet-pushed edits.
+const CLAUDE_MD_RAW_URL = "https://raw.githubusercontent.com/Lausanne98/mod-catalogue-raisonne/claude/eloquent-pascal-opm3tz/CLAUDE.md";
+
 // Splits on lines starting with "## " (a top-level section) -- CLAUDE.md's
 // own convention throughout the file. Each chunk keeps its heading text
 // prepended to the embedded content so a heading-only query ("versioning
@@ -120,13 +129,21 @@ function chunkMarkdownByHeading(markdown: string): { heading: string; content: s
   return chunks;
 }
 
-async function syncClaudeMd(markdown: string): Promise<{ chunks_written: number }> {
-  const chunks = chunkMarkdownByHeading(markdown);
+async function syncClaudeMd(markdown?: string): Promise<{ chunks_written: number; source: string }> {
+  let source = "request body";
+  let content = markdown;
+  if (!content) {
+    const resp = await fetch(CLAUDE_MD_RAW_URL);
+    if (!resp.ok) throw new Error(`Could not fetch CLAUDE.md from GitHub: HTTP ${resp.status}`);
+    content = await resp.text();
+    source = CLAUDE_MD_RAW_URL;
+  }
+  const chunks = chunkMarkdownByHeading(content);
   const embeddings = await embedBatch(
     chunks.map((c) => `${c.heading}\n\n${c.content}`),
     "document",
   );
-  // Full replace -- CLAUDE.md is always sent in full, so there's no
+  // Full replace -- CLAUDE.md is always sent/fetched in full, so there's no
   // meaningful "diff" to apply, and a stale removed-section row left behind
   // would silently keep surfacing in search results forever.
   const { error: delErr } = await adminDb.from("claude_md_chunks").delete().neq("id", "00000000-0000-0000-0000-000000000000");
@@ -140,7 +157,7 @@ async function syncClaudeMd(markdown: string): Promise<{ chunks_written: number 
     const { error: insErr } = await adminDb.from("claude_md_chunks").insert(rows);
     if (insErr) throw insErr;
   }
-  return { chunks_written: rows.length };
+  return { chunks_written: rows.length, source };
 }
 
 // ---- backfill ---------------------------------------------------------------
@@ -237,7 +254,6 @@ Deno.serve(async (req) => {
   try {
     switch (body.action) {
       case "sync_claude_md": {
-        if (!body.markdown) return jsonResponse({ error: "markdown is required" }, 400);
         return jsonResponse(await syncClaudeMd(body.markdown));
       }
       case "backfill": {
