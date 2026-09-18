@@ -203,6 +203,47 @@ function modcrStripRedundantDateFromTitle(title){
   return cleaned || title;
 }
 
+// A source title from an object-first listing routinely reads "<object type>
+// '<Real Name>', <edition/gallery info>" or "'<Real Name>' <object type>" --
+// e.g. Chaise 'For Eve', edition David Gill Gallery, or "Coral Wave" chair.
+// The quoted phrase is the work's actual name; everything else describes
+// what kind of object it is, or how/where it was made, which belongs in
+// Medium, not Title. Only acts when the title contains EXACTLY ONE quoted
+// span (straight or curly, single or double) -- a lone apostrophe
+// (possessive, e.g. "Horace's Muse") never pairs up, so it's left alone;
+// zero or multiple matches also no-op, same fallback-safe pattern as
+// modcrStripRedundantDateFromTitle. Returns { title, extra } -- extra is
+// '' when there's nothing outside the quotes worth keeping (a title that's
+// entirely wrapped in quotes just gets dequoted).
+function modcrExtractQuotedTitle(rawTitle){
+  if(!rawTitle) return { title: rawTitle, extra: '' };
+  const pattern = /["“]([^"”]+)["”]|'([^']+)'/g;
+  const matches = [...rawTitle.matchAll(pattern)];
+  if(matches.length !== 1) return { title: rawTitle, extra: '' };
+  const m = matches[0];
+  const quoted = (m[1] ?? m[2] ?? '').trim();
+  if(!quoted) return { title: rawTitle, extra: '' };
+  const before = rawTitle.slice(0, m.index).trim();
+  const after = rawTitle.slice(m.index + m[0].length).trim().replace(/^[,;.\s]+/, '');
+  const extra = [before, after].filter(Boolean).join(', ');
+  return { title: quoted, extra };
+}
+
+// Folds descriptive text pulled out of a title (see modcrExtractQuotedTitle)
+// into the medium field, dropping any comma-separated fragment already
+// present in the existing medium text (case-insensitive substring) so e.g.
+// "18k gold 'Palmaceae' necklace" with medium "18k gold" doesn't end up
+// repeating "18k gold" a second time -- only the genuinely new part
+// ("necklace") gets appended.
+function modcrMergeIntoMedium(existingMedium, extra){
+  if(!extra) return existingMedium || null;
+  const parts = extra.split(',').map(s => s.trim()).filter(Boolean);
+  const existingLower = (existingMedium || '').toLowerCase();
+  const newParts = parts.filter(p => !existingLower.includes(p.toLowerCase()));
+  if(!newParts.length) return existingMedium || null;
+  return existingMedium ? `${existingMedium}; ${newParts.join(', ')}` : newParts.join(', ');
+}
+
 // Best-effort lead material guess from a free-text medium description (e.g.
 // "bronze with a baroque cultured pearl" -> bronze). Callers should only use
 // the result as a fallback when nothing more confident (a human, or Khalo's

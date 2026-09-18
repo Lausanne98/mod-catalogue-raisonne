@@ -130,6 +130,24 @@ codified after several staged_works records got mistagged this way:
   a human decision (new material vs. mislabel) instead of silently reusing
   whatever tag looks close.
 
+## Title parsing rule (quoted names)
+A source title from an object-first listing (an auction lot, a gallery price
+list) routinely reads `<object type> '<Real Name>', <edition/gallery info>` or
+`'<Real Name>' <object type>` — e.g. `Chaise 'For Eve', edition David Gill
+Gallery` or `"Coral Wave" chair`. The quoted phrase is the work's actual
+name; everything else describes what kind of object it is or how/where it
+was made, which belongs in Medium, not Title. When a human or an automated
+pass (Khalo's Mode B, Researcher's Desk's `promoteFindingToDraft`, the intake
+form's draft-prefill) encounters this pattern, the title becomes just the
+quoted phrase and the surrounding text folds into `medium` instead (deduped
+against whatever's already there — see `modcrExtractQuotedTitle` /
+`modcrMergeIntoMedium` in `modcr-client.js`). Only acts when there's exactly
+one quoted span in the title — a lone apostrophe (a possessive like "Horace's
+Muse") never pairs up into a match, so titles like that are correctly left
+alone; a title with zero or multiple quoted spans is also left as-is rather
+than guessed at. A title that's entirely wrapped in quotes (e.g.
+`"Torso (Prototype for Steuben Glass)"`) just gets dequoted, medium unchanged.
+
 ## Cross-categorization rule
 Any work with medium/tag "ceramic" and a date before 2000 is cross-categorized into
 the "Early Clay" series automatically, in addition to its own assigned series — this
