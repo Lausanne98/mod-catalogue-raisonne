@@ -105,7 +105,7 @@ The first user message contains: the citation anchor (a real URL, when this sour
 Read, then act, work by work — never read the entire document first and only describe what you found afterward. The moment you're confident about one work, call the tool for it immediately (get_work/get_staged_work to check, then log_work_source/propose_work_revision/create_staged_work/update_staged_work to record it), then move to the next work. A message that only narrates candidates in prose without calling the matching tool has not accomplished anything — narrating "CR 12 should get a citation" is not the same as calling log_work_source for CR 12, and this run will explicitly reject a finish call that describes findings you never actually logged. If the document is long, that's fine — you have many tool-call turns; use them to work through it incrementally, not to produce one exhaustive essay before you've written a single row.
 
 ## For every work the document names or depicts
-1. Try to match it against BOTH the \`works\` listing and the \`staged_works\` listing given to you (title, date, medium — confirm a fuzzy title match against date/medium before treating it as the same work, never on title alone). Checking \`works\` alone and missing an existing staged draft is exactly how a duplicate New Entries row happens.
+1. Try to match it against BOTH the \`works\` listing and the \`staged_works\` listing given to you (title, date, medium — confirm a fuzzy title match against date/medium before treating it as the same work, never on title alone). Checking \`works\` alone and missing an existing staged draft is exactly how a duplicate New Entries row happens. When a candidate feels like it MIGHT already exist under a different title/phrasing (a re-listed lot, a nickname vs. formal title, a near-identical sibling piece) and the plain listing doesn't settle it, call search_similar_works with a short description of the piece before deciding it's genuinely new.
 2. **Matches an existing work, confidently** — call get_work to see its full current fields and existing citations (don't re-cite something already logged, and don't propose text that contradicts what's already there — if it would contradict, log a flagged work_source instead and leave the field alone). Log every extracted fact with log_work_source. For append-safe narrative facts (see REVISABLE_FIELDS in the propose_work_revision tool), also call propose_work_revision so it reaches a human via the Revisions tab. For a singular-value fact (a dimension, a medium/tag/series correction, a date), log it via log_work_source only — mention it by CR number in your final summary so a human can enter it directly in Manage Works.
 3. **Matches an existing staged_works draft** (status new/reviewing) — call get_staged_work, then call update_staged_work with whatever new facts this document adds and an append_note carrying a dated, cited addition. Never create a second staged row for something already staged.
 4. **Matches, but ambiguously** (close title, nothing to confirm date/medium against, or the document doesn't clearly distinguish two similarly-named works) — log_work_source only, confidence: flagged, and propose_work_revision with field: flag pointing at the ambiguity (e.g. "Possible [publication] citation, unverified — see Work Sources"). Never propose a revision to the real content field for a flagged match.
@@ -118,10 +118,7 @@ Read, then act, work by work — never read the entire document first and only d
 Extract into structured fields, never leave a fact sitting only in prose: Title (an auction/gallery listing routinely comes as one compound string like \`"Faucet," 1986, cast bronze\` — the title field gets ONLY the name, \`Faucet\`, with the date and medium pulled out into date_display/year/medium instead; a trailing year or material after a comma, in parentheses, or after the closing quote is exactly the pattern to strip, every time, not just when it's convenient. An object-first listing puts the real name in quotes instead, with the object type or edition/gallery info wrapped around it — \`Chaise 'For Eve', edition David Gill Gallery\` or \`"Coral Wave" chair\`: the title is ONLY the quoted phrase (\`For Eve\`, \`Coral Wave\`), and everything outside the quotes — the object type, edition/gallery info — moves into medium instead, never left in title. Only pull this apart when the quotes clearly wrap a proper name distinct from the surrounding description; a lone apostrophe (a possessive like "Horace's Muse") is not this pattern and title stays as-is. If the source gives no real name at all — only a bare material/date description like "cast bronze and crystal work, c. 2005" — do not carry that description into title as if it were a name; use \`Untitled\` for title and put the real description in medium/notes instead), Date (date_display as the source states it, year as a plain number), Material (medium = descriptive label — including any object-type/edition text pulled out of the title per the rule above, folded in rather than dropped — tag = the matching materials.slug — never invent one, see the tag/series rules below), Dimensions (as stated), Series (the most specific series.slug that fits — a named sub-series before a broad bucket; never set a work's own series to early-clay unless its tag is literally ceramic, per the cross-categorization rule: a ceramic work dated before 2000 shows under Early Clay automatically via live filter logic, it does not need series set to early-clay directly), Provenance (dated ownership chain; for a museum listing, state plainly whether it's a permanent-collection holding or a past loan/exhibition, and record acquisition year/method if given), Exhibitions (venue, exhibition title, city, date, and curator name if listed), Publications/Literature (see citation format above).
 
 ## Tag and series classification rules
-- **tag is always the base material alone, never a compound descriptive phrase.** "Organic material in abaca paper" is a medium description, not a tag — the tag is \`paper\` (the more specific material named), never \`organic-material\`. \`organic-material\` is a last-resort tag for when nothing more specific applies (e.g. "wax and organic material" with no other named material) — never pick it just because it's a plausible-sounding catch-all when a more specific material (paper, wood, bronze, etc.) is also named in the same medium string.
-- **Bronze and other metal objects: wearable → jewelry, everything else → bronze-works (Sculpture).** If the title or medium names a wearable object type (necklace, brooch, pendant, ring, bracelet, earring, cuff, or similar), suggested_series is \`jewelry\`. Otherwise (a faucet, a bowl, a figure, a candelabra, a chair) suggested_series is \`bronze-works\`, regardless of the material being precious (bronze, silver, gold) — a bowl or sculpture in silver is still Sculpture, not Jewelry, just because the material overlaps with what jewelry is often made of.
-- **All clay/ceramic work is Sculpture by default.** Any work whose tag is \`ceramic\` (terra-cotta, porcelain, stoneware, earthenware, etc.) gets suggested_series \`bronze-works\` unless a more specific named sub-series clearly fits it (e.g. \`tattooed-dolls\` for a piece from that body of work) — never leave a ceramic work's series unset or guess a generic bucket other than bronze-works when no named sub-series applies. This is independent of the early-clay cross-categorization rule above, which is about the *filter* a pre-2000 ceramic work also shows up under, not its own series field.
-- **Never invent a tag for a material that isn't in the taxonomy given to you.** A medium like "brass" with no matching materials.slug does NOT get mapped to the nearest existing tag (e.g. bronze) — leave tag/suggested_series unset and flag it (confidence: flagged, or a note prefixed \`[FLAG: material "X" is not in the Medium taxonomy...]\`) so a human decides whether it's a genuinely new material or a mislabel, rather than silently reusing whatever tag looks close.
+Headlines only — the full rules (and every future addition to them) live in CLAUDE.md's "Tag/series inference rules" section and are kept queryable via search_classification_rules rather than repeated here in full every time: tag is always the base material alone, never a compound phrase (organic-material is last resort, never preferred over a more specific match in the same medium string); a wearable metal object (necklace, brooch, pendant, ring, bracelet, earring, cuff) is jewelry, everything else metal is bronze-works (Sculpture) regardless of the material being precious; all clay/ceramic work defaults to bronze-works unless a more specific named sub-series clearly fits; never invent a tag for a material not in the taxonomy given to you — leave tag/suggested_series unset and flag it for a human decision instead. **Call search_classification_rules whenever a material/series call isn't obviously covered by this summary** (an unfamiliar material, an edge case, a series question) rather than guessing from the headline alone.
 
 ## Hard rules
 - Never write to a \`works\` row directly, never set published, never assign a cr_number. Your only writes are work_sources, staged_works (via the tools), and work_revisions (pending, for a human to approve).
@@ -264,6 +261,31 @@ const TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: "search_classification_rules",
+    description:
+      "Semantic search over CLAUDE.md's full tag/series classification rules (the Tag and series classification rules section above is headlines only). Call this whenever a material/series call isn't obviously covered by those headlines -- an unfamiliar material, a series edge case, anything you're not confident about -- with a short natural-language description of the situation, e.g. 'brass material with no known slug' or 'post-2000 ceramic series bucket'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Short description of the material/series situation you need a rule for." },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "search_similar_works",
+    description:
+      "Semantic search across works and/or staged_works by meaning (title, date, medium, series, notes) rather than exact/fuzzy title matching -- use this before create_staged_work when a candidate feels like it MIGHT already exist under a different title or phrasing (a duplicate lot re-listed, a nickname vs. formal title, a near-identical sibling piece), or when checking whether a similar work has already been classified a certain way. Complements, never replaces, the works/staged_works listing already given to you.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Short natural-language description of the candidate work (title, medium, date, distinguishing details)." },
+        collection: { type: "string", enum: ["works", "staged_works", "both"], description: "Defaults to both." },
+      },
+      required: ["query"],
+    },
+  },
+  {
     name: "finish",
     description:
       "Call this exactly once, when you are done processing every page/image given to you. Ends the run and writes your summary to the source_materials row(s).",
@@ -389,6 +411,20 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
       const { error } = await adminDb.from("staged_works").update(patch).eq("id", input.staged_id);
       if (error) throw error;
       return { ok: true };
+    }
+    case "search_classification_rules": {
+      const result = await callKnowledgeIndex("search", { collection: "claude_md", query: input.query, top_k: 3 });
+      if (result.error) return { error: result.error };
+      return { rules: result.matches };
+    }
+    case "search_similar_works": {
+      const collections = input.collection === "works" || input.collection === "staged_works" ? [input.collection] : ["works", "staged_works"];
+      const results: Record<string, unknown> = {};
+      for (const c of collections) {
+        const result = await callKnowledgeIndex("search", { collection: c, query: input.query, top_k: 5 });
+        results[c] = result.error ? { error: result.error } : result.matches;
+      }
+      return results;
     }
     default:
       return { error: `Unknown tool: ${name}` };
@@ -661,6 +697,31 @@ async function continueViaSelfInvoke(ids: string[]): Promise<boolean> {
     if (attempt < 2) await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
   }
   return false;
+}
+
+// deno-lint-ignore no-explicit-any
+type KnowledgeIndexResult = { error?: string; matches?: any };
+
+// Server-to-server call into the knowledge-index Edge Function (see
+// supabase/functions/knowledge-index) -- same service-role-bearer pattern as
+// continueViaSelfInvoke, since Khalo's automated pass has no browser session
+// of its own. Failures (e.g. VOYAGE_API_KEY not yet configured) come back as
+// {error} rather than throwing, so a search tool call degrades to "no rules
+// found" instead of aborting the whole run.
+// deno-lint-ignore no-explicit-any
+async function callKnowledgeIndex(action: string, body: Record<string, any>): Promise<KnowledgeIndexResult> {
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/knowledge-index`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getServiceRoleKey()}` },
+      body: JSON.stringify({ action, ...body }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) return { error: data.error ?? `HTTP ${resp.status}` };
+    return data;
+  } catch (err) {
+    return { error: String(err) };
+  }
 }
 
 async function runPass(sourceMaterialIds: string[]): Promise<void> {

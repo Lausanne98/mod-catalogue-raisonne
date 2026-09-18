@@ -1105,3 +1105,118 @@ insert into research_sites (name, url, category) values
   ('The Bunker (Palm Beach)', 'https://thebunkerartspace.com', 'museum'),
   ('Pérez Art Museum Miami (PAMM)', 'https://www.pamm.org', 'museum')
 on conflict (url) do nothing;
+
+-- ═══ KNOWLEDGE INDEX (semantic search for Khalo & co's sorting protocols) ═══
+-- Lets the automated archivist pass retrieve the most relevant classification
+-- rule, or the most similar existing work, by meaning -- instead of only
+-- exact/fuzzy title matching and a full always-pasted rules block in the
+-- system prompt. Embeddings are 1024-dim (Voyage AI voyage-3), generated and
+-- queried by the knowledge-index Edge Function; this section only adds the
+-- storage. Requires a VOYAGE_API_KEY secret (Project Settings -> Edge
+-- Functions -> Secrets) -- never committed to this repo, added out-of-band.
+create extension if not exists vector;
+
+-- One row per logical CLAUDE.md section (split on "## " headings) -- CLAUDE.md
+-- itself isn't a database row, so this table is populated by POSTing the
+-- current file content to knowledge-index's sync_claude_md action (a manual
+-- step after CLAUDE.md changes, run from a session with repo access). A full
+-- sync replaces every row, so this table is never edited in place.
+create table if not exists claude_md_chunks (
+  id          uuid primary key default gen_random_uuid(),
+  heading     text not null,
+  content     text not null,
+  embedding   vector(1024),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists claude_md_chunks_embedding_idx on claude_md_chunks
+  using hnsw (embedding vector_cosine_ops);
+
+alter table claude_md_chunks enable row level security;
+drop policy if exists "claude_md_chunks_admin_only" on claude_md_chunks;
+create policy "claude_md_chunks_admin_only" on claude_md_chunks for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- Self-healing: semantic-search embeddings directly on the rows they
+-- describe (title + medium + series + notes, see knowledge-index's
+-- buildEmbeddingText) rather than a separate join table -- simplest shape
+-- given each row already logically IS the "document" being indexed.
+alter table works add column if not exists embedding vector(1024);
+alter table staged_works add column if not exists embedding vector(1024);
+-- source_materials: embeds `notes`, which for a kind='image' row from
+-- scripts/catalog_pdf_extractor.py already holds that page's own extracted
+-- text (see "Source PDFs" above). A kind='pdf' row has no persisted
+-- extracted text to embed (Claude reads the raw PDF live each pass) and a
+-- kind='url' row's page text isn't persisted either -- both stay unembedded,
+-- which the search results simply won't include, not an error case.
+alter table source_materials add column if not exists embedding vector(1024);
+
+create index if not exists works_embedding_idx on works
+  using hnsw (embedding vector_cosine_ops);
+create index if not exists staged_works_embedding_idx on staged_works
+  using hnsw (embedding vector_cosine_ops);
+create index if not exists source_materials_embedding_idx on source_materials
+  using hnsw (embedding vector_cosine_ops);
+
+-- Generic cosine-similarity search across the four embedded collections,
+-- called by the knowledge-index Edge Function's `search` action. One
+-- function (rather than one per table) so the Edge Function has a single
+-- RPC surface; dynamic SQL per branch since each collection's display
+-- columns differ. Called with the service-role key (bypasses RLS), same as
+-- every other write this Edge Function makes.
+create or replace function match_knowledge_index(
+  p_collection text,
+  p_query_embedding vector(1024),
+  p_match_count int default 5
+) returns setof jsonb
+language plpgsql
+as $$
+begin
+  if p_collection = 'claude_md' then
+    return query execute
+      'select jsonb_build_object(
+         ''heading'', heading,
+         ''content'', content,
+         ''similarity'', 1 - (embedding <=> $1)
+       ) from claude_md_chunks
+       where embedding is not null
+       order by embedding <=> $1
+       limit $2'
+    using p_query_embedding, p_match_count;
+  elsif p_collection = 'works' then
+    return query execute
+      'select jsonb_build_object(
+         ''id'', id, ''cr_number'', cr_number, ''title'', title,
+         ''date_display'', date_display, ''medium'', medium, ''series'', series,
+         ''similarity'', 1 - (embedding <=> $1)
+       ) from works
+       where embedding is not null
+       order by embedding <=> $1
+       limit $2'
+    using p_query_embedding, p_match_count;
+  elsif p_collection = 'staged_works' then
+    return query execute
+      'select jsonb_build_object(
+         ''id'', id, ''title'', title, ''date_display'', date_display,
+         ''medium'', medium, ''suggested_series'', suggested_series, ''status'', status,
+         ''similarity'', 1 - (embedding <=> $1)
+       ) from staged_works
+       where embedding is not null
+       order by embedding <=> $1
+       limit $2'
+    using p_query_embedding, p_match_count;
+  elsif p_collection = 'source_materials' then
+    return query execute
+      'select jsonb_build_object(
+         ''id'', id, ''filename'', filename, ''kind'', kind,
+         ''notes'', left(coalesce(notes,''''), 500),
+         ''similarity'', 1 - (embedding <=> $1)
+       ) from source_materials
+       where embedding is not null
+       order by embedding <=> $1
+       limit $2'
+    using p_query_embedding, p_match_count;
+  else
+    raise exception 'Unknown collection: %', p_collection;
+  end if;
+end;
+$$;

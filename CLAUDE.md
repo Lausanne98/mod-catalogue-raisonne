@@ -208,6 +208,36 @@ script then this file, rather than duplicating client setup or a hardcoded
 rule above doesn't apply to it directly — but it's shared by every admin and
 public page, so treat changes to it as touching all of them at once.
 
+## Knowledge index (semantic search for Khalo & co's sorting protocols)
+`supabase/functions/knowledge-index` is a pgvector-backed semantic search
+layer, separate from Khalo's own Mode B function, covering three things —
+each embedded with Voyage AI's `voyage-3` model (1024 dims; requires a
+`VOYAGE_API_KEY` secret, added out-of-band per the credentials rule above,
+never committed):
+1. **`claude_md_chunks`** — this file's own classification rules, chunked by
+   `## ` heading. Populated by POSTing the current CLAUDE.md content to the
+   function's `sync_claude_md` action (full replace every time) — a manual
+   step run from a session with repo access whenever this file's
+   classification-rule sections change; there's no automatic trigger for it.
+2. **`works.embedding` / `staged_works.embedding`** — lets a candidate be
+   compared against similar existing entries by meaning (title + medium +
+   series + notes), not just exact/fuzzy title matching. Backfilled via the
+   `backfill` action; new/updated rows aren't embedded automatically yet —
+   re-run backfill after a batch of changes.
+3. **`source_materials.embedding`** — embeds `notes`, which for a
+   `kind='image'` row already holds that page's own extracted text (see
+   "Source PDFs" below). A `kind='pdf'` or `kind='url'` row has no persisted
+   extracted text to embed and stays unembedded — expected, not an error.
+
+Khalo's automated pass (`process-source-material`) calls this function
+server-to-server (service-role bearer, same pattern as its own
+self-invoke handoff) via two tools: `search_classification_rules` (the full
+tag/series rules, retrieved by meaning, so the system prompt itself only
+carries headline summaries instead of every rule's full text — this is
+what keeps that prompt from growing without bound as rules are added) and
+`search_similar_works` (duplicate/near-duplicate detection by meaning, on
+top of the exact/fuzzy title matching already built into Mode B).
+
 ## Source PDFs (catalogs, e-cats) don't live in Supabase long-term
 A source PDF's *derived* JPEGs and extracted text belong in
 `source_materials`/`source-materials` (that's the whole point of
