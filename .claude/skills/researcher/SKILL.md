@@ -49,6 +49,18 @@ real, specific claim — not just a title match — same discipline the
 associate-archivist skill already requires: a title alone is not
 confirmation.
 
+**Social media (added 2026-09-19) is a deliberate modern addition to this
+sweep** — most catalogues raisonnés don't cover it, but the studio wants it
+included here. Chloe's own accounts to check are seeded in `research_sites`
+(category `social-media`: her Instagram and X). The confidence bar doesn't
+relax for a social post — if anything it needs MORE care than a gallery or
+auction listing, since anyone can post anything: a post from her own verified
+account showing/discussing a specific work is a strong primary source, same
+weight as a gallery's own listing; a third party's post merely tagging or
+mentioning her, or a comment claiming to own a piece, is a candidate at best
+(`matched_work_id` stays null) — never treat "someone posted about it" alone
+as confirmation the way a museum collection page's own text would be.
+
 For each real candidate found, record:
 - **`category`** — one of `gallery`, `auction-house`, `museum`, `press`,
   `publication`, `media`, `social-media`, `book` (matches the `research_sites`

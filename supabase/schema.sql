@@ -1246,6 +1246,21 @@ insert into research_sites (name, url, category) values
   ('Pérez Art Museum Miami (PAMM)', 'https://www.pamm.org', 'museum')
 on conflict (url) do nothing;
 
+-- Added 2026-09-19: press coverage plus a deliberate modern addition,
+-- social media (see the researcher skill's own note on this -- most
+-- catalogues raisonnés don't cover it, the studio wants it here). The two
+-- social-media rows are her accounts as identified via live web search, not
+-- a manually confirmed link -- see the notes column and the researcher
+-- skill's confidence guidance for social posts.
+insert into research_sites (name, url, category, notes) values
+  ('Brooklyn Rail', 'https://brooklynrail.org', 'press', null),
+  ('The New Criterion', 'https://newcriterion.com', 'press', null),
+  ('Instagram (Michele Oka Doner)', 'https://www.instagram.com/micheleokadoner/', 'social-media',
+    'Verified via web search as her account, not a manually confirmed link. Treat a specific work claim from a post with the same confidence bar as everything else -- her own account posting a piece is strong, someone else tagging/mentioning her is a candidate at best.'),
+  ('X / Twitter (Michele Oka Doner)', 'https://x.com/okadoner', 'social-media',
+    'Verified via web search as her account, not a manually confirmed link -- same notes as the Instagram row above.')
+on conflict (url) do nothing;
+
 -- ═══ KNOWLEDGE INDEX (semantic search for Khalo & co's sorting protocols) ═══
 -- Lets the automated archivist pass retrieve the most relevant classification
 -- rule, or the most similar existing work, by meaning -- instead of only
