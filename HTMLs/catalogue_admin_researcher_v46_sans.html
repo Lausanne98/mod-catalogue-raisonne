@@ -293,7 +293,7 @@
       <button class="nav-dropdown-trigger nav-dark" onclick="toggleNavDropdown(event)">Agents ▾</button>
       <div class="nav-dropdown-menu">
         <a href="catalogue_admin_agents_v43_sans.html">CR Team</a>
-        <a href="catalogue_admin_drafts_v47_sans.html">Archivist's Desk</a>
+        <a href="catalogue_admin_drafts_v48_sans.html">Archivist's Desk</a>
         <a href="catalogue_admin_researcher_v46_sans.html">Researcher's Desk</a>
         <a href="catalogue_admin_it_v43_sans.html">IT</a>
       </div>
@@ -978,7 +978,7 @@ function findBar(f){
   const clickable = !!f.staged_work_id;
   const site = siteLabel(f);
   const statusPill = f.staged_work_id
-    ? `<a class="find-status-pill approved" href="catalogue_admin_drafts_v47_sans.html" style="text-decoration:none;">With Archivist</a>`
+    ? `<a class="find-status-pill approved" href="catalogue_admin_drafts_v48_sans.html" style="text-decoration:none;">With Archivist</a>`
     : f.status === 'approved' ? '<span class="find-status-pill approved">Approved</span>'
     : '<span class="find-status-pill rejected">Rejected</span>';
   return `

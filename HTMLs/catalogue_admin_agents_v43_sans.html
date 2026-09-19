@@ -157,7 +157,7 @@
       <button class="nav-dropdown-trigger nav-dark" onclick="toggleNavDropdown(event)">Agents ▾</button>
       <div class="nav-dropdown-menu">
         <a href="catalogue_admin_agents_v43_sans.html">CR Team</a>
-        <a href="catalogue_admin_drafts_v47_sans.html">Archivist's Desk</a>
+        <a href="catalogue_admin_drafts_v48_sans.html">Archivist's Desk</a>
         <a href="catalogue_admin_researcher_v46_sans.html">Researcher's Desk</a>
         <a href="catalogue_admin_it_v43_sans.html">IT</a>
       </div>
@@ -215,12 +215,12 @@
       </div>
     </div>
 
-    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_drafts_v47_sans.html')">
+    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_drafts_v48_sans.html')">
       <div class="agent-name">Khalo</div>
       <div class="agent-role">Associate Archivist</div>
       <span class="status-pill built">Built</span>
       <div class="agent-desc">Processes and verifies research, matches it against the catalogue, and proposes new entries or revisions — never writes to a live work directly.</div>
-      <a class="agent-goto" href="catalogue_admin_drafts_v47_sans.html">Open Archivist's Drafts →</a>
+      <a class="agent-goto" href="catalogue_admin_drafts_v48_sans.html">Open Archivist's Drafts →</a>
       <div class="card-actions">
         <button class="btn" onclick="toggleOverview('khalo')">Overview</button>
         <button class="btn play" onclick="speakAgent('khalo', overviews.khalo, this)" aria-label="Play" title="Play">🔊</button>
@@ -498,12 +498,12 @@ async function loadBriefing(){
   try{
     const staged = await modcrFetchStagedWorks();
     const newCount = staged.filter(s => s.status === 'new').length;
-    lines.push(`<li><strong>${newCount}</strong> new draft${newCount === 1 ? '' : 's'} in New Entries awaiting review. <a href="catalogue_admin_drafts_v47_sans.html">Go to Archivist's Drafts →</a></li>`);
+    lines.push(`<li><strong>${newCount}</strong> new draft${newCount === 1 ? '' : 's'} in New Entries awaiting review. <a href="catalogue_admin_drafts_v48_sans.html">Go to Archivist's Drafts →</a></li>`);
   }catch(e){ lines.push('<li>Could not load New Entries count.</li>'); }
 
   try{
     const revisions = await modcrFetchWorkRevisions('pending');
-    lines.push(`<li><strong>${revisions.length}</strong> proposed revision${revisions.length === 1 ? '' : 's'} awaiting approval. <a href="catalogue_admin_drafts_v47_sans.html">Go to Archivist's Drafts →</a></li>`);
+    lines.push(`<li><strong>${revisions.length}</strong> proposed revision${revisions.length === 1 ? '' : 's'} awaiting approval. <a href="catalogue_admin_drafts_v48_sans.html">Go to Archivist's Drafts →</a></li>`);
   }catch(e){ lines.push('<li>Could not load Revisions count.</li>'); }
 
   try{
