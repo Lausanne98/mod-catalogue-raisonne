@@ -895,6 +895,101 @@ drop policy if exists "admin_backgrounds_bucket_admin_delete" on storage.objects
 create policy "admin_backgrounds_bucket_admin_delete" on storage.objects for delete
   using (bucket_id = 'admin-backgrounds' and auth.role() = 'authenticated');
 
+-- ═══ WORK CITATIONS — a growing index of every work mention Khalo or Chloe
+-- encounters during any research pass, whether or not that work has its own
+-- staged/live record yet. Solves "a PDF mentions 40 works in passing while
+-- researching one of them -- log all 40, so when any of them gets its own
+-- entry later (manually or via a draft), the citation is already there to
+-- pull in" rather than being silently dropped because it wasn't the specific
+-- work being staged in that pass. ═══
+create table if not exists work_citations (
+  id               uuid primary key default gen_random_uuid(),
+  title_raw        text not null,            -- exactly as it appeared in the source
+  normalized_title text not null,            -- lowercased/trimmed, for matching against a new entry's title
+  citation_kind    text not null check (citation_kind in ('publication','exhibition','provenance','auction','other')),
+  citation_text    text not null,            -- the actual citation content (a provenance line, an exhibition line, a lit. reference...)
+  source_url       text,
+  source_material_id uuid references source_materials(id) on delete set null,
+  work_id          uuid references works(id) on delete set null,        -- set once this title is matched to a live work
+  staged_work_id   uuid references staged_works(id) on delete set null, -- set once this title is matched to a draft
+  created_at       timestamptz not null default now()
+);
+create index if not exists work_citations_normalized_title_idx on work_citations(normalized_title);
+create index if not exists work_citations_work_id_idx on work_citations(work_id);
+create index if not exists work_citations_staged_work_id_idx on work_citations(staged_work_id);
+
+alter table work_citations enable row level security;
+drop policy if exists "work_citations_admin_only" on work_citations;
+create policy "work_citations_admin_only" on work_citations for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- pg_trgm powers a fuzzy ILIKE/similarity match from a new entry's title
+-- against normalized_title -- titles are rarely quoted identically across
+-- sources (see CLAUDE.md's title-parsing rule), so exact match alone would
+-- miss most real matches.
+create extension if not exists pg_trgm;
+create index if not exists work_citations_normalized_title_trgm_idx on work_citations using gin (normalized_title gin_trgm_ops);
+
+-- Fuzzy title match against the citation index, called from Intake when a
+-- new entry begins (manual or from a draft) to auto-prime Provenance/
+-- Exhibitions/Literature, and from process-source-material's log_citation
+-- tool to check whether an incoming citation already matches a live work or
+-- staged draft. similarity() comes from pg_trgm; 0.35 is a deliberately
+-- permissive floor since real-world title variance is high (quoted-name
+-- extraction, punctuation, articles) -- callers still show/apply results as
+-- suggestions, not silent auto-writes, so a loose floor costs a human a
+-- glance, not a wrong publish.
+create or replace function match_work_citations(p_title text, p_limit int default 20)
+returns table (
+  id uuid,
+  title_raw text,
+  citation_kind text,
+  citation_text text,
+  source_url text,
+  work_id uuid,
+  staged_work_id uuid,
+  similarity real
+)
+language sql
+stable
+as $$
+  select
+    wc.id, wc.title_raw, wc.citation_kind, wc.citation_text, wc.source_url,
+    wc.work_id, wc.staged_work_id,
+    similarity(wc.normalized_title, lower(trim(p_title))) as similarity
+  from work_citations wc
+  where wc.normalized_title % lower(trim(p_title))
+  order by similarity desc
+  limit p_limit;
+$$;
+
+-- ═══ STAGED WORK PHOTO CANDIDATES — the "maybe" bullpen. A photo Khalo
+-- found plausibly related to a draft but not confidently enough to set as
+-- its actual image_url outright (no explicit caption, ambiguous among
+-- several images on the same page, etc.) lands here instead of being
+-- silently discarded -- a human reviewing the draft can promote one to the
+-- real photo. High-confidence photos (an explicit caption naming the work,
+-- or a table-of-contents/List of Works page number match) still go straight
+-- to image_url as before -- this is only for the gray area in between. ═══
+alter table staged_works add column if not exists candidate_photos jsonb not null default '[]'::jsonb;
+
+insert into storage.buckets (id, name, public)
+values ('staged-work-photos', 'staged-work-photos', true)
+on conflict (id) do nothing;
+
+drop policy if exists "staged_work_photos_bucket_public_read" on storage.objects;
+create policy "staged_work_photos_bucket_public_read" on storage.objects for select
+  using (bucket_id = 'staged-work-photos');
+drop policy if exists "staged_work_photos_bucket_admin_write" on storage.objects;
+create policy "staged_work_photos_bucket_admin_write" on storage.objects for insert
+  with check (bucket_id = 'staged-work-photos' and auth.role() = 'authenticated');
+drop policy if exists "staged_work_photos_bucket_admin_update" on storage.objects;
+create policy "staged_work_photos_bucket_admin_update" on storage.objects for update
+  using (bucket_id = 'staged-work-photos' and auth.role() = 'authenticated');
+drop policy if exists "staged_work_photos_bucket_admin_delete" on storage.objects;
+create policy "staged_work_photos_bucket_admin_delete" on storage.objects for delete
+  using (bucket_id = 'staged-work-photos' and auth.role() = 'authenticated');
+
 -- ═══ MIGRATE EXISTING 28 WORKS ═══
 -- Images point at the already-hosted GitHub Pages files for now (legacy_image_url)
 -- rather than re-uploading into Storage in this pass — new intake uploads going
