@@ -27,6 +27,26 @@ public pages, admin pages, and intake all read/write the live DB. Every
 migration in the file is a self-healing `alter table ... add column if not
 exists`, safe to re-run.
 
+## Supabase auto-pause keepalive
+Supabase's free tier auto-pauses a project after 7 days with zero API
+activity. This site has no server of its own (static HTML on GitHub Pages,
+no Vercel/Node build to hang a cron-triggered API route off of), so instead
+`.github/workflows/supabase-keepalive.yml` is a GitHub Actions scheduled
+workflow (`schedule: cron '0 8 * * *'`, plus `workflow_dispatch` for a manual
+run) that does one read-only request a day (`select=slug&limit=1` against
+the public `series` table, using the anon key above) to keep the project
+active. Costs nothing — free GitHub Actions minutes, no new infra. Not
+verified against the live project this session — this sandbox's egress
+proxy blocks `*.supabase.co` outright (see "Not yet independently verified"
+below), same known limitation, so confirm the workflow actually succeeds
+from the Actions tab after it's merged.
+
+If the daily ping fails, the workflow opens a GitHub issue (labeled
+`supabase-keepalive-failure`, deduplicated so a run of consecutive failures
+doesn't open a new one each day) rather than relying on anyone's GitHub
+email-notification settings — a failure likely means the project auto-paused
+or the API/key changed, either of which is worth knowing about right away.
+
 Live row count is **not fully knowable via the anon key** — RLS only
 surfaces published series (plus the ceramic-pre-2000 Early Clay
 cross-categorization). A same-session anon query returned 21 rows visible
