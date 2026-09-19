@@ -866,6 +866,30 @@ function modcrInitBackgroundTab(pageSlug){
   modcrFetchPageBackground(pageSlug).then(row => { if(row) modcrApplyPageBackground(row); }).catch(()=>{});
 }
 
+// ---- Citation index / live research (Intake auto-prime + search buttons) ----
+// Fuzzy title match against the work_citations index (see supabase/schema.sql
+// -- match_work_citations, pg_trgm-backed) so a new entry, however it began
+// (typed manually, or opened from a Researcher's/Archivist's draft), can be
+// auto-primed with every citation Khalo's research passes have already
+// logged for that title, even a passing mention that wasn't itself enough to
+// stage or match a work on its own.
+async function modcrFetchCitationMatches(title){
+  if(!title || !title.trim()) return [];
+  const { data, error } = await modcrSupabase.rpc('match_work_citations', { p_title: title.trim() });
+  if(error) throw error;
+  return data ?? [];
+}
+// Live web-search pass scoped to one work (research-work Edge Function) --
+// never writes to the database itself; the caller drops the result into the
+// relevant form fields as editable draft text for human review.
+async function modcrResearchWork(title, medium, dateDisplay){
+  const { data, error } = await modcrSupabase.functions.invoke('research-work', {
+    body: { title, medium: medium || undefined, date_display: dateDisplay || undefined },
+  });
+  if(error) throw await modcrUnwrapFunctionError(error);
+  return data;
+}
+
 // ---- Auth ----
 async function modcrRequireAuth(loginPage){
   const { data: { session } } = await modcrSupabase.auth.getSession();
