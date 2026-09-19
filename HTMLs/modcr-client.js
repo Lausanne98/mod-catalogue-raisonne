@@ -779,6 +779,93 @@ function modcrAudioUrl(storagePath){
   return modcrSupabase.storage.from('work-audio').getPublicUrl(storagePath).data.publicUrl;
 }
 
+// ---- Per-page admin background (self-serve upload) ----
+// Each admin page owns one row here by its own slug. Replaces hand-coding a
+// background image into a page's CSS -- which meant an image had to be
+// handed off to a Claude session through chat every time it changed, a path
+// that turned out to sometimes silently degrade the file (a low-resolution
+// preview instead of the original). Uploading straight from the browser
+// avoids that entirely.
+const MODCR_BG_BUCKET = 'admin-backgrounds';
+function modcrBackgroundUrl(storagePath){
+  return modcrSupabase.storage.from(MODCR_BG_BUCKET).getPublicUrl(storagePath).data.publicUrl;
+}
+async function modcrFetchPageBackground(pageSlug){
+  const { data, error } = await modcrSupabase
+    .from('admin_backgrounds').select('*').eq('page_slug', pageSlug).maybeSingle();
+  if(error) throw error;
+  return data;
+}
+async function modcrUploadPageBackground(pageSlug, file){
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${pageSlug}.${ext}`;
+  const { error: upErr } = await modcrSupabase.storage.from(MODCR_BG_BUCKET)
+    .upload(path, file, { upsert: true, contentType: file.type || undefined });
+  if(upErr) throw upErr;
+  const { data, error } = await modcrSupabase.from('admin_backgrounds')
+    .upsert({ page_slug: pageSlug, storage_path: path, updated_at: new Date().toISOString() })
+    .select().single();
+  if(error) throw error;
+  return data;
+}
+function modcrApplyPageBackground(row){
+  if(!row) return;
+  // Cache-bust with the row's own updated_at so every viewer picks up a
+  // replacement immediately, not just whoever uploaded it.
+  const url = modcrBackgroundUrl(row.storage_path) + '?v=' + new Date(row.updated_at).getTime();
+  document.body.style.backgroundImage = `url('${url}')`;
+  document.body.style.backgroundSize = 'cover';
+  document.body.style.backgroundPosition = 'center';
+  document.body.style.backgroundRepeat = 'no-repeat';
+  document.body.style.backgroundAttachment = 'fixed';
+}
+// Small floating admin-only control added to each admin page's own markup
+// via one call. Falls back to whatever background that page's own CSS
+// already declares until a row exists for its slug.
+function modcrInitBackgroundTab(pageSlug){
+  const tab = document.createElement('div');
+  tab.className = 'modcr-bg-tab';
+  tab.innerHTML = `
+    <button type="button" class="modcr-bg-tab-btn">Background</button>
+    <input type="file" accept="image/*" class="modcr-bg-tab-input" style="display:none;">
+  `;
+  const style = document.createElement('style');
+  style.textContent = `
+    .modcr-bg-tab { position: fixed; right: 14px; bottom: 14px; z-index: 9999; }
+    .modcr-bg-tab-btn {
+      font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+      background: rgba(28,28,28,.72); color: #fff; border: none; padding: 8px 12px; cursor: pointer;
+    }
+    .modcr-bg-tab-btn:hover { background: rgba(28,28,28,.9); }
+    .modcr-bg-tab-btn:disabled { opacity: .6; cursor: wait; }
+  `;
+  document.head.appendChild(style);
+  document.body.appendChild(tab);
+  const btn = tab.querySelector('.modcr-bg-tab-btn');
+  const input = tab.querySelector('.modcr-bg-tab-input');
+  btn.addEventListener('click', () => input.click());
+  input.addEventListener('change', async () => {
+    const file = input.files[0];
+    if(!file) return;
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Uploading…';
+    try{
+      const row = await modcrUploadPageBackground(pageSlug, file);
+      modcrApplyPageBackground(row);
+      btn.textContent = 'Updated';
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    }catch(e){
+      alert("Couldn't update the background: " + e.message);
+      btn.textContent = original;
+    }finally{
+      btn.disabled = false;
+      input.value = '';
+    }
+  });
+  modcrFetchPageBackground(pageSlug).then(row => { if(row) modcrApplyPageBackground(row); }).catch(()=>{});
+}
+
 // ---- Auth ----
 async function modcrRequireAuth(loginPage){
   const { data: { session } } = await modcrSupabase.auth.getSession();

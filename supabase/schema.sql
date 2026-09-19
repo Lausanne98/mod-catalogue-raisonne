@@ -747,6 +747,29 @@ drop policy if exists "chronology_events_admin_write" on chronology_events;
 create policy "chronology_events_admin_write" on chronology_events for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- ═══ ADMIN PAGE BACKGROUNDS — self-serve upload, one image per admin page.
+-- Replaces hardcoding a single shared wallpaper image into each page's CSS
+-- (which required a chat-based file hand-off from the studio to a Claude
+-- session every time it needed to change, and was the source of at least one
+-- low-resolution/cropped result when that hand-off silently degraded the
+-- file). Each admin page now reads its own row by page_slug and lets the
+-- signed-in admin upload/replace it directly from a small on-page control —
+-- no code change, no versioned-file edit, no hand-off needed to update a
+-- background again. ═══
+create table if not exists admin_backgrounds (
+  page_slug    text primary key,
+  storage_path text not null,
+  updated_at   timestamptz not null default now()
+);
+
+alter table admin_backgrounds enable row level security;
+drop policy if exists "admin_backgrounds_public_read" on admin_backgrounds;
+create policy "admin_backgrounds_public_read" on admin_backgrounds for select
+  using (true); -- decorative site chrome only, no sensitivity in showing it
+drop policy if exists "admin_backgrounds_admin_write" on admin_backgrounds;
+create policy "admin_backgrounds_admin_write" on admin_backgrounds for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
 -- ═══ STORAGE BUCKETS ═══
 insert into storage.buckets (id, name, public)
 values ('work-photos', 'work-photos', true)
@@ -778,6 +801,10 @@ on conflict (id) do nothing;
 -- publicly. Admin-only read, same as source-materials; anon may only INSERT.
 insert into storage.buckets (id, name, public)
 values ('public-submissions', 'public-submissions', false)
+on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('admin-backgrounds', 'admin-backgrounds', true)
 on conflict (id) do nothing;
 
 drop policy if exists "work_photos_public_read" on storage.objects;
@@ -854,6 +881,19 @@ create policy "public_submissions_bucket_admin_read" on storage.objects for sele
 drop policy if exists "public_submissions_bucket_admin_delete" on storage.objects;
 create policy "public_submissions_bucket_admin_delete" on storage.objects for delete
   using (bucket_id = 'public-submissions' and auth.role() = 'authenticated');
+
+drop policy if exists "admin_backgrounds_bucket_public_read" on storage.objects;
+create policy "admin_backgrounds_bucket_public_read" on storage.objects for select
+  using (bucket_id = 'admin-backgrounds');
+drop policy if exists "admin_backgrounds_bucket_admin_write" on storage.objects;
+create policy "admin_backgrounds_bucket_admin_write" on storage.objects for insert
+  with check (bucket_id = 'admin-backgrounds' and auth.role() = 'authenticated');
+drop policy if exists "admin_backgrounds_bucket_admin_update" on storage.objects;
+create policy "admin_backgrounds_bucket_admin_update" on storage.objects for update
+  using (bucket_id = 'admin-backgrounds' and auth.role() = 'authenticated');
+drop policy if exists "admin_backgrounds_bucket_admin_delete" on storage.objects;
+create policy "admin_backgrounds_bucket_admin_delete" on storage.objects for delete
+  using (bucket_id = 'admin-backgrounds' and auth.role() = 'authenticated');
 
 -- ═══ MIGRATE EXISTING 28 WORKS ═══
 -- Images point at the already-hosted GitHub Pages files for now (legacy_image_url)
