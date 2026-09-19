@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agents — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0f0ef;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #dedddb;
+    --rulelg: #ececea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f7f6;
+    --red:    #a83232;
+    --green:  #3f6b3f;
+    --agent:    #8a9a2b;
+    --agent-lt: #eef3c9;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--sand); color: var(--ink); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  header {
+    position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .header-nav { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+  .header-nav a { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); text-decoration: none; }
+  .header-nav a:hover { color: var(--ink); }
+  .nav-dark { color: var(--ink); }
+  .header-nav button {
+    font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer;
+  }
+  .header-nav button:hover { color: var(--ink); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 20px 96px; }
+  .page-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .page-head p { font-size: 12.5px; color: var(--mid); margin-bottom: 28px; max-width: 680px; }
+
+  /* BRIEFING PANEL */
+  .briefing {
+    background: var(--white); border: 1px solid var(--agent); border-left: 4px solid var(--agent);
+    padding: 24px 28px; margin-bottom: 32px;
+  }
+  .briefing-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 4px; }
+  .briefing-who { font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--agent); font-weight: 600; margin-bottom: 8px; }
+  .briefing-greeting { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 19px; line-height: 1.5; margin-bottom: 14px; }
+  .briefing-body { font-size: 13.5px; color: var(--mid); line-height: 1.75; display: none; }
+  .briefing-body.show { display: block; }
+  .briefing-body ul { list-style: none; margin: 10px 0; }
+  .briefing-body li { padding: 6px 0; border-bottom: 1px solid var(--rulelg); }
+  .briefing-body li:last-child { border-bottom: none; }
+  .briefing-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+  .name-edit { font-size: 11px; color: var(--light); margin-top: 10px; }
+  .name-edit a { color: var(--light); }
+  .name-edit input { font-family: 'Inter', sans-serif; font-size: 11.5px; border: 1px solid var(--rule); padding: 4px 7px; }
+
+  .btn {
+    font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; padding: 9px 16px;
+    border: 1px solid var(--rule); background: var(--white); color: var(--ink); cursor: pointer; transition: all .15s;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn.agent { background: var(--agent); color: var(--white); border-color: var(--agent); }
+  .btn.agent:hover { background: #748123; border-color: #748123; }
+  .btn.play {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 10px;
+  }
+
+  /* AGENT CARDS */
+  .agent-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 40px; }
+  @media(max-width: 800px) { .agent-grid { grid-template-columns: 1fr; } }
+  .agent-card { background: var(--white); border: 1px solid var(--rule); padding: 22px; border-top: 3px solid var(--agent); }
+  .agent-name { font-family: 'Inter', sans-serif; font-size: 17px; margin-bottom: 2px; }
+  .agent-role { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--light); margin-bottom: 10px; }
+  .agent-desc { font-size: 12.5px; color: var(--mid); line-height: 1.6; margin-bottom: 12px; }
+  .status-pill { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 9px; border-radius: 2px; display: inline-block; margin-bottom: 14px; }
+  .status-pill.built { color: var(--green); background: #eaf3ea; border: 1px solid #a8c9a8; }
+  .status-pill.notbuilt { color: var(--light); background: var(--sand); border: 1px solid var(--rule); }
+  .agent-overview { display: none; font-size: 12.5px; color: var(--mid); line-height: 1.7; border-top: 1px solid var(--rulelg); padding-top: 12px; margin-top: 4px; }
+  .agent-overview.show { display: block; }
+  .voice-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .voice-row select { font-family: 'Inter', sans-serif; font-size: 11px; border: 1px solid var(--rule); padding: 5px 6px; flex: 1; min-width: 0; }
+  .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* FLOWCHART */
+  .flow-section h2 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 19px; margin-bottom: 4px; }
+  .flow-section > p { font-size: 12.5px; color: var(--mid); margin-bottom: 20px; }
+  .flow-wrap { background: var(--white); border: 1px solid var(--rule); padding: 32px 20px; overflow-x: auto; }
+  .flow-row { display: flex; align-items: center; gap: 8px; min-width: 780px; }
+  .flow-box {
+    flex: 1; text-align: center; padding: 14px 10px; border: 1.5px solid var(--rule); background: var(--sand);
+    font-size: 11.5px; line-height: 1.5;
+  }
+  .flow-box.agent-box { border-color: var(--agent); background: var(--agent-lt); color: #55611a; }
+  .flow-box.human-box { border-color: var(--gold); background: #faf3e8; color: var(--gold); }
+  .flow-box strong { display: block; font-size: 12.5px; margin-bottom: 2px; }
+  .flow-arrow { font-size: 18px; color: var(--light); flex-shrink: 0; }
+  .flow-side { display: flex; justify-content: center; margin-top: 14px; }
+  .flow-side .flow-box { flex: none; max-width: 260px; border-color: var(--light); background: var(--white); border-style: dashed; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">MOD CR — Admin</div>
+  <div class="header-nav">
+    <a href="catalogue_admin_v68_sans.html">Dashboard</a>
+    <a href="catalogue_admin_manage_v69_sans.html">Works</a>
+    <a href="catalogue_admin_series_v39_sans.html">Series</a>
+    <a href="catalogue_admin_materials_v32_sans.html">Materials</a>
+    <a href="catalogue_intake_v74_sans.html">Add a Work</a>
+    <a href="catalogue_admin_chronology_v19_sans.html">Chronology</a>
+    <a href="catalogue_admin_sources_v5_sans.html">Sources</a>
+    <a href="catalogue_admin_drafts_v4_sans.html">Drafts</a>
+    <a href="catalogue_admin_agents_v2_sans.html"><span class="nav-dark">Agents</span></a>
+    <a href="catalogue_admin_it_v1_sans.html">IT</a>
+    <a href="catalogue_v72_sans.html">View Site</a>
+    <button onclick="modcrLogOut('catalogue_admin_login_v64_sans.html')">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <h1>Agents</h1>
+    <p>The team working behind the scenes on research and archival sorting — what each one does, how they hand off to each other, and how to hear from them directly. Nothing here writes to the live catalogue without your approval in Archivist's Drafts.</p>
+  </div>
+
+  <!-- BRIEFING -->
+  <div class="briefing" id="briefing">
+    <div class="briefing-head">
+      <div>
+        <div class="briefing-who">Khalo</div>
+        <div class="briefing-greeting" id="greetingText">Loading…</div>
+      </div>
+    </div>
+    <div class="briefing-actions">
+      <button class="btn agent" onclick="showUpdates()">Share the Updates</button>
+      <button class="btn play" onclick="speakAgent('khalo', document.getElementById('greetingText').textContent)">🔊 Play</button>
+    </div>
+    <div class="briefing-body" id="briefingBody"></div>
+    <div class="name-edit" id="nameEdit">
+      Not the right name? <a href="#" onclick="editName();return false;">Update it</a>
+    </div>
+  </div>
+
+  <!-- AGENT CARDS -->
+  <div class="agent-grid">
+    <div class="agent-card">
+      <div class="agent-name">Chloe</div>
+      <div class="agent-role">Researcher</div>
+      <span class="status-pill notbuilt">Not yet built</span>
+      <div class="agent-desc">Gathers provenance research, exhibition history, and raw material into a holding folder for Khalo to sort through. Read-only against the database — never writes.</div>
+      <div class="card-actions">
+        <button class="btn" onclick="toggleOverview('chloe')">Overview</button>
+        <button class="btn play" onclick="speakAgent('chloe', overviews.chloe)">🔊 Play</button>
+      </div>
+      <div class="agent-overview" id="overview-chloe"></div>
+      <div class="voice-row"><label style="font-size:10px;color:var(--light);white-space:nowrap;">Voice</label><select id="voice-chloe"></select></div>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-name">Khalo</div>
+      <div class="agent-role">Associate Archivist</div>
+      <span class="status-pill built">Built</span>
+      <div class="agent-desc">Processes and verifies research, matches it against the catalogue, and proposes new entries or revisions — never writes to a live work directly.</div>
+      <div class="card-actions">
+        <button class="btn" onclick="toggleOverview('khalo')">Overview</button>
+        <button class="btn play" onclick="speakAgent('khalo', overviews.khalo)">🔊 Play</button>
+      </div>
+      <div class="agent-overview" id="overview-khalo"></div>
+      <div class="voice-row"><label style="font-size:10px;color:var(--light);white-space:nowrap;">Voice</label><select id="voice-khalo"></select></div>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-name">Timur</div>
+      <div class="agent-role">IT / Infrastructure</div>
+      <span class="status-pill notbuilt">Not yet built</span>
+      <div class="agent-desc">Tracks where everything lives — Supabase, GitHub, third-party services — and watches for vendor or protocol risk over time.</div>
+      <div class="card-actions">
+        <button class="btn" onclick="toggleOverview('timur')">Overview</button>
+        <button class="btn play" onclick="speakAgent('timur', overviews.timur)">🔊 Play</button>
+      </div>
+      <div class="agent-overview" id="overview-timur"></div>
+      <div class="voice-row"><label style="font-size:10px;color:var(--light);white-space:nowrap;">Voice</label><select id="voice-timur"></select></div>
+    </div>
+  </div>
+
+  <!-- FLOWCHART -->
+  <div class="flow-section">
+    <h2>How they work together</h2>
+    <p>Nothing skips a step — a human decision is always the last one before anything reaches a real work.</p>
+    <div class="flow-wrap">
+      <div class="flow-row">
+        <div class="flow-box agent-box"><strong>Chloe</strong>Gathers research &amp; raw material</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box agent-box"><strong>Khalo</strong>Sorts, verifies, matches against the catalogue</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><strong>Archivist's Drafts</strong>New Entries + Revisions, pending</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box human-box"><strong>You</strong>Approve, reject, or edit</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><strong>Live Catalogue</strong>Only after approval</div>
+      </div>
+      <div class="flow-side">
+        <div class="flow-box"><strong>Timur</strong>Watches infrastructure across all of this, separately</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+<script src="modcr-client.js"></script>
+<script>
+const overviews = {
+  chloe: "I'm Chloe, the Researcher. I gather provenance research, exhibition history, and raw material — photography, catalogs, documents — into a holding folder for Khalo to sort through. I don't touch the database directly. I'm not built yet, so for now Khalo does its own research directly.",
+  khalo: "I'm Khalo, the Associate Archivist. I process what Chloe gathers, or research a work myself, and verify names, dates, mediums, and dimensions against what's already catalogued. When I find something new, I propose it, either as a brand new entry or a revision to an existing one, but I never touch a live work myself. A human always approves it first, in Archivist's Drafts.",
+  timur: "I'm Timur, the Infrastructure Keeper. I track where everything lives, Supabase, GitHub, and any other service this project depends on, and watch for vendor or protocol risk over time. I'm not built yet, so for now infrastructure still needs a manual check.",
+};
+const defaultVoiceParams = {
+  chloe: { rate: 1.08, pitch: 1.18 },
+  khalo: { rate: 0.95, pitch: 0.95 },
+  timur: { rate: 1.0, pitch: 0.82 },
+};
+
+let voices = [];
+function loadVoices(){
+  if(!('speechSynthesis' in window)) return;
+  voices = speechSynthesis.getVoices();
+  ['chloe','khalo','timur'].forEach(populateVoiceSelect);
+}
+function populateVoiceSelect(agentKey){
+  const sel = document.getElementById('voice-' + agentKey);
+  if(!sel || voices.length === 0) return;
+  const saved = localStorage.getItem('modcr_voice_' + agentKey);
+  sel.innerHTML = '<option value="">Default (browser voice)</option>' +
+    voices.map(v => `<option value="${v.name}" ${v.name === saved ? 'selected' : ''}>${v.name} (${v.lang})</option>`).join('');
+  sel.onchange = () => {
+    if(sel.value) localStorage.setItem('modcr_voice_' + agentKey, sel.value);
+    else localStorage.removeItem('modcr_voice_' + agentKey);
+  };
+}
+function speakAgent(agentKey, text){
+  if(!('speechSynthesis' in window)){
+    alert('Speech playback is not supported in this browser.');
+    return;
+  }
+  const utter = new SpeechSynthesisUtterance(text);
+  const savedName = localStorage.getItem('modcr_voice_' + agentKey);
+  const voice = voices.find(v => v.name === savedName);
+  if(voice) utter.voice = voice;
+  const params = defaultVoiceParams[agentKey] || {};
+  utter.rate = params.rate || 1;
+  utter.pitch = params.pitch || 1;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utter);
+}
+if('speechSynthesis' in window){
+  speechSynthesis.onvoiceschanged = loadVoices;
+  loadVoices();
+}
+
+function toggleOverview(agentKey){
+  const el = document.getElementById('overview-' + agentKey);
+  if(!el.classList.contains('show')) el.textContent = overviews[agentKey];
+  el.classList.toggle('show');
+}
+
+let agentSettings = null;
+let updateSummary = '';
+
+function timeOfDayGreeting(){
+  const h = new Date().getHours();
+  if(h < 12) return 'morning';
+  if(h < 18) return 'afternoon';
+  return 'evening';
+}
+
+async function editName(){
+  const current = (agentSettings && agentSettings.admin_display_name) || '';
+  const name = prompt('What should Khalo call you?', current);
+  if(name === null) return;
+  try{
+    await modcrSetAdminDisplayName(name.trim() || null);
+    agentSettings.admin_display_name = name.trim() || null;
+    renderGreeting();
+  }catch(e){
+    alert('Could not save: ' + e.message);
+  }
+}
+
+function renderGreeting(){
+  const name = (agentSettings && agentSettings.admin_display_name) || 'there';
+  const text = `Good ${timeOfDayGreeting()}, ${name} — would you like me to share the updates, or is there something you'd like to begin with?`;
+  document.getElementById('greetingText').textContent = text;
+}
+
+function showUpdates(){
+  const body = document.getElementById('briefingBody');
+  body.innerHTML = updateSummary;
+  body.classList.add('show');
+}
+
+async function loadBriefing(){
+  try{
+    agentSettings = await modcrFetchAgentSettings();
+  }catch(e){
+    agentSettings = { admin_display_name: null, engagement_enabled: true };
+  }
+  renderGreeting();
+
+  const lines = [];
+  try{
+    const staged = await modcrFetchStagedWorks();
+    const newCount = staged.filter(s => s.status === 'new').length;
+    lines.push(`<li><strong>${newCount}</strong> new draft${newCount === 1 ? '' : 's'} in New Entries awaiting review. <a href="catalogue_admin_drafts_v4_sans.html">Go to Archivist's Drafts →</a></li>`);
+  }catch(e){ lines.push('<li>Could not load New Entries count.</li>'); }
+
+  try{
+    const revisions = await modcrFetchWorkRevisions('pending');
+    lines.push(`<li><strong>${revisions.length}</strong> proposed revision${revisions.length === 1 ? '' : 's'} awaiting approval. <a href="catalogue_admin_drafts_v4_sans.html">Go to Archivist's Drafts →</a></li>`);
+  }catch(e){ lines.push('<li>Could not load Revisions count.</li>'); }
+
+  try{
+    const sources = await modcrFetchSourceMaterials();
+    const unreviewed = sources.filter(s => s.status === 'unreviewed').length;
+    lines.push(`<li><strong>${unreviewed}</strong> source material${unreviewed === 1 ? '' : 's'} not yet mined. <a href="catalogue_admin_sources_v5_sans.html">Go to Source Materials →</a></li>`);
+  }catch(e){ lines.push('<li>Could not load Source Materials count.</li>'); }
+
+  lines.push('<li>Infrastructure: no IT agent built yet — check Supabase/GitHub status manually for now.</li>');
+
+  updateSummary = '<ul>' + lines.join('') + '</ul>';
+}
+
+(async function(){
+  await modcrRequireAuth('catalogue_admin_login_v64_sans.html');
+  await loadBriefing();
+})();
+</script>
+</body>
+</html>

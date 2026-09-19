@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Chronology — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0f0ef;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #dedddb;
+    --rulelg: #ececea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f7f6;
+    --red:    #a83232;
+    --green:  #3f6b3f;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--sand); color: var(--ink); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  header {
+    position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .header-nav { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+  .header-nav a { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); text-decoration: none; }
+  .header-nav a:hover { color: var(--ink); }
+  .header-nav button {
+    font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer;
+  }
+  .header-nav button:hover { color: var(--ink); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 20px 96px; }
+  .page-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .page-head p { font-size: 12.5px; color: var(--mid); margin-bottom: 24px; }
+
+  .panel { background: var(--white); border: 1px solid var(--rule); padding: 24px; margin-bottom: 24px; }
+  .panel-head { font-family: 'Inter', sans-serif; font-size: 9px; letter-spacing: .18em; font-weight: 500; text-transform: uppercase; color: var(--mid); margin-bottom: 18px; }
+
+  .f-label { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); display: block; margin-bottom: 5px; }
+  input[type=text], input[type=number], textarea {
+    font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 8px 10px; width: 100%;
+  }
+  input:focus, textarea:focus { outline: none; border-color: var(--goldlt); }
+  textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
+  .f-field { margin-bottom: 12px; }
+  .chk-row { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+  .chk-row label { font-size: 11.5px; color: var(--mid); }
+
+  .btn {
+    font-family: 'Inter', sans-serif; font-size: 12px; letter-spacing: .04em; padding: 9px 16px;
+    border: 1px solid var(--rule); background: var(--white); color: var(--ink); cursor: pointer; transition: all .15s;
+  }
+  .btn:hover { background: var(--ink); color: var(--white); }
+  .btn.primary { background: var(--ink); color: var(--white); }
+  .btn.primary:hover { background: var(--gold); border-color: var(--gold); }
+
+  .decade-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .decade-row { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule); padding: 6px 10px; background: var(--sand); }
+  .decade-row .dec-num { font-weight: 600; font-size: 12.5px; }
+  .decade-row input[type=text] { width: 160px; padding: 5px 7px; font-size: 12px; }
+  .add-decade-row { display: flex; gap: 8px; align-items: end; }
+  .add-decade-row .f-field { margin-bottom: 0; }
+  .add-decade-row input[type=number] { width: 90px; }
+  .add-decade-row input[type=text] { width: 220px; }
+
+  .event-form-grid { display: grid; grid-template-columns: 110px 1fr; gap: 12px; margin-bottom: 12px; }
+  .photo-preview { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .photo-preview img { width: 80px; height: 80px; object-fit: cover; background: var(--sand); display: none; }
+  .photo-preview img.show { display: block; }
+
+  .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .filter-bar input, .filter-bar select {
+    font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 9px 12px;
+  }
+  #evSearch { flex: 1; min-width: 200px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--white); border: 1px solid var(--rule); }
+  thead th {
+    text-align: left; font-size: 9px; letter-spacing: .1em; font-weight: 500; text-transform: uppercase;
+    color: var(--light); padding: 10px 14px; border-bottom: 1px solid var(--rule); background: var(--sand);
+  }
+  tbody td { padding: 8px 14px; font-size: 13px; border-bottom: 1px solid var(--rulelg); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.editing { background: var(--hover); }
+  .ev-year { font-weight: 600; white-space: nowrap; }
+  .ev-desc-snip { color: var(--mid); }
+  .row-actions { display: flex; gap: 10px; white-space: nowrap; }
+  .row-actions a, .row-actions button {
+    font-family: 'Inter', sans-serif; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--mid); text-decoration: none; background: none; border: none; cursor: pointer; padding: 0;
+  }
+  .row-actions button:hover { color: var(--ink); }
+  .row-actions .del-link:hover { color: var(--red); }
+  .status-badge { font-size: 9px; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 2px; white-space: nowrap; }
+  .status-badge.live { color: var(--green); background: #eaf3ea; border: 1px solid #a8c9a8; }
+  .status-badge.hidden { color: var(--light); background: var(--sand); border: 1px solid var(--rule); }
+  .empty-state { padding: 40px; text-align: center; color: var(--light); font-size: 13px; font-style: italic; }
+
+  .save-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--white); padding: 12px 22px; font-size: 12.5px;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200;
+  }
+  .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .save-toast.error { background: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">MOD CR — Admin</div>
+  <div class="header-nav">
+    <a href="catalogue_admin_v40_sans.html">Dashboard</a>
+    <a href="catalogue_admin_manage_v40_sans.html">Manage Works</a>
+    <a href="catalogue_admin_series_v6_sans.html">Manage Series</a>
+    <a href="catalogue_admin_materials_v4_sans.html">Manage Materials</a>
+    <a href="catalogue_v44_sans.html">View Site</a>
+    <button onclick="modcrLogOut('catalogue_admin_login_v40_sans.html')">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <h1>Manage Chronology</h1>
+    <p>Decade subtitles and individual dated events for the Chronology page.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Decades</div>
+    <div class="decade-list" id="decadeList"></div>
+    <div class="add-decade-row">
+      <div class="f-field">
+        <label class="f-label">Decade</label>
+        <input type="number" id="newDecade" placeholder="e.g. 1950" step="10">
+      </div>
+      <div class="f-field">
+        <label class="f-label">Subtitle <span style="text-transform:none;color:var(--light);">(optional)</span></label>
+        <input type="text" id="newDecadeSubtitle" placeholder="e.g. Origins &amp; Formation">
+      </div>
+      <button class="btn" onclick="addDecade()">Add Decade</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head" id="eventFormHead">Add an Event</div>
+    <div class="event-form-grid">
+      <div class="f-field"><label class="f-label">Year</label><input type="number" id="ev-year" placeholder="1975"></div>
+      <div class="f-field"><label class="f-label">Date Label</label><input type="text" id="ev-date-label" placeholder='e.g. "October 27, 1923" or "Summer 1968" or "1975"'></div>
+    </div>
+    <div class="f-field">
+      <label class="f-label">Description</label>
+      <textarea id="ev-description" placeholder="What happened."></textarea>
+    </div>
+    <div class="photo-preview">
+      <img id="ev-photo-preview" alt="">
+      <div style="flex:1;">
+        <label class="f-label">Photo <span style="text-transform:none;color:var(--light);">(optional)</span></label>
+        <input type="file" id="ev-photo-file" accept="image/*">
+      </div>
+    </div>
+    <div class="event-form-grid">
+      <div class="f-field"><label class="f-label">Photo Caption</label><input type="text" id="ev-photo-caption"></div>
+      <div class="f-field"><label class="f-label">Photo Credit</label><input type="text" id="ev-photo-credit" placeholder="e.g. Photo: Jordan Doner"></div>
+    </div>
+    <div class="chk-row">
+      <input type="checkbox" id="ev-published">
+      <label for="ev-published">Published</label>
+    </div>
+    <button class="btn primary" onclick="saveEvent()" id="saveEventBtn">Add Event</button>
+    <button class="btn" onclick="resetEventForm()" id="cancelEditBtn" style="display:none;">Cancel Edit</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">All Events</div>
+    <div class="filter-bar">
+      <input type="text" id="evSearch" placeholder="Search by year, date, or description…">
+      <select id="evStatusFilter">
+        <option value="">All</option>
+        <option value="published">Published Only</option>
+        <option value="draft">Unpublished Only</option>
+      </select>
+    </div>
+    <table>
+      <thead><tr><th>Year</th><th>Date</th><th>Description</th><th>Status</th><th></th></tr></thead>
+      <tbody id="eventsTableBody"><tr><td colspan="5"><div class="empty-state">Loading…</div></td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+<script src="modcr-client.js"></script>
+<script>
+let decades = [];
+let events = [];
+let editingId = null;
+let pendingPhotoFile = null;
+let existingPhotoPath = null;
+
+function showToast(msg, isError){
+  const el = document.getElementById('saveToast');
+  el.textContent = msg;
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// ── Decades ──
+function renderDecades(){
+  document.getElementById('decadeList').innerHTML = decades.map(d => `
+    <div class="decade-row">
+      <span class="dec-num">${d.decade}s</span>
+      <input type="text" value="${(d.subtitle||'').replace(/"/g,'&quot;')}" placeholder="Subtitle"
+             onchange="saveDecadeSubtitle(${d.decade}, this.value)">
+    </div>`).join('') || '<span style="color:var(--light);font-size:12.5px;font-style:italic;">No decades yet — add one below.</span>';
+}
+async function loadDecades(){
+  try{ decades = await modcrFetchChronologyDecades(); }catch(e){ showToast('Could not load decades: ' + e.message, true); }
+  renderDecades();
+}
+async function addDecade(){
+  const decade = parseInt(document.getElementById('newDecade').value, 10);
+  const subtitle = document.getElementById('newDecadeSubtitle').value.trim();
+  if(!decade){ showToast('Enter a decade, e.g. 1950.', true); return; }
+  try{
+    await modcrSaveChronologyDecade(decade, subtitle);
+    document.getElementById('newDecade').value = '';
+    document.getElementById('newDecadeSubtitle').value = '';
+    await loadDecades();
+    showToast('Decade added.');
+  }catch(e){ showToast('Could not add decade: ' + e.message, true); }
+}
+async function saveDecadeSubtitle(decade, subtitle){
+  try{
+    await modcrSaveChronologyDecade(decade, subtitle);
+    showToast('Saved.');
+  }catch(e){ showToast('Could not save: ' + e.message, true); }
+}
+
+// ── Events ──
+function resetEventForm(){
+  editingId = null;
+  pendingPhotoFile = null;
+  existingPhotoPath = null;
+  document.getElementById('ev-year').value = '';
+  document.getElementById('ev-date-label').value = '';
+  document.getElementById('ev-description').value = '';
+  document.getElementById('ev-photo-file').value = '';
+  document.getElementById('ev-photo-caption').value = '';
+  document.getElementById('ev-photo-credit').value = '';
+  document.getElementById('ev-published').checked = false;
+  document.getElementById('ev-photo-preview').classList.remove('show');
+  document.getElementById('eventFormHead').textContent = 'Add an Event';
+  document.getElementById('saveEventBtn').textContent = 'Add Event';
+  document.getElementById('cancelEditBtn').style.display = 'none';
+  renderEventsTable();
+}
+
+function editEvent(id){
+  const ev = events.find(e => e.id === id);
+  if(!ev) return;
+  editingId = id;
+  pendingPhotoFile = null;
+  existingPhotoPath = ev.photo_storage_path || null;
+  document.getElementById('ev-year').value = ev.year;
+  document.getElementById('ev-date-label').value = ev.date_label || '';
+  document.getElementById('ev-description').value = ev.description || '';
+  document.getElementById('ev-photo-file').value = '';
+  document.getElementById('ev-photo-caption').value = ev.photo_caption || '';
+  document.getElementById('ev-photo-credit').value = ev.photo_credit || '';
+  document.getElementById('ev-published').checked = !!ev.published;
+  const img = document.getElementById('ev-photo-preview');
+  if(ev.photo_storage_path){
+    img.src = modcrChronologyPhotoUrl(ev.photo_storage_path);
+    img.classList.add('show');
+  }else{
+    img.classList.remove('show');
+  }
+  document.getElementById('eventFormHead').textContent = `Editing: ${ev.year} — ${ev.date_label}`;
+  document.getElementById('saveEventBtn').textContent = 'Save Changes';
+  document.getElementById('cancelEditBtn').style.display = 'inline-block';
+  renderEventsTable();
+  document.getElementById('eventFormHead').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.getElementById('ev-photo-file').addEventListener('change', function(){
+  const file = this.files[0];
+  if(!file) return;
+  pendingPhotoFile = file;
+  const img = document.getElementById('ev-photo-preview');
+  img.src = URL.createObjectURL(file);
+  img.classList.add('show');
+});
+
+async function saveEvent(){
+  const year = parseInt(document.getElementById('ev-year').value, 10);
+  const date_label = document.getElementById('ev-date-label').value.trim();
+  const description = document.getElementById('ev-description').value.trim();
+  if(!year){ showToast('Add a year.', true); return; }
+  if(!date_label){ showToast('Add a date label.', true); return; }
+  if(!description){ showToast('Add a description.', true); return; }
+
+  const btn = document.getElementById('saveEventBtn');
+  btn.disabled = true;
+  try{
+    let photoPath = existingPhotoPath;
+    if(pendingPhotoFile){
+      photoPath = await modcrUploadChronologyPhoto(editingId || crypto.randomUUID(), pendingPhotoFile);
+    }
+    const payload = {
+      year, date_label, description,
+      photo_storage_path: photoPath,
+      photo_caption: document.getElementById('ev-photo-caption').value.trim() || null,
+      photo_credit: document.getElementById('ev-photo-credit').value.trim() || null,
+      published: document.getElementById('ev-published').checked,
+    };
+    await modcrSaveChronologyEvent(payload, editingId);
+    resetEventForm();
+    await loadEvents();
+    showToast('Event saved.');
+  }catch(e){
+    showToast('Could not save: ' + e.message, true);
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+async function deleteEvent(id, storagePath){
+  if(!confirm('Delete this event? This cannot be undone.')) return;
+  try{
+    await modcrDeleteChronologyEvent(id, storagePath);
+    if(editingId === id) resetEventForm();
+    await loadEvents();
+    showToast('Event deleted.');
+  }catch(e){
+    showToast('Could not delete: ' + e.message, true);
+  }
+}
+
+function renderEventsTable(){
+  const q = document.getElementById('evSearch').value.toLowerCase();
+  const status = document.getElementById('evStatusFilter').value;
+  const filtered = events.filter(e => {
+    if(status === 'published' && !e.published) return false;
+    if(status === 'draft' && e.published) return false;
+    if(q && !(String(e.year).includes(q) || (e.date_label||'').toLowerCase().includes(q) || (e.description||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  const tbody = document.getElementById('eventsTableBody');
+  if(filtered.length === 0){
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No events match.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map(e => `
+    <tr class="${e.id === editingId ? 'editing' : ''}">
+      <td class="ev-year">${e.year}</td>
+      <td>${e.date_label}</td>
+      <td class="ev-desc-snip">${(e.description||'').slice(0,110)}${(e.description||'').length>110?'…':''}</td>
+      <td><span class="status-badge ${e.published?'live':'hidden'}">${e.published?'Published':'Hidden'}</span></td>
+      <td><div class="row-actions">
+        <button onclick="editEvent('${e.id}')">Edit</button>
+        <button class="del-link" onclick="deleteEvent('${e.id}','${(e.photo_storage_path||'').replace(/'/g,"\\'")}')">Delete</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+async function loadEvents(){
+  try{ events = await modcrFetchChronologyEvents(); }
+  catch(e){
+    document.getElementById('eventsTableBody').innerHTML =
+      `<tr><td colspan="5"><div class="empty-state">Could not load events: ${e.message}</div></td></tr>`;
+    return;
+  }
+  renderEventsTable();
+}
+['evSearch','evStatusFilter'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderEventsTable);
+  document.getElementById(id).addEventListener('change', renderEventsTable);
+});
+
+(async function(){
+  await modcrRequireAuth('catalogue_admin_login_v40_sans.html');
+  await loadDecades();
+  await loadEvents();
+})();
+</script>
+</body>
+</html>

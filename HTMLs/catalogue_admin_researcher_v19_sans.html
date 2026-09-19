@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Researcher's Desk — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0f0ef;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #dedddb;
+    --rulelg: #ececea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f7f6;
+    --red:    #a83232;
+    --agent:    #8a9a2b;
+    --agent-lt: #eef3c9;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--sand); color: var(--ink); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  header {
+    position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .header-nav { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+  .header-nav a { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); text-decoration: none; }
+  .header-nav a:hover { color: var(--ink); }
+  .nav-dark { color: var(--ink); }
+  .header-nav button {
+    font: inherit; font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+  }
+  .header-nav button:hover { color: var(--ink); }
+  .nav-dropdown { position: relative; }
+  .nav-dropdown-trigger {
+    display: block;
+    font: inherit; font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer; padding: 0;
+    -webkit-appearance: none; appearance: none;
+  }
+  .nav-dropdown-trigger:hover { color: var(--ink); }
+  .nav-dropdown-menu {
+    display: none; position: absolute; top: 100%; right: 0; margin-top: 14px;
+    background: var(--white); border: 1px solid var(--rule); min-width: 180px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.08); z-index: 200;
+  }
+  .nav-dropdown.open .nav-dropdown-menu { display: block; }
+  .nav-dropdown-menu a {
+    display: block; padding: 10px 14px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--mid); text-decoration: none; border-bottom: 1px solid var(--rulelg);
+  }
+  .nav-dropdown-menu a:last-child { border-bottom: none; }
+  .nav-dropdown-menu a:hover { background: var(--hover); color: var(--ink); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 20px 96px; }
+  .page-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .page-head p { font-size: 12.5px; color: var(--mid); margin-bottom: 24px; max-width: 680px; line-height: 1.6; }
+
+  .panel { background: var(--white); border: 1px solid var(--rule); padding: 24px; margin-bottom: 24px; }
+  .panel.chloe-panel { border-top: 3px solid var(--agent); }
+  .panel-head { font-family: 'Inter', sans-serif; font-size: 9px; letter-spacing: .18em; font-weight: 500; text-transform: uppercase; color: var(--mid); margin-bottom: 18px; }
+  .chloe-panel .panel-head { color: var(--agent); }
+  .panel-note { font-size: 11.5px; color: var(--light); font-style: italic; margin-bottom: 0; line-height: 1.6; }
+
+  .dropzone {
+    position: relative; border: 2px dashed var(--rule); border-radius: 2px; padding: 36px 20px; text-align: center;
+    cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .dropzone:hover, .dropzone.drag-over { border-color: var(--goldlt); background: var(--hover); }
+  .dropzone-label { font-size: 13.5px; color: var(--ink); margin-bottom: 4px; }
+  .dropzone-sub { font-size: 11.5px; color: var(--light); }
+  .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .queue { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+  .queue-row { display: flex; align-items: center; gap: 10px; font-size: 12px; padding: 7px 10px; background: var(--sand); }
+  .queue-row .q-name { flex: 1; color: var(--ink); }
+  .queue-row .q-status { color: var(--mid); }
+  .queue-row.done .q-status { color: var(--gold); }
+  .queue-row.error .q-status { color: var(--red); }
+
+  .tab-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab-btn {
+    font-family: 'Inter', sans-serif; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    padding: 8px 16px; border: 1px solid var(--rule); background: var(--white); color: var(--mid); cursor: pointer;
+  }
+  .tab-btn.active { background: var(--agent); color: var(--white); border-color: var(--agent); }
+
+  .material-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .material-card { background: var(--white); border: 1px solid var(--rule); overflow: hidden; }
+  .m-thumb { width: 100%; height: 150px; background: var(--sand); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .m-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .m-thumb .pdf-icon { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--light); }
+  .m-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .m-name { font-size: 12.5px; color: var(--ink); word-break: break-word; }
+  .m-row { display: flex; gap: 6px; align-items: center; }
+  select, textarea, input[type=text] {
+    font-family: 'Inter', sans-serif; font-size: 12px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 6px 8px; width: 100%;
+  }
+  select:focus, textarea:focus, input:focus { outline: none; border-color: var(--goldlt); }
+  textarea { resize: vertical; min-height: 44px; font-size: 11.5px; }
+  .m-matched { font-size: 11px; color: var(--gold); }
+  .m-actions { display: flex; justify-content: space-between; align-items: center; }
+  .m-actions button {
+    font-family: 'Inter', sans-serif; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--mid); background: none; border: none; cursor: pointer; padding: 0;
+  }
+  .m-actions button:hover { color: var(--red); }
+  .empty-state { padding: 40px; text-align: center; color: var(--light); font-size: 13px; font-style: italic; }
+
+  /* NEW FINDS / CR ARCHIVE / MASTER SITE LIST */
+  .cat-filter-bar { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .cat-btn {
+    font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .05em; text-transform: uppercase;
+    padding: 6px 12px; border: 1px solid var(--rule); background: var(--white); color: var(--mid); cursor: pointer;
+  }
+  .cat-btn.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .find-list { display: flex; flex-direction: column; gap: 10px; }
+  .find-card { background: var(--white); border: 1px solid var(--rule); padding: 14px 16px; display: flex; gap: 14px; }
+  /* Left thumbnail -- same "photo, or a text placeholder" logic as the
+     public entry/browse pages (.wc-img / .wc-placeholder): a real hotlinked
+     image when Chloe found and trusted one, else a category-coded square so
+     an empty slot still reads as intentional rather than a missing photo. */
+  .find-thumb {
+    width: 60px; height: 60px; flex: 0 0 60px; overflow: hidden; background: var(--sand);
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    font-size: 7.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--white);
+    line-height: 1.3; padding: 4px; font-family: 'Inter', sans-serif;
+  }
+  .find-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .find-thumb.cat-gallery { background: #8a6d3a; }
+  .find-thumb.cat-auction-house { background: #7a5c3a; }
+  .find-thumb.cat-museum { background: #5c6b7a; }
+  .find-thumb.cat-press { background: #8a4a4a; }
+  .find-thumb.cat-publication { background: #4a6b5c; }
+  .find-thumb.cat-media { background: #6b5c8a; }
+  .find-thumb.cat-social-media { background: #8a5c6b; }
+  .find-thumb.cat-book { background: #5c4a3a; }
+  .find-body { flex: 1; min-width: 0; }
+  .find-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
+  .find-title { font-size: 13.5px; color: var(--ink); font-weight: 500; }
+  .find-head-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .find-cat-pill {
+    font-size: 8.5px; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px;
+    border-radius: 2px; white-space: nowrap; color: var(--agent); background: var(--agent-lt); border: 1px solid var(--agent);
+  }
+  .find-site-name { font-size: 10.5px; color: var(--mid); white-space: nowrap; }
+  .find-text { font-size: 12.5px; color: var(--mid); line-height: 1.6; margin-bottom: 8px; }
+  .find-meta { font-size: 11px; color: var(--light); margin-bottom: 10px; }
+  .find-meta a { color: var(--gold); }
+  .find-actions { display: flex; gap: 10px; }
+  .find-actions button {
+    font-family: 'Inter', sans-serif; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    padding: 6px 14px; border: 1px solid var(--rule); background: var(--white); color: var(--ink); cursor: pointer;
+  }
+  .find-actions button.approve { background: var(--agent); color: var(--white); border-color: var(--agent); }
+  .find-actions button.reject:hover { border-color: var(--red); color: var(--red); }
+  .find-actions button.trash:hover { border-color: var(--red); color: var(--red); }
+  .find-status-pill { font-size: 8.5px; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; white-space: nowrap; }
+  .find-status-pill.approved { color: var(--green, #3f6b3f); background: #eaf3ea; border: 1px solid #a8c9a8; }
+  .find-status-pill.rejected { color: var(--red); background: #f7e9e9; border: 1px solid #d8a8a8; }
+
+  .site-table-wrap table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  .site-table-wrap th {
+    text-align: left; font-size: 9px; letter-spacing: .1em; font-weight: 500; text-transform: uppercase;
+    color: var(--light); padding: 8px 10px; border-bottom: 1px solid var(--rule);
+  }
+  .site-table-wrap td { padding: 8px 10px; font-size: 12.5px; border-bottom: 1px solid var(--rulelg); }
+  .site-table-wrap a { color: var(--gold); text-decoration: none; }
+  .site-add-row { display: grid; grid-template-columns: 1.2fr 1.6fr 1fr auto; gap: 10px; align-items: end; }
+  @media(max-width: 700px) { .site-add-row { grid-template-columns: 1fr 1fr; } }
+
+  .external-note {
+    background: var(--agent-lt); border: 1px dashed var(--agent); padding: 16px 18px;
+    font-size: 12px; color: #55611a; line-height: 1.7;
+  }
+  .external-note strong { display: block; margin-bottom: 4px; font-size: 12.5px; }
+  .external-note .path-placeholder { font-family: monospace; background: var(--white); padding: 1px 6px; border-radius: 2px; }
+
+  .archive-group { margin-bottom: 20px; }
+  .archive-group:last-child { margin-bottom: 0; }
+  .archive-group-head { font-size: 12.5px; font-weight: 600; color: var(--ink); margin-bottom: 8px; display: flex; align-items: baseline; gap: 8px; }
+  .archive-group-head .count { font-size: 11px; font-weight: 400; color: var(--light); }
+  table.archive-table { width: 100%; border-collapse: collapse; }
+  table.archive-table th {
+    text-align: left; font-size: 9px; letter-spacing: .1em; font-weight: 500; text-transform: uppercase;
+    color: var(--light); padding: 6px 8px; border-bottom: 1px solid var(--rule);
+  }
+  table.archive-table td { padding: 7px 8px; font-size: 12px; border-bottom: 1px solid var(--rulelg); }
+  .archive-status-pill { font-size: 9px; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 2px; white-space: nowrap; }
+  .archive-status-pill.not_converted { color: var(--light); background: var(--sand); border: 1px solid var(--rule); }
+  .archive-status-pill.converted { color: var(--gold); background: #faf3e8; border: 1px solid var(--goldlt); }
+  .archive-status-pill.skipped { color: var(--light); background: var(--sand); border: 1px solid var(--rule); }
+
+  .save-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--white); padding: 12px 22px; font-size: 12.5px;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200;
+  }
+  .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .save-toast.error { background: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">MOD CR — Admin</div>
+  <div class="header-nav">
+    <a href="catalogue_admin_v91_sans.html">Dashboard</a>
+    <a href="catalogue_admin_manage_v92_sans.html">Works</a>
+    <a href="catalogue_intake_v97_sans.html">Add a Work</a>
+    <a href="catalogue_admin_chronology_v42_sans.html">Chronology</a>
+    <a href="catalogue_admin_sources_v28_sans.html">Sources</a>
+    <div class="nav-dropdown" id="agentsNavDropdown">
+      <button class="nav-dropdown-trigger nav-dark" onclick="toggleNavDropdown(event)">Agents ▾</button>
+      <div class="nav-dropdown-menu">
+        <a href="catalogue_admin_agents_v25_sans.html">CR Team</a>
+        <a href="catalogue_admin_drafts_v27_sans.html">Archivist's Desk</a>
+        <a href="catalogue_admin_researcher_v19_sans.html">Researcher's Desk</a>
+        <a href="catalogue_admin_it_v24_sans.html">IT Desk</a>
+      </div>
+    </div>
+    <a href="catalogue_v75_sans.html">View Site</a>
+    <button onclick="modcrLogOut('catalogue_admin_login_v67_sans.html')">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <h1>Researcher's Desk</h1>
+    <p>Chloe's view of the same intake material tracked on the Sources page — organized as she'd work it: <strong>Updates</strong> for anything not yet looked at, <strong>Archive</strong> for everything already reviewed, flagged, matched, or rejected. Adding something here or on Sources is the same action either way — one shared pile, two views into it.</p>
+  </div>
+
+  <div class="panel chloe-panel">
+    <div class="panel-head">About This Desk</div>
+    <div class="panel-note">Chloe has two jobs. Outbound: checking the Master Site List below for new mentions or sales of the artist's work, logged into New Finds for your review. Inbound: gathering provenance research, exhibition history, and raw material into the holding folder further down for Khalo to sort through. Either way she doesn't touch the live catalogue directly — a human always reviews first. Run her from a Claude Code session (the <span class="path-placeholder">researcher</span> skill) any time, or chat with her from the Agents page.</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">New Finds</div>
+    <div class="panel-note" style="margin-bottom:16px;">Candidate findings Chloe logged from the Master Site List, waiting on your call. Approve moves it toward Khalo's proper matching/citation work; Reject keeps it in the CR Archive as a record of what was checked and ruled out; Trash removes it outright, since a large reject pile nobody revisits isn't useful.</div>
+    <div class="cat-filter-bar" id="newFindsCatBar"></div>
+    <div class="find-list" id="newFindsList"><div class="empty-state">Loading…</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">CR Archive</div>
+    <div class="panel-note" style="margin-bottom:16px;">Everything Chloe has found that's already been reviewed — approved or rejected, organized by category. Trash is still available here if something rejected turns out not worth keeping around.</div>
+    <div class="cat-filter-bar" id="archiveCatBar"></div>
+    <div class="find-list" id="archiveList"><div class="empty-state">Loading…</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Master Site List</div>
+    <div class="panel-note" style="margin-bottom:16px;">The sites Chloe checks. <strong>Work:</strong> galleries, auction houses, museums. <strong>Scholarship:</strong> press, publications, media, social media, books. Adding a site here is a normal, routine operation — the way adding a new Series is — not a special case.</div>
+    <div class="cat-filter-bar" id="sitesCatBar"></div>
+    <div class="site-table-wrap"><table id="sitesTable"><thead><tr><th>Name</th><th>URL</th><th>Category</th><th></th></tr></thead><tbody id="sitesTableBody"><tr><td colspan="4"><div class="empty-state">Loading…</div></td></tr></tbody></table></div>
+    <div class="site-add-row">
+      <div class="f-field"><label class="f-label">Name</label><input type="text" id="newSiteName" placeholder="e.g. Freeman's | Hindman"></div>
+      <div class="f-field"><label class="f-label">URL</label><input type="text" id="newSiteUrl" placeholder="https://…"></div>
+      <div class="f-field"><label class="f-label">Category</label>
+        <select id="newSiteCategory">
+          <option value="gallery">Gallery</option>
+          <option value="auction-house">Auction House</option>
+          <option value="museum">Museum</option>
+          <option value="press">Press</option>
+          <option value="publication">Publication</option>
+          <option value="media">Media</option>
+          <option value="social-media">Social Media</option>
+          <option value="book">Book</option>
+        </select>
+      </div>
+      <button class="tab-btn active" style="padding:9px 18px;" onclick="addSite()">Add Site</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Add Material</div>
+    <label class="dropzone" id="dropzone">
+      <div class="dropzone-label" id="dropzoneLabel">Drag files here, or click to browse</div>
+      <div class="dropzone-sub">PDF, JPG, PNG, TIFF, HEIC — TIFF/HEIC convert to JPEG automatically</div>
+      <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff,.heic,.heif">
+    </label>
+    <div class="queue" id="queue"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Updates &amp; Archive</div>
+    <div class="tab-bar" id="tabBar">
+      <button class="tab-btn active" data-bucket="updates" onclick="setBucket('updates')">Updates</button>
+      <button class="tab-btn" data-bucket="archive" onclick="setBucket('archive')">Archive</button>
+    </div>
+    <div class="material-grid" id="materialGrid"><div class="empty-state">Loading…</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">External Archive</div>
+    <div class="external-note">
+      <strong>Indexed, not uploaded — the raw masters never leave the drive.</strong>
+      For large raw shoots (e.g. 500MB–4GB TIFF masters from a photographer, spread across many folders), <span class="path-placeholder">scripts/archive_indexer.py</span> runs locally on whatever machine has the drive attached and records just the filename/size/type of everything in a folder into the table below — no image bytes are ever uploaded. When one specific file is actually needed for a work, the same script converts just that file to JPG and uploads only the JPG, the same way the dropzone above does. This site and no Claude Code session can read the drive directly — the script is the only bridge, and it only ever runs when someone at the studio runs it.
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Indexed Archives</div>
+    <div class="panel-note">Read-only — populated by <span class="path-placeholder">archive_indexer.py</span> running locally, not from this page. "Converted" means a JPG has already been pulled in and is sitting in Updates/Archive above.</div>
+    <div id="archiveIndexWrap"><div class="empty-state">Loading…</div></div>
+  </div>
+</main>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+<script src="https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<script src="modcr-client.js"></script>
+<script>
+function toggleNavDropdown(event){
+  event.stopPropagation();
+  const dd = event.currentTarget.closest('.nav-dropdown');
+  const wasOpen = dd.classList.contains('open');
+  document.querySelectorAll('.nav-dropdown.open').forEach(el => el.classList.remove('open'));
+  if(!wasOpen) dd.classList.add('open');
+}
+document.addEventListener('click', function(){
+  document.querySelectorAll('.nav-dropdown.open').forEach(el => el.classList.remove('open'));
+});
+
+let materials = [];
+let activeBucket = 'updates';
+const thumbCache = {};
+
+function showToast(msg, isError){
+  const el = document.getElementById('saveToast');
+  el.textContent = msg;
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+function setBucket(bucket){
+  activeBucket = bucket;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.bucket === bucket));
+  renderGrid();
+}
+
+// ---- Conversion: TIFF/HEIC -> JPEG, then every image is downscaled to a
+// working size. PDFs pass through untouched. Identical pipeline to the
+// Sources page — same table, same rules, just a different entry point. ----
+async function convertAndResize(file){
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if(ext === 'pdf'){
+    return { blob: file, filename: file.name, kind: 'pdf', note: 'PDF — uploaded as-is' };
+  }
+
+  let sourceBlob = file;
+  let note = 'Resized';
+
+  if(ext === 'tif' || ext === 'tiff'){
+    const buf = await file.arrayBuffer();
+    const ifds = UTIF.decode(buf);
+    UTIF.decodeImage(buf, ifds[0]);
+    const rgba = UTIF.toRGBA8(ifds[0]);
+    const w = ifds[0].width, h = ifds[0].height;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(rgba), w, h), 0, 0);
+    sourceBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+    note = 'Converted from TIFF';
+  } else if(ext === 'heic' || ext === 'heif'){
+    sourceBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+    if(Array.isArray(sourceBlob)) sourceBlob = sourceBlob[0];
+    note = 'Converted from HEIC';
+  }
+
+  const bitmap = await createImageBitmap(sourceBlob);
+  const maxDim = 2000;
+  const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+  const outW = Math.round(bitmap.width * scale);
+  const outH = Math.round(bitmap.height * scale);
+  const canvas2 = document.createElement('canvas');
+  canvas2.width = outW; canvas2.height = outH;
+  canvas2.getContext('2d').drawImage(bitmap, 0, 0, outW, outH);
+  const finalBlob = await new Promise(res => canvas2.toBlob(res, 'image/jpeg', 0.85));
+
+  const baseName = file.name.replace(/\.[^.]+$/, '');
+  return { blob: finalBlob, filename: baseName + '.jpg', kind: 'image', note };
+}
+
+function addQueueRow(id, name){
+  const queue = document.getElementById('queue');
+  const row = document.createElement('div');
+  row.className = 'queue-row';
+  row.id = 'q-' + id;
+  row.innerHTML = `<div class="q-name">${name}</div><div class="q-status">Processing…</div>`;
+  queue.appendChild(row);
+  return row;
+}
+
+async function handleFiles(fileList){
+  const files = Array.from(fileList);
+  for(const file of files){
+    const rowId = modcrGenId();
+    const row = addQueueRow(rowId, file.name);
+    try{
+      const { blob, filename, kind, note } = await convertAndResize(file);
+      row.querySelector('.q-status').textContent = 'Uploading…';
+      await modcrUploadSourceMaterial(blob, filename, kind, null);
+      row.classList.add('done');
+      row.querySelector('.q-status').textContent = note + ' — done';
+    }catch(e){
+      row.classList.add('error');
+      row.querySelector('.q-status').textContent = 'Failed: ' + e.message;
+    }
+  }
+  await loadMaterials();
+}
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', e => { handleFiles(e.target.files); fileInput.value = ''; });
+['dragover','dragenter'].forEach(evt => dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('drag-over'); }));
+['dragleave','drop'].forEach(evt => dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('drag-over'); }));
+dropzone.addEventListener('drop', e => { if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); });
+
+async function renderGrid(){
+  const grid = document.getElementById('materialGrid');
+  const rows = activeBucket === 'updates'
+    ? materials.filter(m => m.status === 'unreviewed')
+    : materials.filter(m => m.status !== 'unreviewed');
+  if(rows.length === 0){
+    grid.innerHTML = `<div class="empty-state">${activeBucket === 'updates' ? 'Nothing new to review.' : 'Nothing archived yet.'}</div>`;
+    return;
+  }
+  grid.innerHTML = rows.map(m => `
+    <div class="material-card" data-id="${m.id}">
+      <div class="m-thumb" id="thumb-${m.id}">${m.kind === 'pdf' ? '<div class="pdf-icon">PDF</div>' : '<div class="pdf-icon">…</div>'}</div>
+      <div class="m-body">
+        <div class="m-name">${m.filename}</div>
+        <div class="m-row">
+          <select onchange="updateStatus('${m.id}', this.value)">
+            ${['unreviewed','flagged','matched','rejected'].map(s => `<option value="${s}" ${m.status===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="m-row">
+          <input type="text" placeholder="Link to CR # (e.g. 47)" onblur="linkToWork('${m.id}', this.value)">
+        </div>
+        ${m.related_work_id ? `<div class="m-matched">Linked to a work</div>` : ''}
+        <textarea placeholder="Notes…" onblur="updateNotes('${m.id}', this.value)">${m.notes || ''}</textarea>
+        <div class="m-actions">
+          <span></span>
+          <button onclick="deleteMaterial('${m.id}','${m.storage_path.replace(/'/g,"\\'")}')">Delete</button>
+        </div>
+      </div>
+    </div>`).join('');
+
+  rows.filter(m => m.kind === 'image').forEach(async m => {
+    const el = document.getElementById('thumb-' + m.id);
+    if(!el) return;
+    try{
+      if(!thumbCache[m.id]) thumbCache[m.id] = await modcrSourceMaterialUrl(m.storage_path);
+      el.innerHTML = `<img src="${thumbCache[m.id]}" alt="">`;
+    }catch(e){
+      el.innerHTML = '<div class="pdf-icon">No preview</div>';
+    }
+  });
+}
+
+async function loadMaterials(){
+  try{
+    materials = await modcrFetchSourceMaterials();
+  }catch(e){
+    document.getElementById('materialGrid').innerHTML =
+      `<div class="empty-state">Could not load source materials: ${e.message}</div>`;
+    return;
+  }
+  renderGrid();
+}
+
+async function updateStatus(id, status){
+  try{
+    await modcrUpdateSourceMaterial(id, { status });
+    const m = materials.find(x => x.id === id);
+    if(m) m.status = status;
+    showToast('Status updated.');
+    renderGrid();
+  }catch(e){
+    showToast('Could not update status: ' + e.message, true);
+  }
+}
+
+async function updateNotes(id, notes){
+  try{
+    await modcrUpdateSourceMaterial(id, { notes });
+    showToast('Notes saved.');
+  }catch(e){
+    showToast('Could not save notes: ' + e.message, true);
+  }
+}
+
+async function linkToWork(id, crText){
+  const crText2 = crText.trim();
+  if(!crText2) return;
+  const crNumber = parseInt(crText2.replace(/\D/g,''), 10);
+  if(!crNumber){ showToast('Enter a CR number, e.g. 47.', true); return; }
+  try{
+    const work = await modcrFetchWorkByCrNumber(crNumber);
+    if(!work){ showToast(`No work found for CR ${crNumber}.`, true); return; }
+    await modcrUpdateSourceMaterial(id, { related_work_id: work.dbId, status: 'matched' });
+    showToast(`Linked to ${work.cr} — ${work.title}.`);
+    await loadMaterials();
+  }catch(e){
+    showToast('Could not link: ' + e.message, true);
+  }
+}
+
+async function deleteMaterial(id, storagePath){
+  if(!confirm('Delete this source material? This cannot be undone.')) return;
+  try{
+    await modcrDeleteSourceMaterial(id, storagePath);
+    await loadMaterials();
+    showToast('Deleted.');
+  }catch(e){
+    showToast('Could not delete: ' + e.message, true);
+  }
+}
+
+// ---- Archive Index — read-only. Populated by scripts/archive_indexer.py
+// running locally against the drive; this page never writes to this table.
+function formatBytes(bytes){
+  if(bytes == null) return '—';
+  const units = ['B','KB','MB','GB','TB'];
+  let val = bytes, i = 0;
+  while(val >= 1024 && i < units.length - 1){ val /= 1024; i++; }
+  return val.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+}
+
+async function loadArchiveIndex(){
+  const wrap = document.getElementById('archiveIndexWrap');
+  let rows;
+  try{
+    rows = await modcrFetchArchiveIndex();
+  }catch(e){
+    wrap.innerHTML = `<div class="empty-state">Could not load the archive index: ${e.message}</div>`;
+    return;
+  }
+  if(!rows || rows.length === 0){
+    wrap.innerHTML = '<div class="empty-state">Nothing indexed yet — run archive_indexer.py against a folder to populate this.</div>';
+    return;
+  }
+  const groups = {};
+  rows.forEach(r => {
+    if(!groups[r.archive_label]) groups[r.archive_label] = [];
+    groups[r.archive_label].push(r);
+  });
+  wrap.innerHTML = Object.entries(groups).map(([label, items]) => `
+    <div class="archive-group">
+      <div class="archive-group-head">${label} <span class="count">${items.length} file${items.length === 1 ? '' : 's'}</span></div>
+      <table class="archive-table">
+        <thead><tr><th>File</th><th>Type</th><th>Size</th><th>Status</th></tr></thead>
+        <tbody>
+          ${items.map(f => `
+            <tr>
+              <td>${f.relative_path}</td>
+              <td>${f.file_type || '—'}</td>
+              <td>${formatBytes(f.file_size_bytes)}</td>
+              <td><span class="archive-status-pill ${f.status}">${f.status.replace('_',' ')}</span></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`).join('');
+}
+
+// ---- New Finds / CR Archive / Master Site List -- Chloe's outbound
+// monitoring side. research_finds/research_sites are fetched with the
+// admin session same as everything else on this page; the researcher
+// skill itself writes findings using only the public anon key (see
+// schema.sql and .claude/skills/researcher/SKILL.md).
+const CATEGORY_LABELS = {
+  'gallery': 'Gallery', 'auction-house': 'Auction House', 'museum': 'Museum',
+  'press': 'Press', 'publication': 'Publication', 'media': 'Media',
+  'social-media': 'Social Media', 'book': 'Book',
+};
+const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
+
+// Short label for the thumbnail fallback square -- same categories as
+// CATEGORY_LABELS, just tight enough to fit a 60px box.
+const CATEGORY_SHORT = {
+  'gallery': 'Gallery', 'auction-house': 'Auction', 'museum': 'Museum',
+  'press': 'Press', 'publication': 'Pub.', 'media': 'Media',
+  'social-media': 'Social', 'book': 'Book',
+};
+
+// A finding's category isn't the same vocabulary as staged_works.source_type
+// (auction | gallery | museum | press | publication | other) -- map rather
+// than reuse the string as-is.
+const CATEGORY_TO_STAGED_SOURCE_TYPE = {
+  'gallery': 'gallery', 'auction-house': 'auction', 'museum': 'museum',
+  'press': 'press', 'publication': 'publication', 'book': 'publication',
+  'media': 'other', 'social-media': 'other',
+};
+
+let researchFinds = [];
+let researchSites = [];
+let newFindsCat = 'all';
+let archiveCat = 'all';
+let sitesCat = 'all';
+
+function renderCatBar(elId, activeCat, onClick){
+  const el = document.getElementById(elId);
+  const cats = ['all', ...ALL_CATEGORIES];
+  el.innerHTML = cats.map(c => `
+    <button class="cat-btn ${c === activeCat ? 'active' : ''}" onclick="${onClick}('${c}')">${c === 'all' ? 'All' : CATEGORY_LABELS[c]}</button>
+  `).join('');
+}
+
+// research_finds.site_id points at a tracked research_sites row when Chloe
+// found it via the Master Site List; falls back to the finding's own URL
+// hostname (e.g. a result outside the tracked list) rather than showing
+// nothing.
+// Auto-promotion rule (gallery/auction-house only): a real photo plus at
+// least 2 of {name, date, medium, site} is well-documented enough to skip
+// the manual Approve click and go straight to a staged_works draft.
+// Counted deterministically off structured fields, never by parsing
+// finding_text's prose.
+function findingFactCount(f){
+  let n = 0;
+  if(f.title) n++;
+  if(f.date_display) n++;
+  if(f.medium) n++;
+  if(siteLabel(f)) n++;
+  return n;
+}
+function qualifiesForAutoPromotion(f){
+  return (f.category === 'gallery' || f.category === 'auction-house')
+    && !!f.image_url
+    && findingFactCount(f) >= 2;
+}
+
+function siteLabel(f){
+  const site = researchSites.find(s => s.id === f.site_id);
+  if(site) return site.name;
+  if(f.url){
+    try{ return new URL(f.url).hostname.replace(/^www\./, ''); }catch(e){ /* malformed url, fall through */ }
+  }
+  return null;
+}
+
+function findThumb(f){
+  if(f.image_url){
+    return `<div class="find-thumb"><img src="${f.image_url}" alt="" loading="lazy" onerror="handleFindThumbError(this,'${f.category}')"></div>`;
+  }
+  return findThumbPlaceholderHtml(f.category);
+}
+function findThumbPlaceholderHtml(category){
+  return `<div class="find-thumb cat-${category}">${CATEGORY_SHORT[category] || category}</div>`;
+}
+// A hotlinked source-page image can go dead at any time (the studio doesn't
+// control that page) -- fall back to the same category square used when
+// there was never an image_url, via safe DOM swap rather than string
+// concatenation inside an HTML attribute.
+function handleFindThumbError(imgEl, category){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = findThumbPlaceholderHtml(category);
+  imgEl.closest('.find-thumb').replaceWith(wrap.firstElementChild);
+}
+
+function findCard(f, showApprove){
+  const workLine = f.matched_work_id
+    ? '<div class="find-meta">Matched to an existing work — flagged for Khalo (Mode A) to fold this lead into that work\'s research.</div>'
+    : f.staged_work_id
+    ? `<div class="find-meta">→ Draft created in <a href="catalogue_admin_drafts_v27_sans.html">Archivist's Drafts</a> (New Entries) — awaiting Khalo's research pass.</div>`
+    : '';
+  const statusPill = f.status === 'approved' ? '<span class="find-status-pill approved">Approved</span>'
+    : f.status === 'rejected' ? '<span class="find-status-pill rejected">Rejected</span>' : '';
+  const site = siteLabel(f);
+  const actions = showApprove
+    ? `<div class="find-actions">
+         <button class="approve" onclick="setFindStatus('${f.id}','approved')">Approve</button>
+         <button class="reject" onclick="setFindStatus('${f.id}','rejected')">Reject</button>
+         <button class="trash" onclick="trashFind('${f.id}')">Trash</button>
+       </div>`
+    : `<div class="find-actions">
+         <button class="trash" onclick="trashFind('${f.id}')">Trash</button>
+       </div>`;
+  return `
+    <div class="find-card">
+      ${findThumb(f)}
+      <div class="find-body">
+        <div class="find-head">
+          <div class="find-title">${escapeHtmlLocal(f.title)}</div>
+          <div class="find-head-right">
+            <div style="display:flex; gap:6px; align-items:center;">
+              ${statusPill}
+              <span class="find-cat-pill">${CATEGORY_LABELS[f.category] || f.category}</span>
+            </div>
+            ${site ? `<div class="find-site-name">${escapeHtmlLocal(site)}</div>` : ''}
+          </div>
+        </div>
+        <div class="find-text">${escapeHtmlLocal(f.finding_text)}</div>
+        <div class="find-meta">${new Date(f.discovered_at).toLocaleDateString()}${f.url ? ` · <a href="${f.url}" target="_blank" rel="noopener">Source →</a>` : ''}</div>
+        ${workLine}
+        ${actions}
+      </div>
+    </div>`;
+}
+
+function escapeHtmlLocal(str){
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : str;
+  return div.innerHTML;
+}
+
+function renderNewFinds(){
+  renderCatBar('newFindsCatBar', newFindsCat, 'setNewFindsCat');
+  const list = document.getElementById('newFindsList');
+  let rows = researchFinds.filter(f => f.status === 'pending');
+  if(newFindsCat !== 'all') rows = rows.filter(f => f.category === newFindsCat);
+  list.innerHTML = rows.length === 0
+    ? '<div class="empty-state">Nothing waiting on review.</div>'
+    : rows.map(f => findCard(f, true)).join('');
+}
+function setNewFindsCat(cat){ newFindsCat = cat; renderNewFinds(); }
+
+function renderArchive(){
+  renderCatBar('archiveCatBar', archiveCat, 'setArchiveCat');
+  const list = document.getElementById('archiveList');
+  let rows = researchFinds.filter(f => f.status === 'approved' || f.status === 'rejected');
+  if(archiveCat !== 'all') rows = rows.filter(f => f.category === archiveCat);
+  list.innerHTML = rows.length === 0
+    ? '<div class="empty-state">Nothing archived yet.</div>'
+    : rows.map(f => findCard(f, false)).join('');
+}
+function setArchiveCat(cat){ archiveCat = cat; renderArchive(); }
+
+// Shared by a manual Approve click and the automatic gallery/auction-house
+// promotion in loadResearchFinds() -- same draft, same notes convention,
+// the only difference is what the note says triggered it. Deliberately
+// leaves year/medium(tag)/series null on the draft itself: guessing them
+// here would be inventing data Khalo hasn't verified yet (same discipline
+// as never assigning a CR number before import). Khalo's Mode C does that
+// research pass.
+async function promoteFindingToDraft(f, auto){
+  const staged = await modcrCreateStagedWork({
+    title: f.title,
+    notes: auto
+      ? `Auto-promoted from Researcher's Desk (${new Date().toLocaleDateString()}) -- met the image + 2-of-4 (name/date/medium/site) threshold for a gallery/auction-house finding, no human Approve click yet. Needs Khalo's research pass (Mode C) to confirm this is real, previously-uncatalogued work and fill in date/medium/series. Finding: ${f.finding_text}`
+      : `Auto-staged from a Chloe finding approved on Researcher's Desk (${new Date().toLocaleDateString()}). Needs Khalo's research pass (Mode C) to confirm this is real, previously-uncatalogued work and fill in date/medium/series. Finding: ${f.finding_text}`,
+    source_url: f.url || null,
+    source_type: CATEGORY_TO_STAGED_SOURCE_TYPE[f.category] || 'other',
+    confidence: 'candidate',
+    status: 'new',
+    source_find_id: f.id,
+  });
+  await modcrUpdateResearchFind(f.id, { status: 'approved', staged_work_id: staged.id });
+}
+
+async function setFindStatus(id, status){
+  try{
+    const f = researchFinds.find(x => x.id === id);
+    let toastMsg = status === 'approved' ? 'Approved.' : 'Rejected — kept in the CR Archive.';
+    // A finding already matched to an existing work gets no draft -- the
+    // work already exists; it's just flagged for Khalo's Mode A instead
+    // (see the find-card meta line).
+    if(status === 'approved' && f && !f.matched_work_id && !f.staged_work_id){
+      await promoteFindingToDraft(f, false);
+      toastMsg = 'Approved — draft created in Archivist\'s Drafts for Khalo to research.';
+    } else {
+      await modcrUpdateResearchFind(id, { status });
+    }
+    showToast(toastMsg);
+    await loadResearchFinds();
+  }catch(e){
+    showToast('Could not update: ' + e.message, true);
+  }
+}
+async function trashFind(id){
+  if(!confirm('Trash this finding? This cannot be undone.')) return;
+  try{
+    await modcrDeleteResearchFind(id);
+    showToast('Trashed.');
+    await loadResearchFinds();
+  }catch(e){
+    showToast('Could not trash: ' + e.message, true);
+  }
+}
+async function loadResearchFinds(){
+  try{
+    researchFinds = await modcrFetchResearchFinds();
+  }catch(e){
+    document.getElementById('newFindsList').innerHTML = `<div class="empty-state">Could not load: ${e.message}</div>`;
+    document.getElementById('archiveList').innerHTML = `<div class="empty-state">Could not load: ${e.message}</div>`;
+    return;
+  }
+  // Well-documented gallery/auction-house findings skip the manual Approve
+  // step (see qualifiesForAutoPromotion) -- runs on every load rather than
+  // only at insert time, since research_sites/site names it depends on can
+  // change independently of when Chloe logged the finding.
+  const toPromote = researchFinds.filter(f => f.status === 'pending' && qualifiesForAutoPromotion(f));
+  if(toPromote.length > 0){
+    for(const f of toPromote){
+      try{ await promoteFindingToDraft(f, true); }
+      catch(e){ console.error('Auto-promotion failed for finding', f.id, e); }
+    }
+    showToast(`${toPromote.length} well-documented finding${toPromote.length === 1 ? '' : 's'} auto-promoted to Archivist's Drafts.`);
+    researchFinds = await modcrFetchResearchFinds();
+  }
+  renderNewFinds();
+  renderArchive();
+}
+
+function renderSites(){
+  renderCatBar('sitesCatBar', sitesCat, 'setSitesCat');
+  const body = document.getElementById('sitesTableBody');
+  let rows = researchSites;
+  if(sitesCat !== 'all') rows = rows.filter(s => s.category === sitesCat);
+  body.innerHTML = rows.length === 0
+    ? '<tr><td colspan="4"><div class="empty-state">No sites in this category yet.</div></td></tr>'
+    : rows.map(s => `
+      <tr>
+        <td>${escapeHtmlLocal(s.name)}</td>
+        <td><a href="${s.url}" target="_blank" rel="noopener">${escapeHtmlLocal(s.url)}</a></td>
+        <td>${CATEGORY_LABELS[s.category] || s.category}</td>
+        <td><button onclick="deleteSite('${s.id}')" style="font-family:'Inter',sans-serif; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--mid); background:none; border:none; cursor:pointer; padding:0;">Delete</button></td>
+      </tr>`).join('');
+}
+function setSitesCat(cat){ sitesCat = cat; renderSites(); }
+
+async function addSite(){
+  const name = document.getElementById('newSiteName').value.trim();
+  const url = document.getElementById('newSiteUrl').value.trim();
+  const category = document.getElementById('newSiteCategory').value;
+  if(!name || !url){ showToast('Enter a name and URL.', true); return; }
+  try{
+    await modcrAddResearchSite({ name, url, category });
+    document.getElementById('newSiteName').value = '';
+    document.getElementById('newSiteUrl').value = '';
+    showToast('Site added.');
+    await loadResearchSites();
+  }catch(e){
+    showToast('Could not add site: ' + e.message, true);
+  }
+}
+async function deleteSite(id){
+  if(!confirm('Remove this site from the Master Site List?')) return;
+  try{
+    await modcrDeleteResearchSite(id);
+    showToast('Removed.');
+    await loadResearchSites();
+  }catch(e){
+    showToast('Could not remove: ' + e.message, true);
+  }
+}
+async function loadResearchSites(){
+  try{
+    researchSites = await modcrFetchResearchSites();
+  }catch(e){
+    document.getElementById('sitesTableBody').innerHTML = `<tr><td colspan="4"><div class="empty-state">Could not load: ${e.message}</div></td></tr>`;
+    return;
+  }
+  renderSites();
+}
+
+(async function(){
+  await modcrRequireAuth('catalogue_admin_login_v67_sans.html');
+  await loadResearchFinds();
+  await loadResearchSites();
+  await loadMaterials();
+  await loadArchiveIndex();
+})();
+</script>
+</body>
+</html>

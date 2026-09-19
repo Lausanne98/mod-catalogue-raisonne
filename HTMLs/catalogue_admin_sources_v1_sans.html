@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Source Materials — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0f0ef;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #dedddb;
+    --rulelg: #ececea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f7f6;
+    --red:    #a83232;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--sand); color: var(--ink); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  header {
+    position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .header-nav { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+  .header-nav a { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); text-decoration: none; }
+  .header-nav a:hover { color: var(--ink); }
+  .nav-dark { color: var(--ink); }
+  .header-nav button {
+    font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer;
+  }
+  .header-nav button:hover { color: var(--ink); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 20px 96px; }
+  .page-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .page-head p { font-size: 12.5px; color: var(--mid); margin-bottom: 24px; max-width: 680px; line-height: 1.6; }
+
+  .panel { background: var(--white); border: 1px solid var(--rule); padding: 24px; margin-bottom: 24px; }
+  .panel-head { font-family: 'Inter', sans-serif; font-size: 9px; letter-spacing: .18em; font-weight: 500; text-transform: uppercase; color: var(--mid); margin-bottom: 18px; }
+
+  .dropzone {
+    position: relative; border: 2px dashed var(--rule); border-radius: 2px; padding: 36px 20px; text-align: center;
+    cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .dropzone:hover, .dropzone.drag-over { border-color: var(--goldlt); background: var(--hover); }
+  .dropzone-label { font-size: 13.5px; color: var(--ink); margin-bottom: 4px; }
+  .dropzone-sub { font-size: 11.5px; color: var(--light); }
+  .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .queue { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+  .queue-row { display: flex; align-items: center; gap: 10px; font-size: 12px; padding: 7px 10px; background: var(--sand); }
+  .queue-row .q-name { flex: 1; color: var(--ink); }
+  .queue-row .q-status { color: var(--mid); }
+  .queue-row.done .q-status { color: var(--gold); }
+  .queue-row.error .q-status { color: var(--red); }
+
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filter-btn {
+    font-family: 'Inter', sans-serif; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    padding: 7px 14px; border: 1px solid var(--rule); background: var(--white); color: var(--mid); cursor: pointer;
+  }
+  .filter-btn.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
+
+  .material-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .material-card { background: var(--white); border: 1px solid var(--rule); overflow: hidden; }
+  .m-thumb { width: 100%; height: 150px; background: var(--sand); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .m-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .m-thumb .pdf-icon { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--light); }
+  .m-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .m-name { font-size: 12.5px; color: var(--ink); word-break: break-word; }
+  .m-row { display: flex; gap: 6px; align-items: center; }
+  select, textarea, input[type=text] {
+    font-family: 'Inter', sans-serif; font-size: 12px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 6px 8px; width: 100%;
+  }
+  select:focus, textarea:focus, input:focus { outline: none; border-color: var(--goldlt); }
+  textarea { resize: vertical; min-height: 44px; font-size: 11.5px; }
+  .m-matched { font-size: 11px; color: var(--gold); }
+  .m-actions { display: flex; justify-content: space-between; align-items: center; }
+  .m-actions button {
+    font-family: 'Inter', sans-serif; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--mid); background: none; border: none; cursor: pointer; padding: 0;
+  }
+  .m-actions button:hover { color: var(--red); }
+  .empty-state { padding: 40px; text-align: center; color: var(--light); font-size: 13px; font-style: italic; }
+
+  .save-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--white); padding: 12px 22px; font-size: 12.5px;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200;
+  }
+  .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .save-toast.error { background: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">MOD CR — Admin</div>
+  <div class="header-nav">
+    <a href="catalogue_admin_v65_sans.html">Dashboard</a>
+    <a href="catalogue_admin_manage_v66_sans.html">Works</a>
+    <a href="catalogue_admin_series_v36_sans.html">Series</a>
+    <a href="catalogue_admin_materials_v29_sans.html">Materials</a>
+    <a href="catalogue_intake_v71_sans.html">Add a Work</a>
+    <a href="catalogue_admin_chronology_v16_sans.html">Chronology</a>
+    <a href="catalogue_v72_sans.html">View Site</a>
+    <button onclick="modcrLogOut('catalogue_admin_login_v64_sans.html')">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <h1>Source Materials</h1>
+    <p>Drag in catalog PDFs and legacy photography for the Associate Archivist to mine. TIFF and HEIC images are converted to JPEG and resized automatically — the original file never leaves your device unconverted, and full-resolution masters should stay in the studio's own raw archive rather than being uploaded here.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Add Material</div>
+    <label class="dropzone" id="dropzone">
+      <div class="dropzone-label" id="dropzoneLabel">Drag files here, or click to browse</div>
+      <div class="dropzone-sub">PDF, JPG, PNG, TIFF, HEIC — TIFF/HEIC convert to JPEG automatically</div>
+      <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff,.heic,.heif">
+    </label>
+    <div class="queue" id="queue"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">All Materials</div>
+    <div class="filter-bar" id="filterBar">
+      <button class="filter-btn active" data-status="all" onclick="setFilter('all')">All</button>
+      <button class="filter-btn" data-status="unreviewed" onclick="setFilter('unreviewed')">Unreviewed</button>
+      <button class="filter-btn" data-status="flagged" onclick="setFilter('flagged')">Flagged</button>
+      <button class="filter-btn" data-status="matched" onclick="setFilter('matched')">Matched</button>
+      <button class="filter-btn" data-status="rejected" onclick="setFilter('rejected')">Rejected</button>
+    </div>
+    <div class="material-grid" id="materialGrid"><div class="empty-state">Loading…</div></div>
+  </div>
+</main>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+<script src="https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<script src="modcr-client.js"></script>
+<script>
+let materials = [];
+let activeFilter = 'all';
+const thumbCache = {};
+
+function showToast(msg, isError){
+  const el = document.getElementById('saveToast');
+  el.textContent = msg;
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+function setFilter(status){
+  activeFilter = status;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status === status));
+  renderGrid();
+}
+
+// ---- Conversion: TIFF/HEIC -> JPEG, then every image is downscaled to a
+// working size. PDFs pass through untouched. ----
+async function convertAndResize(file){
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if(ext === 'pdf'){
+    return { blob: file, filename: file.name, kind: 'pdf', note: 'PDF — uploaded as-is' };
+  }
+
+  let sourceBlob = file;
+  let note = 'Resized';
+
+  if(ext === 'tif' || ext === 'tiff'){
+    const buf = await file.arrayBuffer();
+    const ifds = UTIF.decode(buf);
+    UTIF.decodeImage(buf, ifds[0]);
+    const rgba = UTIF.toRGBA8(ifds[0]);
+    const w = ifds[0].width, h = ifds[0].height;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(rgba), w, h), 0, 0);
+    sourceBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+    note = 'Converted from TIFF';
+  } else if(ext === 'heic' || ext === 'heif'){
+    sourceBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+    if(Array.isArray(sourceBlob)) sourceBlob = sourceBlob[0];
+    note = 'Converted from HEIC';
+  }
+
+  const bitmap = await createImageBitmap(sourceBlob);
+  const maxDim = 2000;
+  const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+  const outW = Math.round(bitmap.width * scale);
+  const outH = Math.round(bitmap.height * scale);
+  const canvas2 = document.createElement('canvas');
+  canvas2.width = outW; canvas2.height = outH;
+  canvas2.getContext('2d').drawImage(bitmap, 0, 0, outW, outH);
+  const finalBlob = await new Promise(res => canvas2.toBlob(res, 'image/jpeg', 0.85));
+
+  const baseName = file.name.replace(/\.[^.]+$/, '');
+  return { blob: finalBlob, filename: baseName + '.jpg', kind: 'image', note };
+}
+
+function addQueueRow(id, name){
+  const queue = document.getElementById('queue');
+  const row = document.createElement('div');
+  row.className = 'queue-row';
+  row.id = 'q-' + id;
+  row.innerHTML = `<div class="q-name">${name}</div><div class="q-status">Processing…</div>`;
+  queue.appendChild(row);
+  return row;
+}
+
+async function handleFiles(fileList){
+  const files = Array.from(fileList);
+  for(const file of files){
+    const rowId = modcrGenId();
+    const row = addQueueRow(rowId, file.name);
+    try{
+      const { blob, filename, kind, note } = await convertAndResize(file);
+      row.querySelector('.q-status').textContent = 'Uploading…';
+      await modcrUploadSourceMaterial(blob, filename, kind, null);
+      row.classList.add('done');
+      row.querySelector('.q-status').textContent = note + ' — done';
+    }catch(e){
+      row.classList.add('error');
+      row.querySelector('.q-status').textContent = 'Failed: ' + e.message;
+    }
+  }
+  await loadMaterials();
+}
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', e => { handleFiles(e.target.files); fileInput.value = ''; });
+['dragover','dragenter'].forEach(evt => dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('drag-over'); }));
+['dragleave','drop'].forEach(evt => dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('drag-over'); }));
+dropzone.addEventListener('drop', e => { if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); });
+
+async function renderGrid(){
+  const grid = document.getElementById('materialGrid');
+  const rows = activeFilter === 'all' ? materials : materials.filter(m => m.status === activeFilter);
+  if(rows.length === 0){
+    grid.innerHTML = '<div class="empty-state">No source materials here yet.</div>';
+    return;
+  }
+  grid.innerHTML = rows.map(m => `
+    <div class="material-card" data-id="${m.id}">
+      <div class="m-thumb" id="thumb-${m.id}">${m.kind === 'pdf' ? '<div class="pdf-icon">PDF</div>' : '<div class="pdf-icon">…</div>'}</div>
+      <div class="m-body">
+        <div class="m-name">${m.filename}</div>
+        <div class="m-row">
+          <select onchange="updateStatus('${m.id}', this.value)">
+            ${['unreviewed','flagged','matched','rejected'].map(s => `<option value="${s}" ${m.status===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="m-row">
+          <input type="text" placeholder="Link to CR # (e.g. 47)" onblur="linkToWork('${m.id}', this.value)">
+        </div>
+        ${m.related_work_id ? `<div class="m-matched">Linked to a work</div>` : ''}
+        <textarea placeholder="Notes…" onblur="updateNotes('${m.id}', this.value)">${m.notes || ''}</textarea>
+        <div class="m-actions">
+          <span></span>
+          <button onclick="deleteMaterial('${m.id}','${m.storage_path.replace(/'/g,"\\'")}')">Delete</button>
+        </div>
+      </div>
+    </div>`).join('');
+
+  rows.filter(m => m.kind === 'image').forEach(async m => {
+    const el = document.getElementById('thumb-' + m.id);
+    if(!el) return;
+    try{
+      if(!thumbCache[m.id]) thumbCache[m.id] = await modcrSourceMaterialUrl(m.storage_path);
+      el.innerHTML = `<img src="${thumbCache[m.id]}" alt="">`;
+    }catch(e){
+      el.innerHTML = '<div class="pdf-icon">No preview</div>';
+    }
+  });
+}
+
+async function loadMaterials(){
+  try{
+    materials = await modcrFetchSourceMaterials();
+  }catch(e){
+    document.getElementById('materialGrid').innerHTML =
+      `<div class="empty-state">Could not load source materials: ${e.message}</div>`;
+    return;
+  }
+  renderGrid();
+}
+
+async function updateStatus(id, status){
+  try{
+    await modcrUpdateSourceMaterial(id, { status });
+    const m = materials.find(x => x.id === id);
+    if(m) m.status = status;
+    showToast('Status updated.');
+  }catch(e){
+    showToast('Could not update status: ' + e.message, true);
+  }
+}
+
+async function updateNotes(id, notes){
+  try{
+    await modcrUpdateSourceMaterial(id, { notes });
+    showToast('Notes saved.');
+  }catch(e){
+    showToast('Could not save notes: ' + e.message, true);
+  }
+}
+
+async function linkToWork(id, crText){
+  const crText2 = crText.trim();
+  if(!crText2) return;
+  const crNumber = parseInt(crText2.replace(/\D/g,''), 10);
+  if(!crNumber){ showToast('Enter a CR number, e.g. 47.', true); return; }
+  try{
+    const work = await modcrFetchWorkByCrNumber(crNumber);
+    if(!work){ showToast(`No work found for CR ${crNumber}.`, true); return; }
+    await modcrUpdateSourceMaterial(id, { related_work_id: work.dbId, status: 'matched' });
+    showToast(`Linked to ${work.cr} — ${work.title}.`);
+    await loadMaterials();
+  }catch(e){
+    showToast('Could not link: ' + e.message, true);
+  }
+}
+
+async function deleteMaterial(id, storagePath){
+  if(!confirm('Delete this source material? This cannot be undone.')) return;
+  try{
+    await modcrDeleteSourceMaterial(id, storagePath);
+    await loadMaterials();
+    showToast('Deleted.');
+  }catch(e){
+    showToast('Could not delete: ' + e.message, true);
+  }
+}
+
+(async function(){
+  await modcrRequireAuth('catalogue_admin_login_v64_sans.html');
+  await loadMaterials();
+})();
+</script>
+</body>
+</html>

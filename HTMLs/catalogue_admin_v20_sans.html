@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0f0ef;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #dedddb;
+    --rulelg: #ececea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f7f6;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--sand); color: var(--ink); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  header {
+    position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .header-nav { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+  .header-nav a { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); text-decoration: none; }
+  .header-nav a:hover { color: var(--ink); }
+  .header-nav button {
+    font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer;
+  }
+  .header-nav button:hover { color: var(--ink); }
+
+  main { max-width: 900px; margin: 0 auto; padding: 40px 20px 96px; }
+  .page-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 26px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .page-head p { font-size: 13px; color: var(--mid); margin-bottom: 36px; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-bottom: 36px; }
+  @media(max-width: 700px) { .stat-row { grid-template-columns: repeat(2,1fr); } }
+  .stat-tile { background: var(--white); padding: 20px; }
+  .stat-num { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 28px; letter-spacing: -.01em; }
+  .stat-lbl { font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--light); margin-top: 4px; }
+
+  .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 36px; }
+  @media(max-width: 600px) { .action-grid { grid-template-columns: 1fr; } }
+  .action-card {
+    background: var(--white); border: 1px solid var(--rule); padding: 24px; text-decoration: none; color: var(--ink);
+    display: block; transition: border-color .18s, background .18s;
+  }
+  .action-card:hover { border-color: var(--goldlt); background: var(--hover); }
+  .action-card h2 { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 15px; margin-bottom: 6px; }
+  .action-card p { font-size: 12px; color: var(--mid); line-height: 1.55; }
+
+  .flag-panel { background: var(--white); border: 1px solid var(--rule); padding: 20px 24px; }
+  .flag-panel h3 { font-size: 9px; letter-spacing: .16em; font-weight: 500; text-transform: uppercase; color: var(--light); margin-bottom: 14px; }
+  .flag-empty { font-size: 12.5px; color: var(--light); font-style: italic; }
+  .flag-list { list-style: none; }
+  .flag-list li { font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--rulelg); }
+  .flag-list li:last-child { border-bottom: none; }
+  .flag-list a { color: var(--ink); text-decoration: none; font-weight: 500; }
+  .flag-list a:hover { color: var(--gold); }
+  .flag-note { color: var(--mid); font-size: 12px; display: block; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">MOD CR — Admin</div>
+  <div class="header-nav">
+    <a href="catalogue_admin_manage_v20_sans.html">Manage Works</a>
+    <a href="catalogue_intake_v20_sans.html">Add a Work</a>
+    <a href="catalogue_v29_sans.html">View Site</a>
+    <button onclick="modcrLogOut('catalogue_admin_login_v20_sans.html')">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <h1>Admin Dashboard</h1>
+    <p>Manage the catalogue's works and review works flagged for data-quality review.</p>
+  </div>
+
+  <div class="stat-row" id="statRow">
+    <div class="stat-tile"><div class="stat-num">—</div><div class="stat-lbl">Loading…</div></div>
+  </div>
+
+  <div class="action-grid">
+    <a class="action-card" href="catalogue_admin_manage_v20_sans.html">
+      <h2>Manage Works →</h2>
+      <p>Browse, search, and filter every catalogued work by name, timeframe, or material. Edit or delete a work.</p>
+    </a>
+    <a class="action-card" href="catalogue_intake_v20_sans.html">
+      <h2>Add a Work →</h2>
+      <p>The intake form — new work details, photos, and a verbal annotation.</p>
+    </a>
+  </div>
+
+  <div class="flag-panel">
+    <h3>Flagged for Review</h3>
+    <div id="flagContent"><div class="flag-empty">Loading…</div></div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="modcr-client.js"></script>
+<script>
+(async function(){
+  await modcrRequireAuth('catalogue_admin_login_v20_sans.html');
+
+  let works = [];
+  try{
+    works = await modcrFetchWorks();
+  }catch(e){
+    document.getElementById('statRow').innerHTML =
+      `<div class="stat-tile"><div class="stat-num">—</div><div class="stat-lbl">Could not load works: ${e.message}</div></div>`;
+    document.getElementById('flagContent').innerHTML = '<div class="flag-empty">—</div>';
+    return;
+  }
+
+  const byTag = {};
+  works.forEach(w => { if(w.tag) byTag[w.tag] = (byTag[w.tag]||0) + 1; });
+  const tiles = [
+    {n: works.length, l: 'Total Works'},
+    {n: byTag.ceramic||0, l: 'Ceramic'},
+    {n: byTag.bronze||0, l: 'Bronze'},
+    {n: (byTag.gold||0)+(byTag.silver||0), l: 'Jewelry (Gold/Silver)'},
+  ];
+  document.getElementById('statRow').innerHTML = tiles.map(t=>`
+    <div class="stat-tile"><div class="stat-num">${t.n}</div><div class="stat-lbl">${t.l}</div></div>`).join('');
+
+  const flagged = works.filter(w => w.flag);
+  const flagWrap = document.getElementById('flagContent');
+  if(flagged.length === 0){
+    flagWrap.innerHTML = '<div class="flag-empty">No works currently flagged.</div>';
+  }else{
+    flagWrap.innerHTML = '<ul class="flag-list">' + flagged.map(w => `
+      <li><a href="catalogue_intake_v20_sans.html?edit=${w.id}">${w.title} (${w.cr})</a><span class="flag-note">${w.flag}</span></li>
+    `).join('') + '</ul>';
+  }
+})();
+</script>
+</body>
+</html>

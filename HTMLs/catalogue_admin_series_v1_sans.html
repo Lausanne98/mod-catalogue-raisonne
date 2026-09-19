@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Series — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0f0ef;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #dedddb;
+    --rulelg: #ececea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f7f6;
+    --red:    #a83232;
+    --green:  #3f6b3f;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--sand); color: var(--ink); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  header {
+    position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .header-nav { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+  .header-nav a { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); text-decoration: none; }
+  .header-nav a:hover { color: var(--ink); }
+  .header-nav button {
+    font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer;
+  }
+  .header-nav button:hover { color: var(--ink); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 20px 96px; }
+  .page-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .page-head p { font-size: 12.5px; color: var(--mid); margin-bottom: 24px; }
+
+  .panel { background: var(--white); border: 1px solid var(--rule); padding: 24px; margin-bottom: 24px; }
+  .panel-head { font-family: 'Inter', sans-serif; font-size: 9px; letter-spacing: .18em; font-weight: 500; text-transform: uppercase; color: var(--mid); margin-bottom: 18px; }
+
+  .f-row { display: grid; grid-template-columns: 1fr 1fr 100px 90px 100px; gap: 12px; align-items: end; margin-bottom: 12px; }
+  .f-field { display: flex; flex-direction: column; gap: 5px; }
+  .f-label { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); }
+  input[type=text], input[type=number] {
+    font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 8px 10px; width: 100%;
+  }
+  input:focus { outline: none; border-color: var(--goldlt); }
+  .chk-row { display: flex; align-items: center; gap: 6px; padding-bottom: 8px; }
+  .chk-row label { font-size: 11.5px; color: var(--mid); }
+
+  .btn {
+    font-family: 'Inter', sans-serif; font-size: 12px; letter-spacing: .04em; padding: 9px 16px;
+    border: 1px solid var(--rule); background: var(--white); color: var(--ink); cursor: pointer; transition: all .15s;
+  }
+  .btn:hover { background: var(--ink); color: var(--white); }
+  .btn.primary { background: var(--ink); color: var(--white); }
+  .btn.primary:hover { background: var(--gold); border-color: var(--gold); }
+  .btn.small { font-size: 10.5px; padding: 5px 10px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--white); border: 1px solid var(--rule); }
+  thead th {
+    text-align: left; font-size: 9px; letter-spacing: .1em; font-weight: 500; text-transform: uppercase;
+    color: var(--light); padding: 10px 14px; border-bottom: 1px solid var(--rule); background: var(--sand);
+  }
+  tbody td { padding: 8px 14px; font-size: 13px; border-bottom: 1px solid var(--rulelg); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.active-row { background: var(--hover); }
+  .row-actions { display: flex; gap: 10px; white-space: nowrap; }
+  .row-actions a, .row-actions button {
+    font-family: 'Inter', sans-serif; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--mid); text-decoration: none; background: none; border: none; cursor: pointer; padding: 0;
+  }
+  .row-actions a:hover, .row-actions button:hover { color: var(--ink); }
+  .row-actions .del-link:hover { color: var(--red); }
+  .row-slug { font-size: 10.5px; color: var(--light); }
+  .pub-badge { font-size: 9px; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 2px; }
+  .pub-badge.live { color: var(--green); background: #eaf3ea; border: 1px solid #a8c9a8; }
+  .pub-badge.hidden { color: var(--light); background: var(--sand); border: 1px solid var(--rule); }
+  .tiny-input { width: 60px; }
+
+  .empty-state { padding: 40px; text-align: center; color: var(--light); font-size: 13px; font-style: italic; }
+
+  /* ── Photo manager ── */
+  .photo-dropzone {
+    border: 2px dashed var(--rule); border-radius: 2px; padding: 30px 16px; text-align: center;
+    cursor: pointer; transition: border-color .18s, background .18s; position: relative; margin-bottom: 16px;
+  }
+  .photo-dropzone:hover, .photo-dropzone.dragover { border-color: var(--goldlt); background: var(--hover); }
+  .photo-dropzone .dz-title { font-size: 12.5px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+  .photo-dropzone .dz-hint { font-size: 11.5px; color: var(--light); }
+  .photo-dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .photo-list { display: flex; flex-wrap: wrap; gap: 12px; }
+  .photo-card {
+    display: flex; align-items: flex-start; gap: 10px; background: var(--white);
+    border: 1px solid var(--rule); padding: 8px; cursor: grab;
+    flex: 1 1 280px; min-width: 240px; max-width: 360px;
+    touch-action: none; user-select: none; -webkit-touch-callout: none;
+  }
+  .photo-card.dragging { opacity: .4; }
+  .pc-handle { display: flex; align-items: center; justify-content: center; width: 18px; color: var(--light); font-size: 13px; line-height: 1; padding-top: 4px; flex-shrink: 0; touch-action: none; }
+  .pc-thumb-wrap { position: relative; flex-shrink: 0; }
+  .pc-thumb { display: block; width: 64px; height: 64px; object-fit: cover; background: var(--sand); }
+  .pc-remove-x {
+    position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ink); color: var(--white); border: 2px solid var(--white);
+    font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; padding: 0; opacity: 0; transition: opacity .12s, background .12s;
+  }
+  .pc-thumb-wrap:hover .pc-remove-x { opacity: 1; }
+  .pc-remove-x:hover { background: var(--red); }
+  .pc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .pc-caption {
+    font-family: 'Inter', sans-serif; font-size: 12.5px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 6px 8px; width: 100%;
+  }
+  .pc-type-select { font-family: 'Inter', sans-serif; font-size: 11.5px; color: var(--mid); border: 1px solid var(--rule); padding: 4px 6px; }
+
+  .save-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--white); padding: 12px 22px; font-size: 12.5px;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200;
+  }
+  .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .save-toast.error { background: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">MOD CR — Admin</div>
+  <div class="header-nav">
+    <a href="catalogue_admin_v35_sans.html">Dashboard</a>
+    <a href="catalogue_admin_manage_v35_sans.html">Manage Works</a>
+    <a href="catalogue_intake_v35_sans.html">Add a Work</a>
+    <a href="catalogue_v40_sans.html">View Site</a>
+    <button onclick="modcrLogOut('catalogue_admin_login_v35_sans.html')">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <h1>Manage Series</h1>
+    <p>Create and edit series, and manage each one's Image Gallery carousel photos.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Add a Series</div>
+    <div class="f-row">
+      <div class="f-field">
+        <div class="f-label">Label</div>
+        <input type="text" id="newLabel" placeholder="e.g. Talisman Series">
+      </div>
+      <div class="f-field">
+        <div class="f-label">Slug <span style="text-transform:none;color:var(--light);">(filter value, can't be changed later)</span></div>
+        <input type="text" id="newSlug" placeholder="e.g. talisman-series">
+      </div>
+      <div class="f-field">
+        <div class="f-label">Sort Order</div>
+        <input type="number" id="newSortOrder" value="0">
+      </div>
+      <div class="chk-row">
+        <input type="checkbox" id="newPublished">
+        <label for="newPublished">Published</label>
+      </div>
+      <button class="btn primary" onclick="addSeries()">Add Series</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">All Series</div>
+    <table>
+      <thead>
+        <tr><th>Label</th><th>Sort Order</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody id="seriesTableBody"><tr><td colspan="4"><div class="empty-state">Loading…</div></td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="photoPanel" style="display:none;">
+    <div class="panel-head" id="photoPanelHead">Carousel Photos</div>
+    <div class="photo-dropzone" id="photoDropzone">
+      <div class="dz-title">Drop photos here</div>
+      <div class="dz-hint">Or tap to choose from your files.</div>
+      <input type="file" id="f-photos" accept="image/*" multiple onchange="uploadPhotoFiles(this.files); this.value='';">
+    </div>
+    <div class="photo-list" id="photoGrid"></div>
+  </div>
+</main>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="modcr-client.js"></script>
+<script>
+let seriesData = [];
+let activeSlug = null;
+
+function showToast(msg, isError){
+  const el = document.getElementById('saveToast');
+  el.textContent = msg;
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+function renderSeriesTable(){
+  const tbody = document.getElementById('seriesTableBody');
+  if(seriesData.length === 0){
+    tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">No series yet.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = seriesData.map(s => `
+    <tr class="${s.slug === activeSlug ? 'active-row' : ''}">
+      <td>
+        <input type="text" value="${(s.label||'').replace(/"/g,'&quot;')}" onchange="updateSeriesField('${s.slug}','label',this.value)">
+        <div class="row-slug">${s.slug}</div>
+      </td>
+      <td><input class="tiny-input" type="number" value="${s.sort_order}" onchange="updateSeriesField('${s.slug}','sort_order',parseInt(this.value,10)||0)"></td>
+      <td>
+        <label class="pub-badge ${s.published ? 'live' : 'hidden'}" style="cursor:pointer;">
+          <input type="checkbox" ${s.published ? 'checked' : ''} onchange="updateSeriesField('${s.slug}','published',this.checked)" style="vertical-align:middle;margin-right:4px;">
+          ${s.published ? 'Published' : 'Hidden'}
+        </label>
+      </td>
+      <td><div class="row-actions">
+        <button onclick="openPhotoPanel('${s.slug}','${(s.label||'').replace(/'/g,"\\'")}')">Manage Photos</button>
+        <button class="del-link" onclick="deleteSeries('${s.slug}','${(s.label||'').replace(/'/g,"\\'")}')">Delete</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+async function loadSeries(){
+  try{
+    seriesData = await modcrFetchSeries();
+  }catch(e){
+    document.getElementById('seriesTableBody').innerHTML =
+      `<tr><td colspan="4"><div class="empty-state">Could not load series: ${e.message}</div></td></tr>`;
+    return;
+  }
+  renderSeriesTable();
+}
+
+async function addSeries(){
+  const label = document.getElementById('newLabel').value.trim();
+  const slug = document.getElementById('newSlug').value.trim();
+  const sort_order = parseInt(document.getElementById('newSortOrder').value, 10) || 0;
+  const published = document.getElementById('newPublished').checked;
+  if(!label){ showToast('Add a label.', true); return; }
+  if(!slug || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)){
+    showToast('Slug must be lowercase letters/numbers with hyphens, e.g. "talisman-series".', true);
+    return;
+  }
+  try{
+    await modcrSaveSeries({ slug, label, sort_order, published }, true);
+    document.getElementById('newLabel').value = '';
+    document.getElementById('newSlug').value = '';
+    document.getElementById('newSortOrder').value = '0';
+    document.getElementById('newPublished').checked = false;
+    await loadSeries();
+    showToast('Series added.');
+  }catch(e){
+    showToast('Could not add series: ' + e.message, true);
+  }
+}
+
+async function updateSeriesField(slug, field, value){
+  try{
+    await modcrSaveSeries({ slug, [field]: value }, false);
+    const row = seriesData.find(s => s.slug === slug);
+    if(row) row[field] = value;
+    if(field === 'published') renderSeriesTable();
+    showToast('Saved.');
+  }catch(e){
+    showToast('Could not save: ' + e.message, true);
+    await loadSeries();
+  }
+}
+
+async function deleteSeries(slug, label){
+  if(!confirm(`Delete the "${label}" series? This only works if no works currently use it.`)) return;
+  try{
+    await modcrDeleteSeries(slug);
+    if(activeSlug === slug){
+      activeSlug = null;
+      document.getElementById('photoPanel').style.display = 'none';
+    }
+    await loadSeries();
+    showToast('Series deleted.');
+  }catch(e){
+    showToast('Could not delete — likely still in use by one or more works: ' + e.message, true);
+  }
+}
+
+// ── Carousel photo management ──
+function photoSrc(p){ return modcrSeriesPhotoUrl(p.storage_path); }
+
+function renderPhotoGrid(photos){
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = (photos||[]).map(p => `
+    <div class="photo-card" data-id="${p.id}">
+      <div class="pc-handle" title="Drag to reorder">⠿</div>
+      <div class="pc-thumb-wrap">
+        <img class="pc-thumb" src="${photoSrc(p)}" alt="" draggable="false">
+        <button class="pc-remove-x" onclick="removePhoto('${p.id}','${(p.storage_path||'').replace(/'/g,"\\'")}')" title="Remove photo">×</button>
+      </div>
+      <div class="pc-body">
+        <input type="text" class="pc-caption" placeholder="Caption…"
+               value="${(p.caption||'').replace(/"/g,'&quot;')}"
+               onchange="saveCaption('${p.id}', this.value)">
+        <select class="pc-type-select" onchange="setPhotoType('${p.id}', this.value)">
+          <option value="work" ${p.photo_type==='work'?'selected':''}>Work</option>
+          <option value="process" ${p.photo_type==='process'?'selected':''}>Process</option>
+          <option value="context" ${p.photo_type==='context'?'selected':''}>Exhibition</option>
+          <option value="press" ${p.photo_type==='press'?'selected':''}>Press</option>
+        </select>
+      </div>
+    </div>`).join('');
+  makePhotoListReorderable(grid);
+}
+
+async function reloadPhotos(){
+  const photos = await modcrFetchSeriesPhotos(activeSlug);
+  renderPhotoGrid(photos);
+}
+
+function openPhotoPanel(slug, label){
+  activeSlug = slug;
+  document.getElementById('photoPanelHead').textContent = `Carousel Photos — ${label}`;
+  document.getElementById('photoPanel').style.display = 'block';
+  renderSeriesTable();
+  reloadPhotos();
+  document.getElementById('photoPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function uploadPhotoFiles(files){
+  if(!activeSlug){ showToast('Choose a series first.', true); return; }
+  for(const file of files){
+    try{
+      await modcrUploadSeriesPhoto(activeSlug, file, 'work');
+    }catch(e){
+      showToast('Upload failed: ' + e.message, true);
+    }
+  }
+  await reloadPhotos();
+}
+
+async function saveCaption(photoId, caption){
+  try{ await modcrUpdateSeriesPhotoCaption(photoId, caption.trim()); }
+  catch(e){ showToast('Could not save caption: ' + e.message, true); }
+}
+async function setPhotoType(photoId, type){
+  try{ await modcrSetSeriesPhotoType(photoId, type); }
+  catch(e){ showToast('Could not update: ' + e.message, true); }
+}
+async function removePhoto(id, storagePath){
+  try{
+    await modcrDeleteSeriesPhoto(id, storagePath);
+    await reloadPhotos();
+  }catch(e){
+    showToast('Could not remove photo: ' + e.message, true);
+  }
+}
+
+async function persistPhotoOrder(grid){
+  const ids = [...grid.querySelectorAll('.photo-card')].map(c => c.dataset.id);
+  try{ await modcrReorderSeriesPhotos(ids); }
+  catch(e){ showToast('Could not save photo order: ' + e.message, true); }
+}
+function reorderCardBefore(grid, dragEl, targetCard, clientX){
+  const rect = targetCard.getBoundingClientRect();
+  const before = (clientX - rect.left) < rect.width / 2;
+  grid.insertBefore(dragEl, before ? targetCard : targetCard.nextSibling);
+}
+function makePhotoListReorderable(grid){
+  let dragEl = null, pointerId = null, dragActive = false, startX = 0, startY = 0;
+  const DRAG_THRESHOLD_PX = 6;
+  grid.querySelectorAll('.photo-card').forEach(card => {
+    card.addEventListener('pointerdown', (e) => {
+      if(e.target.closest('input, textarea, select')) return;
+      dragEl = card; pointerId = e.pointerId; dragActive = false;
+      startX = e.clientX; startY = e.clientY;
+    });
+    const thumb = card.querySelector('.pc-thumb');
+    if(thumb) thumb.addEventListener('dragstart', (e) => e.preventDefault());
+    card.addEventListener('pointermove', (e) => {
+      if(!dragEl || e.pointerId !== pointerId) return;
+      if(!dragActive){
+        if(Math.hypot(e.clientX - startX, e.clientY - startY) < DRAG_THRESHOLD_PX) return;
+        dragActive = true;
+        dragEl.classList.add('dragging');
+        try{ dragEl.setPointerCapture(pointerId); }catch(err){}
+      }
+      const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.photo-card');
+      if(target && target !== dragEl && grid.contains(target)) reorderCardBefore(grid, dragEl, target, e.clientX);
+    });
+    const endDrag = async (e) => {
+      if(!dragEl || e.pointerId !== pointerId) return;
+      const wasDragging = dragActive;
+      dragEl.classList.remove('dragging'); dragEl = null; pointerId = null; dragActive = false;
+      if(wasDragging) await persistPhotoOrder(grid);
+    };
+    card.addEventListener('pointerup', endDrag);
+    card.addEventListener('pointercancel', endDrag);
+  });
+}
+
+const dropzoneEl = document.getElementById('photoDropzone');
+['dragenter','dragover'].forEach(evt => dropzoneEl.addEventListener(evt, (e)=>{
+  e.preventDefault();
+  dropzoneEl.classList.add('dragover');
+}));
+['dragleave','drop'].forEach(evt => dropzoneEl.addEventListener(evt, (e)=>{
+  e.preventDefault();
+  dropzoneEl.classList.remove('dragover');
+}));
+dropzoneEl.addEventListener('drop', async (e)=>{
+  const files = Array.from(e.dataTransfer.files || []).filter(f => f.type.startsWith('image/'));
+  if(files.length) await uploadPhotoFiles(files);
+});
+
+(async function(){
+  await modcrRequireAuth('catalogue_admin_login_v35_sans.html');
+  await loadSeries();
+})();
+</script>
+</body>
+</html>

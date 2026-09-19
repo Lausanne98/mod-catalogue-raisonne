@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Works — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0f0ef;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #dedddb;
+    --rulelg: #ececea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f7f6;
+    --red:    #a83232;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--sand); color: var(--ink); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  header {
+    position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 1px solid var(--rule);
+    height: 58px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+  }
+  .header-title { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .header-nav { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+  .header-nav a { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); text-decoration: none; }
+  .header-nav a:hover { color: var(--ink); }
+  .header-nav button {
+    font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer;
+  }
+  .header-nav button:hover { color: var(--ink); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 20px 96px; }
+  .page-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .page-head p { font-size: 12.5px; color: var(--mid); margin-bottom: 24px; }
+
+  .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .filter-bar input, .filter-bar select {
+    font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 9px 12px;
+  }
+  #searchName { flex: 1; min-width: 200px; }
+  .result-count { font-size: 11.5px; color: var(--light); margin-bottom: 14px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--white); border: 1px solid var(--rule); }
+  thead th {
+    text-align: left; font-size: 9px; letter-spacing: .1em; font-weight: 500; text-transform: uppercase;
+    color: var(--light); padding: 10px 14px; border-bottom: 1px solid var(--rule); background: var(--sand);
+  }
+  tbody td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--rulelg); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  .row-thumb { width: 40px; height: 40px; object-fit: cover; background: var(--sand); display: block; }
+  .row-title { font-weight: 500; }
+  .flag-badge { font-size: 9.5px; letter-spacing: .04em; text-transform: uppercase; color: #a05a2c; background: #fdf3e9; border: 1px solid #eccca3; padding: 1px 6px; cursor: help; }
+  .draft-badge-sm { font-size: 9.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--gold); background: #faf3e8; border: 1px solid var(--goldlt); padding: 1px 6px; }
+  .row-actions { display: flex; gap: 10px; white-space: nowrap; }
+  .row-actions a, .row-actions button {
+    font-family: 'Inter', sans-serif; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--mid); text-decoration: none; background: none; border: none; cursor: pointer; padding: 0;
+  }
+  .row-actions a:hover { color: var(--ink); }
+  .row-actions .del-link:hover { color: var(--red); }
+  .empty-state { padding: 40px; text-align: center; color: var(--light); font-size: 13px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">MOD CR — Admin</div>
+  <div class="header-nav">
+    <a href="catalogue_admin_v32_sans.html">Dashboard</a>
+    <a href="catalogue_intake_v32_sans.html">Add a Work</a>
+    <a href="catalogue_v38_sans.html">View Site</a>
+    <button onclick="modcrLogOut('catalogue_admin_login_v32_sans.html')">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <h1>Manage Works</h1>
+    <p>Every catalogued work. Search or filter to find one, then edit or delete it.</p>
+  </div>
+
+  <div class="filter-bar">
+    <input type="text" id="searchName" placeholder="Search by title or MOD CR number…">
+    <select id="filterTag">
+      <option value="">All Materials</option>
+    </select>
+    <select id="filterDecade">
+      <option value="">All Decades</option>
+      <option value="1960">1960s</option>
+      <option value="1970">1970s</option>
+      <option value="1980">1980s</option>
+      <option value="1990">1990s</option>
+      <option value="2000">2000s</option>
+      <option value="2010">2010s</option>
+      <option value="2020">2020s</option>
+    </select>
+  </div>
+
+  <div class="result-count" id="resultCount"></div>
+
+  <table>
+    <thead>
+      <tr><th></th><th>Title</th><th>MOD CR</th><th>Date</th><th>Material</th><th></th></tr>
+    </thead>
+    <tbody id="worksTableBody"><tr><td colspan="6"><div class="empty-state">Loading…</div></td></tr></tbody>
+  </table>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="modcr-client.js"></script>
+<script>
+let works = [];
+
+function render(){
+  const q = document.getElementById('searchName').value.toLowerCase();
+  const tag = document.getElementById('filterTag').value;
+  const decade = document.getElementById('filterDecade').value;
+
+  const filtered = works.filter(w=>{
+    if(q && !(w.title.toLowerCase().includes(q) || w.cr.toLowerCase().includes(q))) return false;
+    if(tag && w.tag !== tag) return false;
+    if(decade && !(w.year >= parseInt(decade) && w.year < parseInt(decade)+10)) return false;
+    return true;
+  });
+
+  document.getElementById('resultCount').textContent = `${filtered.length} of ${works.length} works`;
+
+  const tbody = document.getElementById('worksTableBody');
+  if(filtered.length === 0){
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">No works match this search.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map(w=>{
+    return `<tr>
+      <td>${w.img?`<img class="row-thumb" src="${w.img}" alt="" onerror="this.style.visibility='hidden'">`:''}</td>
+      <td class="row-title">${w.title}${!w.published?` <span class="draft-badge-sm">Draft</span>`:''}${w.flag?` <span class="flag-badge" title="${w.flag}">⚠ needs review</span>`:''}</td>
+      <td>${w.cr}</td>
+      <td>${w.date}</td>
+      <td>${w.medium}</td>
+      <td><div class="row-actions">
+        <a href="catalogue_intake_v32_sans.html?edit=${w.id}">Edit</a>
+        <button class="del-link" onclick="deleteWork('${w.dbId}','${w.title.replace(/'/g,"\\'")}')">Delete</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function deleteWork(dbId, title){
+  if(!confirm(`Delete "${title}" from the catalogue? This cannot be undone.`)) return;
+  try{
+    await modcrDeleteWork(dbId);
+    works = works.filter(w => w.dbId !== dbId);
+    render();
+  }catch(e){
+    alert('Could not delete: ' + e.message);
+  }
+}
+
+function populateTagFilter(){
+  const tags = [...new Set(works.map(w=>w.tag).filter(Boolean))].sort();
+  const sel = document.getElementById('filterTag');
+  sel.innerHTML = '<option value="">All Materials</option>' +
+    tags.map(t => `<option value="${t}">${t.charAt(0).toUpperCase()+t.slice(1).replace('-',' ')}</option>`).join('');
+}
+
+['searchName','filterTag','filterDecade'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', render);
+  document.getElementById(id).addEventListener('change', render);
+});
+
+(async function(){
+  await modcrRequireAuth('catalogue_admin_login_v32_sans.html');
+  try{
+    works = await modcrFetchWorks();
+  }catch(e){
+    document.getElementById('worksTableBody').innerHTML =
+      `<tr><td colspan="6"><div class="empty-state">Could not load works: ${e.message}</div></td></tr>`;
+    return;
+  }
+  populateTagFilter();
+  render();
+})();
+</script>
+</body>
+</html>
