@@ -31,6 +31,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0.110.0";
 import { createClient } from "npm:@supabase/supabase-js@2.112.3";
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
+import jpeg from "npm:jpeg-js@0.4.4";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 
@@ -112,7 +113,12 @@ Read, then act, work by work — never read the entire document first and only d
 5. **Not in either table at all** — call create_staged_work. This is the New Entries tab; never invent a cr_number.
 6. **Every work touched in steps 2-5 — matched or newly staged — gets this document logged as a Publications/Literature citation too**, not just whatever field prompted the match. Format every citation uniformly: publication/document title, and a page number whenever you have one (a page-image row's own filename/notes tag it directly — never drop it when it's right there). "Mentioned in [document]" is not a citation; "[Publication/Document], p. [N]" is, same shape every time.
 7. **Read each page's own text for what it says, not just what it's attached to.** A catalog entry's prose routinely references OTHER exhibitions or publications this same work has appeared in ("previously exhibited at...", "as illustrated in..."). Treat each such mention as its own citable fact for that work — log and, where append-safe, propose it too. A single page can legitimately add several citations to one work.
-8. **Photos**: for a pasted-link source, a downloaded candidate photo (when one was found and fetched) appears as its own image content block right after the extracted text, each one labeled with which [IMAGE #N] marker it corresponds to and the real URL it came from — look at it the same way you'd look at a PDF page image. Position near a lot's description is a hint about which work a candidate belongs to, never proof by itself: confirm the picture actually matches the work's medium/form/other stated details before treating it as verified, and ignore a candidate that's clearly page furniture (a logo, an unrelated thumbnail, a different lot) rather than assuming the nearest marker number is automatically right. When a candidate IS a confirmed, real photo of the specific work, its own URL (not a marker number) is what goes in image_url. Never attach a full-page render, or any image that still shows a border/mat/page background around the artwork, as a work's photo. A full extracted image that's already a tight, clean crop of just the work is fine to set as a NEW staged work's image_url directly — but "tight crop" and "good enough quality" are two separate checks, do both. A phone photo of a printed catalog page (visible halftone dots, moiré pattern, blur, glare, or generally low resolution) is real, common source material — it can still be used, it should never be silently discarded — but it is not the same as a clean digital scan, and that distinction matters. When the ONLY available image for a work is one of these lower-quality captures, it's fine to still set it as a new staged work's image_url (better than no image at all), but you MUST also flag the quality issue — never attach it silently as if it were a clean source. For an EXISTING work, any candidate photo is still just a candidate regardless of quality — never set image_url on a live work yourself; note it for human review via a flagged work_source instead. Whenever a work has no usable photo at all, propose_work_revision on field: flag with a line starting exactly "Needs a source image:" plus what's missing and why (or append_note with that same line, for a staged candidate). Whenever a photo exists and is the right work but isn't a clean tight crop, OR is usable but visibly low-quality (blurry, low-resolution, moiré/halftone pattern from photographing a printed page, glare), use a line starting exactly "Needs a cleaner photo:" describing specifically which of these applies (e.g. "Needs a cleaner photo: usable but shows halftone/moiré from a phone photo of a printed auction listing — a cleaner scan or the auction house's own digital image would be better") — same placement rules as the source-image note. Never attach a genuinely wrong-work or unverifiable image just to fill the field — an unset image renders as a clean placeholder on purpose — but a verified-correct, merely-lower-quality image is a candidate worth keeping (with the flag), not something to withhold.
+8. **Photos**:
+   - *Pasted-link source*: a downloaded candidate photo (when one was found and fetched) appears as its own image content block right after the extracted text, each one labeled with which [IMAGE #N] marker it corresponds to and the real URL it came from — look at it the same way you'd look at a PDF page image. Position near a lot's description is a hint about which work a candidate belongs to, never proof by itself: confirm the picture actually matches the work's medium/form/other stated details before treating it as verified, and ignore a candidate that's clearly page furniture (a logo, an unrelated thumbnail, a different lot) rather than assuming the nearest marker number is automatically right. When a candidate IS a confirmed, real photo of the specific work, its own URL (not a marker number) goes directly into image_url (create_staged_work/update_staged_work). A full extracted image that's already a tight, clean crop of just the work is fine to set directly this way — but "tight crop" and "good enough quality" are two separate checks, do both. A phone photo of a printed catalog page (visible halftone dots, moiré pattern, blur, glare, or generally low resolution) is real, common source material — usable, never silently discarded — but flag the quality issue (see below) rather than attaching it silently as if it were a clean source. When a candidate is merely plausible — near the right lot's text but not confirmed, or ambiguous among more than one nearby image — pass it as candidate_photo_url (with candidate_photo_note explaining the uncertainty) instead of guessing it into image_url; this logs it to that draft's review bullpen for a human to check rather than silently discarding a real maybe. Ignore anything clearly unrelated entirely — don't log that as a candidate either.
+   - *Catalog/PDF source (native PDF read, or pre-extracted page images from scripts/catalog_pdf_extractor.py, each its own source_materials row with kind:'image')*: there is no separately-hosted URL for a work's photo here — it only exists as pixels on a page. Use attach_staged_work_photo, pointed at the specific source_materials image row (its id is given to you alongside that page's content). This only works against a kind:'image' row — a raw kind:'pdf' row's pages haven't been extracted yet and can't be cropped by this tool; if extraction hasn't happened, treat it exactly like having no photo at all (flag "Needs a source image:", below). Always crop tightly around just the artwork — never leave a caption strip, a second unrelated work sharing the page, or a border/mat/page background in frame; omit crop entirely only when the whole image is already nothing but the work. Use confidence:'confirmed' ONLY for an explicit, unambiguous signal: a caption directly naming this exact work next to its photo, or a table-of-contents/List-of-Works page mapping this exact title to this exact page number together with a clear photo on that page. Use confidence:'candidate' for anything short of that but still plausible (same page/spread as the work's mentioned, no explicit caption, ambiguous among several images on the page) — it lands in the draft's review bullpen instead of being silently discarded or wrongly auto-placed. Never call this tool at all for an image that's clearly unrelated to any work (decoration, a logo, a different already-placed work) — skip it entirely rather than logging noise as a candidate.
+   - *Either path, for an EXISTING (already-published) work*: any candidate photo is still just a candidate regardless of source or quality — never set image_url on a live work yourself and never call attach_staged_work_photo or pass candidate_photo_url for one (both only ever touch staged_works); note it for human review via a flagged work_source instead.
+   - Whenever a work ends up with no usable photo at all — nothing confirmed, not even a candidate — propose_work_revision on field: flag with a line starting exactly "Needs a source image:" plus what's missing and why (or append_note with that same line, for a staged candidate). Whenever a photo IS attached/set but isn't a clean tight crop, or is usable but visibly low-quality (blurry, low-resolution, moiré/halftone pattern from photographing a printed page, glare), use a line starting exactly "Needs a cleaner photo:" describing specifically which issue applies — same placement rules as the source-image note. Never attach a genuinely wrong-work or unverifiable image just to fill the field — an unset image renders as a clean placeholder on purpose — but a verified-correct, merely-lower-quality image is worth keeping (with the flag), not something to withhold.
+9. **Log every title this document mentions to the citation index, not just what you confidently matched or staged above.** Call log_citation for EVERY work name/citation you encounter — a passing mention in someone else's provenance paragraph, an exhibition checklist entry, a title referenced only inside another work's own citation — even when it's nowhere near confident enough to match or stage on its own, and even for a work you already handled confidently in steps 2-5 (log_citation is a supplementary index; it never replaces log_work_source/create_staged_work/update_staged_work for those). This is what lets a work that gets its own entry later, from any source, arrive already primed with everything ever said about it — so log liberally here; a citation that turns out unused later cost nothing, but one never logged is gone for good.
 
 ## Field extraction protocol
 Extract into structured fields, never leave a fact sitting only in prose: Title (an auction/gallery listing routinely comes as one compound string like \`"Faucet," 1986, cast bronze\` — the title field gets ONLY the name, \`Faucet\`, with the date and medium pulled out into date_display/year/medium instead; a trailing year or material after a comma, in parentheses, or after the closing quote is exactly the pattern to strip, every time, not just when it's convenient. An object-first listing puts the real name in quotes instead, with the object type or edition/gallery info wrapped around it — \`Chaise 'For Eve', edition David Gill Gallery\` or \`"Coral Wave" chair\`: the title is ONLY the quoted phrase (\`For Eve\`, \`Coral Wave\`), and everything outside the quotes — the object type, edition/gallery info — moves into medium instead, never left in title. Only pull this apart when the quotes clearly wrap a proper name distinct from the surrounding description; a lone apostrophe (a possessive like "Horace's Muse") is not this pattern and title stays as-is. If the source gives no real name at all — only a bare material/date description like "cast bronze and crystal work, c. 2005" — do not carry that description into title as if it were a name; use \`Untitled\` for title and put the real description in medium/notes instead), Date (date_display as the source states it, year as a plain number), Material (medium = descriptive label — including any object-type/edition text pulled out of the title per the rule above, folded in rather than dropped — tag = the matching materials.slug — never invent one, see the tag/series rules below), Dimensions (as stated), Series (the most specific series.slug that fits — a named sub-series before a broad bucket; never set a work's own series to early-clay unless its tag is literally ceramic, per the cross-categorization rule: a ceramic work dated before 2000 shows under Early Clay automatically via live filter logic, it does not need series set to early-clay directly), Provenance (dated ownership chain; for a museum listing, state plainly whether it's a permanent-collection holding or a past loan/exhibition, and record acquisition year/method if given), Exhibitions (venue, exhibition title, city, date, and curator name if listed), Publications/Literature (see citation format above).
@@ -232,8 +238,13 @@ const TOOLS: Anthropic.Tool[] = [
         image_url: {
           type: "string",
           description:
-            "Only set this if you have a real, verified, tightly-cropped, right-work image already sized per this project's convention (72dpi, max 2200px). Leave unset otherwise — a source-image request note in notes is correct instead of a guess.",
+            "Only set this if you have a real, verified, tightly-cropped, right-work image already sized per this project's convention (72dpi, max 2200px) -- for a pasted-link source's own confirmed photo (see rule 8). Leave unset otherwise — a source-image request note in notes is correct instead of a guess, or use candidate_photo_url below for a plausible-but-unconfirmed pasted-link photo. For a catalog/PDF source, use attach_staged_work_photo after creating this draft instead — a PDF page's photo has no hostable URL to put here directly.",
         },
+        candidate_photo_url: {
+          type: "string",
+          description: "A plausible-but-unconfirmed pasted-link photo's URL (see rule 8) -- logged to this draft's review bullpen instead of guessed into image_url. Pair with candidate_photo_note.",
+        },
+        candidate_photo_note: { type: "string", description: "Briefly, why this candidate photo isn't confirmed." },
         source_url: { type: "string", description: "Citation anchor for this document (filename/label + page number if known)." },
         notes: { type: "string", description: "Why this reads as a genuine, previously uncatalogued work — cite specifically." },
       },
@@ -255,9 +266,59 @@ const TOOLS: Anthropic.Tool[] = [
         suggested_series: { type: "string" },
         dimensions: { type: "string" },
         image_url: { type: "string" },
+        candidate_photo_url: {
+          type: "string",
+          description: "A plausible-but-unconfirmed pasted-link photo's URL (see rule 8) -- appended to this draft's review bullpen instead of guessed into image_url. Pair with candidate_photo_note.",
+        },
+        candidate_photo_note: { type: "string", description: "Briefly, why this candidate photo isn't confirmed." },
         append_note: { type: "string", description: "A new dated, cited line to add to this draft's notes." },
       },
       required: ["staged_id"],
+    },
+  },
+  {
+    name: "log_citation",
+    description:
+      "Log a work mention into the standing citation index — call this for EVERY MOD work this document names or depicts, not just the one(s) confidently matched/staged in this pass. This builds a searchable record so a later entry for that title (created manually on Intake, or staged separately in a future pass) arrives already primed with everything ever said about it, even a passing mention that wasn't itself confident enough to match or stage a work. Always call this IN ADDITION TO, never instead of, the get_work/get_staged_work/log_work_source/create_staged_work/update_staged_work calls for a confident match — this is a supplementary index, not a replacement for those.",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "The work's title exactly as it appears in this source." },
+        citation_kind: { type: "string", enum: ["publication", "exhibition", "provenance", "auction", "other"] },
+        citation_text: {
+          type: "string",
+          description: "The actual citation content, formatted as a real citation -- a provenance line, an exhibition line, a literature reference, an auction record.",
+        },
+        source_url: { type: "string", description: "Citation anchor for this document (filename/label + page number if known), or a real URL." },
+        work_id: { type: "string", description: "Set only if this title is confidently matched to a live work you've already confirmed via get_work." },
+        staged_work_id: { type: "string", description: "Set only if this title is confidently matched to an existing staged draft you've already confirmed via get_staged_work." },
+      },
+      required: ["title", "citation_kind", "citation_text", "source_url"],
+    },
+  },
+  {
+    name: "attach_staged_work_photo",
+    description:
+      "Attach a photo to a staged_works draft, cropped from an already-extracted catalog page image (a source_materials row with kind:'image' -- e.g. from scripts/catalog_pdf_extractor.py). Does NOT work on a raw kind:'pdf' row directly -- extraction must already have produced individual page images. Crop out anything that isn't the work itself before attaching. confidence:'confirmed' sets the draft's real photo directly -- use ONLY for an explicit, unambiguous signal (a caption naming this exact work next to its photo, or a table-of-contents/List-of-Works page number match). confidence:'candidate' logs it to the draft's review bullpen instead -- use for anything plausible but short of that bar. See rule 8 for the full guidance.",
+    input_schema: {
+      type: "object",
+      properties: {
+        staged_work_id: { type: "string" },
+        source_material_id: { type: "string", description: "The source_materials.id (kind:'image') holding the page image to crop from." },
+        crop: {
+          type: "object",
+          description: "Normalized (0-1) crop box within that image, tightly around just the artwork. Omit only when the whole image is already nothing but the work.",
+          properties: {
+            x: { type: "number", description: "Left edge, 0-1 fraction of image width." },
+            y: { type: "number", description: "Top edge, 0-1 fraction of image height." },
+            width: { type: "number", description: "0-1 fraction of image width." },
+            height: { type: "number", description: "0-1 fraction of image height." },
+          },
+        },
+        confidence: { type: "string", enum: ["confirmed", "candidate"] },
+        note: { type: "string", description: "For confidence:'candidate' only -- briefly, why this is a maybe, not a certainty." },
+      },
+      required: ["staged_work_id", "source_material_id", "confidence"],
     },
   },
   {
@@ -375,6 +436,9 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
           suggested_series: input.suggested_series ?? null,
           dimensions: input.dimensions ?? null,
           image_url: input.image_url ?? null,
+          candidate_photos: input.candidate_photo_url
+            ? [{ url: input.candidate_photo_url, note: input.candidate_photo_note ?? null, added_at: new Date().toISOString() }]
+            : [],
           source_url: input.source_url,
           source_type: "publication",
           confidence: "candidate",
@@ -398,19 +462,102 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
       for (const k of ["date_display", "year", "medium", "tag", "suggested_series", "dimensions", "image_url"]) {
         if (input[k] !== undefined) patch[k] = input[k];
       }
-      if (input.append_note) {
+      if (input.append_note || input.candidate_photo_url) {
         const { data: current, error: fetchErr } = await adminDb
           .from("staged_works")
-          .select("notes")
+          .select("notes, candidate_photos")
           .eq("id", input.staged_id)
           .single();
         if (fetchErr) throw fetchErr;
-        patch.notes = current?.notes ? `${current.notes}\n\n${input.append_note}` : input.append_note;
+        if (input.append_note) {
+          patch.notes = current?.notes ? `${current.notes}\n\n${input.append_note}` : input.append_note;
+        }
+        if (input.candidate_photo_url) {
+          const existing = Array.isArray(current?.candidate_photos) ? current.candidate_photos : [];
+          patch.candidate_photos = [
+            ...existing,
+            { url: input.candidate_photo_url, note: input.candidate_photo_note ?? null, added_at: new Date().toISOString() },
+          ];
+        }
       }
       patch.updated_at = new Date().toISOString();
       const { error } = await adminDb.from("staged_works").update(patch).eq("id", input.staged_id);
       if (error) throw error;
       return { ok: true };
+    }
+    case "log_citation": {
+      const { data, error } = await adminDb
+        .from("work_citations")
+        .insert({
+          title_raw: input.title,
+          normalized_title: String(input.title).toLowerCase().trim(),
+          citation_kind: input.citation_kind,
+          citation_text: input.citation_text,
+          source_url: input.source_url,
+          source_material_id: sourceMaterialId,
+          work_id: input.work_id ?? null,
+          staged_work_id: input.staged_work_id ?? null,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return { citation_id: data.id };
+    }
+    case "attach_staged_work_photo": {
+      const { data: sourceRow, error: srcErr } = await adminDb
+        .from("source_materials")
+        .select("kind, storage_path")
+        .eq("id", input.source_material_id)
+        .maybeSingle();
+      if (srcErr) throw srcErr;
+      if (!sourceRow || sourceRow.kind !== "image" || !sourceRow.storage_path) {
+        return {
+          error:
+            "source_material_id must reference an existing source_materials row with kind:'image' and a storage_path -- a raw kind:'pdf' row can't be cropped directly by this tool; extraction (scripts/catalog_pdf_extractor.py) must produce page images first.",
+        };
+      }
+      const { data: fileBlob, error: dlErr } = await adminDb.storage.from("source-materials").download(sourceRow.storage_path);
+      if (dlErr || !fileBlob) return { error: `Could not download source image: ${dlErr?.message ?? "unknown error"}` };
+      let bytes = new Uint8Array(await fileBlob.arrayBuffer());
+      if (input.crop) {
+        try {
+          bytes = cropJpeg(bytes, input.crop);
+        } catch (err) {
+          // Fail open -- attach the full, uncropped image rather than lose
+          // the photo entirely over a crop error. Surfaced in the return
+          // value so the model can mention it wasn't cropped as requested.
+          console.error("attach_staged_work_photo: crop failed, using full image:", err);
+        }
+      }
+      const path = `${input.staged_work_id}/${crypto.randomUUID()}.jpg`;
+      const { error: upErr } = await adminDb.storage.from("staged-work-photos").upload(path, bytes, { contentType: "image/jpeg", upsert: true });
+      if (upErr) return { error: `Could not upload photo: ${upErr.message}` };
+      const { data: pub } = adminDb.storage.from("staged-work-photos").getPublicUrl(path);
+      const publicUrl = pub.publicUrl;
+
+      if (input.confidence === "confirmed") {
+        const { error } = await adminDb
+          .from("staged_works")
+          .update({ image_url: publicUrl, updated_at: new Date().toISOString() })
+          .eq("id", input.staged_work_id);
+        if (error) throw error;
+        return { attached: true, image_url: publicUrl };
+      } else {
+        const { data: current, error: fetchErr } = await adminDb
+          .from("staged_works")
+          .select("candidate_photos")
+          .eq("id", input.staged_work_id)
+          .single();
+        if (fetchErr) throw fetchErr;
+        const candidates = Array.isArray(current?.candidate_photos) ? current.candidate_photos : [];
+        candidates.push({ url: publicUrl, note: input.note ?? null, source_material_id: input.source_material_id, added_at: new Date().toISOString() });
+        const { error } = await adminDb
+          .from("staged_works")
+          .update({ candidate_photos: candidates, updated_at: new Date().toISOString() })
+          .eq("id", input.staged_work_id);
+        if (error) throw error;
+        return { logged_as_candidate: true, image_url: publicUrl };
+      }
     }
     case "search_classification_rules": {
       const result = await callKnowledgeIndex("search", { collection: "claude_md", query: input.query, top_k: 3 });
@@ -433,6 +580,29 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
 
 function appendNote(existing: string | null | undefined, line: string): string {
   return existing ? `${existing}\n\n${line}` : line;
+}
+
+// Pure-JS JPEG decode/crop/re-encode -- no native bindings, safe to run in
+// the Edge Function's sandboxed Deno runtime (which can't load an arbitrary
+// native PDF/image library the way a local script running PyMuPDF/Pillow
+// could -- see scripts/catalog_pdf_extractor.py's own docstring on exactly
+// this constraint). Only ever called on an already-extracted, already-flat
+// page image -- never asked to rasterize a PDF page itself, which is a much
+// harder problem this function deliberately does not attempt.
+function cropJpeg(bytes: Uint8Array, crop: { x: number; y: number; width: number; height: number }): Uint8Array {
+  const decoded = jpeg.decode(bytes, { useTArray: true });
+  const srcW = decoded.width, srcH = decoded.height;
+  const x = Math.max(0, Math.min(srcW - 1, Math.round(crop.x * srcW)));
+  const y = Math.max(0, Math.min(srcH - 1, Math.round(crop.y * srcH)));
+  const w = Math.max(1, Math.min(srcW - x, Math.round(crop.width * srcW)));
+  const h = Math.max(1, Math.min(srcH - y, Math.round(crop.height * srcH)));
+  const out = new Uint8Array(w * h * 4);
+  for (let row = 0; row < h; row++) {
+    const srcOffset = ((y + row) * srcW + x) * 4;
+    out.set(decoded.data.subarray(srcOffset, srcOffset + w * 4), row * w * 4);
+  }
+  const encoded = jpeg.encode({ data: out, width: w, height: h }, 88);
+  return new Uint8Array(encoded.data);
 }
 
 // ---- The actual pass, run in the background --------------------------------
@@ -523,7 +693,14 @@ type Checkpoint = {
 // logged/proposed/staged can be caught and rejected rather than accepted
 // at face value -- a prose summary of what COULD be written is not the
 // same as it having been written.
-const WRITE_TOOLS = new Set(["log_work_source", "propose_work_revision", "create_staged_work", "update_staged_work"]);
+const WRITE_TOOLS = new Set([
+  "log_work_source",
+  "propose_work_revision",
+  "create_staged_work",
+  "update_staged_work",
+  "log_citation",
+  "attach_staged_work_photo",
+]);
 
 async function buildInitialCheckpoint(
   rows: { id: string; kind: string; filename: string; storage_path: string | null; url: string | null; notes: string | null }[],
@@ -653,7 +830,7 @@ async function buildInitialCheckpoint(
       docBlocks.push({ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } });
       docBlocks.push({
         type: "text",
-        text: `source_materials row id ${row.id}, filename "${row.filename}". Notes/page text for this image:\n${row.notes ?? "(none)"}`,
+        text: `source_materials row id ${row.id} (use this exact id as source_material_id if you call attach_staged_work_photo against this image), filename "${row.filename}". Notes/page text for this image:\n${row.notes ?? "(none)"}`,
       });
     }
   }
