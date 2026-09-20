@@ -973,6 +973,11 @@ $$;
 -- to image_url as before -- this is only for the gray area in between. ═══
 alter table staged_works add column if not exists candidate_photos jsonb not null default '[]'::jsonb;
 
+-- A title is a sourced claim (see the associate-archivist skill's Title
+-- rule) -- staged_works had no column to carry that source forward to
+-- import, even though works.title_source has existed all along.
+alter table staged_works add column if not exists title_source text;
+
 insert into storage.buckets (id, name, public)
 values ('staged-work-photos', 'staged-work-photos', true)
 on conflict (id) do nothing;

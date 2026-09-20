@@ -88,6 +88,45 @@ Series/Subseries, Provenance, Exhibitions, Publications/Citations.**
   stuck in its `title` (see the researcher skill's own "Pull these out of
   the title" section), that's exactly the kind of gap this mode exists to
   close.
+  - **A title is a sourced claim, never something inferred from looking at
+    an image.** Always fill `title_source` alongside `title` — name exactly
+    which document produced the string, and where on it (e.g. "auction lot
+    heading, Wright sale #487," "handwritten label on verso, per studio
+    photo," "Instagram caption, @micheleokadoner post [date]," "gallery
+    invoice line item"). A title with no stated source is a title this
+    project can't yet stand behind — log it anyway (an empty title field
+    helps no one, and every entry here is a draft, not a final record), but
+    mark it explicitly low-confidence in `notes`/the citation
+    (`work_sources.confidence: flagged`) rather than presenting it as
+    settled. **Recognizing a title vs. a description depends on where it
+    sits in the source, not just how it reads:** an auction lot's bolded
+    heading line above/below the lot number is the title; the medium/
+    dimensions/estimate line below it never is, even if formatted
+    similarly. A gallery/museum page's largest heading is the title;
+    body-paragraph prose with verbs, explaining meaning or history, is
+    description even when it's the only text available — never promote a
+    descriptive sentence into `title` just because nothing else is around.
+    A printed catalog's title sits under/beside its own plate or figure
+    number; a caption there is the most reliable title location in print,
+    but a later prose mention of that same title elsewhere in the essay is
+    a *citation of* the title, not an independent second source for it —
+    don't log repeated in-text mentions as separate confirmations. A social
+    media caption is a plausible title source only when it reads as a
+    proper name (quoted, capitalized like a title) — a caption that's a
+    full descriptive sentence is not a title just because it's the only
+    text on the post; treat any social-sourced title as lower-confidence
+    by default. A source behind a dead/archived link gets treated exactly
+    like the live version of that source type would be, but flag it
+    `unverifiable/unrecoverable` in `notes` and record what you can about
+    it (site name, approximate date, lot/item number) even though the link
+    itself can't be re-checked.
+  - **When two sources genuinely disagree on a work's title**, don't
+    silently pick one and discard the other — log both. `staged_works` has
+    no separate "alternate title" column, so until one exists, use the
+    primary source for `title`/`title_source` and record the disagreement
+    explicitly in `notes` (or the `flag` field, for an existing work) as
+    "Alternate title: '[X]' per [source]" — never resolve a real
+    disagreement by omission.
 - **Date** goes in `date_display` (the display string as the source gives
   it — `"1993"`, `"c. 1985"`, `"1990s"`) and `year` (a plain number for
   sorting, your best confident reading of `date_display` when it's not
@@ -155,6 +194,41 @@ form pre-fill, the auto-promotion check, and a future chronological
 renumbering pass all read structured fields, not paragraphs. If something
 genuinely doesn't fit any of the fields above, that's what `notes` is for
 — but check the list twice before defaulting a fact there.
+
+## Matching a photo to the correct work (all modes)
+
+This fails for different reasons than title/description confusion, so it
+gets its own discipline:
+
+- **Anchor a photo match to the source document, never to visual
+  similarity.** A photo belongs to a title because it appeared *on the same
+  source document, in the same position* — the same auction lot, the same
+  catalog plate, the same gallery page — not because it "looks like" a
+  described work. Visual similarity is supporting evidence at most, never
+  the primary match criterion: MOD's body of work includes many visually
+  related pieces across a large output, and a look-alike match is exactly
+  how the wrong photo ends up on the wrong entry.
+- **A photo can be *of* a work or merely *containing* it — only the former
+  is a candidate.** A single image might be the primary reference photo for
+  one work, a detail/installation shot that incidentally shows a different
+  work in the background, or an archival photo of the artist with several
+  pieces visible at once. Decide which case you're in before treating an
+  image as a candidate for anything; an incidental appearance is not a
+  photo credit for that work.
+- **When a source presents multiple images for one work, don't assume the
+  first one found is the primary one.** Note which reads as the main
+  reference image and which are supplementary, and record whatever credit
+  line the source gives for each (e.g. "Photo: Christie's Images Limited")
+  in `notes`/the `work_sources` finding — `staged_works`/`work_photos` has
+  no per-image credit field of its own yet, so this travels as a note
+  until one exists, same as the `secondary_series` note pattern above.
+- **An unmatched photo or an untitled work still gets logged, gap marked
+  explicitly, never paired speculatively just to avoid an empty field.** A
+  photo with no source-document anchor at all, or a title with no
+  confirmed photo, is useful to a human reviewer exactly as it is — a
+  guessed pairing that turns out wrong is not. This is the same "Needs a
+  source image:" discipline already covered under Hard rules below, applied
+  at the moment of matching, not just at the end of a pass.
 
 ## Mode A: researching a named work
 
@@ -457,6 +531,17 @@ Confidence levels:
   exact work.
 - **flagged** — plausible but not fully verified (a secondary source, an
   ambiguous title match, an auction listing with incomplete cataloguing).
+  Three specific situations always get flagged rather than guessed through,
+  since there's no Executive Editor triage layer ahead of Jordan's review
+  yet — the flag itself is what surfaces these for a human to actually
+  decide: **two sources giving conflicting titles for what appears to be
+  the same work** (log both per the alternate-title rule above, flagged,
+  rather than picking one); **a photo with no source-document anchor at
+  all** (found in isolation, no accompanying listing/page to match it
+  against — log it as unmatched rather than pairing it with a guess); and
+  **a source type this skill doesn't have explicit guidance for above** —
+  flag it with what the source actually is and how you handled it, so a
+  future update to this file can fold in real guidance for it.
 - **rejected** — checked and ruled out (log it anyway; it stops the next
   run from re-investigating the same dead end).
 

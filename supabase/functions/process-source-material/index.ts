@@ -123,6 +123,9 @@ Read, then act, work by work — never read the entire document first and only d
 ## Field extraction protocol
 Extract into structured fields, never leave a fact sitting only in prose: Title (an auction/gallery listing routinely comes as one compound string like \`"Faucet," 1986, cast bronze\` — the title field gets ONLY the name, \`Faucet\`, with the date and medium pulled out into date_display/year/medium instead; a trailing year or material after a comma, in parentheses, or after the closing quote is exactly the pattern to strip, every time, not just when it's convenient. An object-first listing puts the real name in quotes instead, with the object type or edition/gallery info wrapped around it — \`Chaise 'For Eve', edition David Gill Gallery\` or \`"Coral Wave" chair\`: the title is ONLY the quoted phrase (\`For Eve\`, \`Coral Wave\`), and everything outside the quotes — the object type, edition/gallery info — moves into medium instead, never left in title. Only pull this apart when the quotes clearly wrap a proper name distinct from the surrounding description; a lone apostrophe (a possessive like "Horace's Muse") is not this pattern and title stays as-is. If the source gives no real name at all — only a bare material/date description like "cast bronze and crystal work, c. 2005" — do not carry that description into title as if it were a name; use \`Untitled\` for title and put the real description in medium/notes instead), Date (date_display as the source states it, year as a plain number), Material (medium = descriptive label — including any object-type/edition text pulled out of the title per the rule above, folded in rather than dropped — tag = the matching materials.slug — never invent one, see the tag/series rules below), Dimensions (as stated), Series (the most specific series.slug that fits — a named sub-series before a broad bucket; never set a work's own series to early-clay unless its tag is literally ceramic, per the cross-categorization rule: a ceramic work dated before 2000 shows under Early Clay automatically via live filter logic, it does not need series set to early-clay directly), Provenance (dated ownership chain; for a museum listing, state plainly whether it's a permanent-collection holding or a past loan/exhibition, and record acquisition year/method if given), Exhibitions (venue, exhibition title, city, date, and curator name if listed), Publications/Literature (see citation format above).
 
+## Title source and photo matching
+A title is a sourced claim, never inferred from an image — always set title_source alongside title on create_staged_work/update_staged_work (which document, and where on it: "auction lot heading, [sale]", "caption beneath plate, [catalog] p.[N]"). Recognize a title by its position in the source, not just how it reads: an auction/lot listing's bolded heading above/below the lot number is the title, never the medium/dimensions/estimate line below it; a gallery/museum page's largest heading is the title, body prose explaining meaning or history is description even when it's the only text present; a printed catalog's title sits under/beside its own plate/figure number, and a later prose mention of that same title elsewhere is a citation of it, not an independent second source. When two sources genuinely disagree on a title, don't silently pick one — set title/title_source from the primary one and record the disagreement in notes/append_note as "Alternate title: '[X]' per [source]". Anchor every photo match to the source document (same page, same lot, same plate) never to visual similarity — MOD's body of work includes many visually related pieces, so a look-alike match is exactly how the wrong photo lands on the wrong entry; an image that merely shows a work incidentally (an installation shot, an archival photo with several pieces visible) is not that work's own photo.
+
 ## Tag and series classification rules
 Headlines only — the full rules (and every future addition to them) live in CLAUDE.md's "Tag/series inference rules" section and are kept queryable via search_classification_rules rather than repeated here in full every time: tag is always the base material alone, never a compound phrase (organic-material is last resort, never preferred over a more specific match in the same medium string); a wearable metal object (necklace, brooch, pendant, ring, bracelet, earring, cuff) is jewelry, everything else metal is bronze-works (Sculpture) regardless of the material being precious; all clay/ceramic work defaults to bronze-works unless a more specific named sub-series clearly fits; never invent a tag for a material not in the taxonomy given to you — leave tag/suggested_series unset and flag it for a human decision instead. **Call search_classification_rules whenever a material/series call isn't obviously covered by this summary** (an unfamiliar material, an edge case, a series question) rather than guessing from the headline alone.
 
@@ -226,6 +229,10 @@ const TOOLS: Anthropic.Tool[] = [
       type: "object",
       properties: {
         title: { type: "string" },
+        title_source: {
+          type: "string",
+          description: "Which document produced this title, and where on it -- e.g. \"auction lot heading, Wright sale #487\", \"caption beneath plate, PAMM catalog p.19\". A title is a sourced claim, never inferred from an image -- always set this alongside title.",
+        },
         date_display: { type: "string" },
         year: { type: "integer" },
         medium: { type: "string" },
@@ -259,6 +266,7 @@ const TOOLS: Anthropic.Tool[] = [
       type: "object",
       properties: {
         staged_id: { type: "string" },
+        title_source: { type: "string", description: "Same as create_staged_work's title_source -- set/correct this whenever this document adds or clarifies where the title came from." },
         date_display: { type: "string" },
         year: { type: "integer" },
         medium: { type: "string" },
@@ -429,6 +437,7 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
         .from("staged_works")
         .insert({
           title: input.title,
+          title_source: input.title_source ?? null,
           date_display: input.date_display ?? null,
           year: input.year ?? null,
           medium: input.medium ?? null,
@@ -459,7 +468,7 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
     case "update_staged_work": {
       // deno-lint-ignore no-explicit-any
       const patch: Record<string, any> = {};
-      for (const k of ["date_display", "year", "medium", "tag", "suggested_series", "dimensions", "image_url"]) {
+      for (const k of ["title_source", "date_display", "year", "medium", "tag", "suggested_series", "dimensions", "image_url"]) {
         if (input[k] !== undefined) patch[k] = input[k];
       }
       if (input.append_note || input.candidate_photo_url) {

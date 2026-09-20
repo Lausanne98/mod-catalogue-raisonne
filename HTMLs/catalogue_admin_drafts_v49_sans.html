@@ -221,7 +221,7 @@
   <div class="header-nav">
     <a href="catalogue_admin_v109_sans.html">Dashboard</a>
     <a href="catalogue_admin_manage_v112_sans.html">Works</a>
-    <a href="catalogue_intake_v120_sans.html">Add a Work</a>
+    <a href="catalogue_intake_v121_sans.html">Add a Work</a>
     <a href="catalogue_admin_chronology_v60_sans.html">Chronology</a>
     <a href="catalogue_admin_sources_v46_sans.html">Sources</a>
     <div class="nav-dropdown" id="agentsNavDropdown">
@@ -456,7 +456,7 @@ function draftBar(s){
   const imported = s.status === 'imported';
   const source = draftSourceLabel(s);
   return `
-    <div class="draft-bar ${imported ? 'imported' : ''}" data-id="${s.id}" ${imported ? '' : `onclick="location.href='catalogue_intake_v120_sans.html?from_draft=${s.id}'"`}>
+    <div class="draft-bar ${imported ? 'imported' : ''}" data-id="${s.id}" ${imported ? '' : `onclick="location.href='catalogue_intake_v121_sans.html?from_draft=${s.id}'"`}>
       <div class="draft-thumb">${s.image_url ? `<img src="${s.image_url}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=''">` : ''}</div>
       <div class="draft-fields">
         ${draftFieldHtml('Title', modcrExtractQuotedTitle(modcrStripRedundantDateFromTitle(s.title)).title || 'Untitled')}
