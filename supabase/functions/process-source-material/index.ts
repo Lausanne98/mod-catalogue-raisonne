@@ -620,6 +620,61 @@ function cropJpeg(bytes: Uint8Array, crop: { x: number; y: number; width: number
   return new Uint8Array(encoded.data);
 }
 
+// Anthropic's own image-size limits are stricter for a request carrying MANY
+// images at once than for a single image on its own -- a request with
+// dozens of page images (exactly what a multi-page catalog batch is) is
+// rejected outright if even one image exceeds 2000px on its longer side,
+// even though this project's own storage/quality convention for a
+// catalog-sourced photo is up to 2200px (see modcrExtractPdfPages,
+// catalog_pdf_extractor.py). This is exactly the error a real batch hit:
+// "At least one of the image dimensions exceed max allowed size for
+// many-image requests: 2000 pixels" -- the whole run failed on its very
+// first API call, before a single tool got called.
+//
+// Rather than lower the stored quality, this downscales only the COPY sent
+// to the API for Khalo's own reading/matching -- attach_staged_work_photo's
+// crop still operates on the full-resolution original in Storage, so the
+// photo actually attached to a work never loses quality over this. 1568px
+// (Anthropic's own documented sweet spot -- a larger image just gets
+// downsampled internally anyway, at extra token cost for no extra detail)
+// leaves comfortable headroom under the 2000px many-image cap. Only
+// resizes an actual JPEG (this pure-JS decoder can't read PNG/WebP/etc.);
+// anything else passes through unchanged -- a rare manually-uploaded
+// non-JPEG image, not the extracted-page-image path that hit this bug.
+const API_IMAGE_MAX_PX = 1568;
+function resizeJpegForApi(bytes: Uint8Array, maxPx: number): Uint8Array {
+  const decoded = jpeg.decode(bytes, { useTArray: true });
+  const srcW = decoded.width, srcH = decoded.height;
+  const scale = maxPx / Math.max(srcW, srcH);
+  if (scale >= 1) return bytes; // already within bounds
+  const w = Math.max(1, Math.round(srcW * scale));
+  const h = Math.max(1, Math.round(srcH * scale));
+  const out = new Uint8Array(w * h * 4);
+  for (let y = 0; y < h; y++) {
+    const srcY = Math.min(srcH - 1, Math.floor(y / scale));
+    for (let x = 0; x < w; x++) {
+      const srcX = Math.min(srcW - 1, Math.floor(x / scale));
+      const srcOffset = (srcY * srcW + srcX) * 4;
+      const dstOffset = (y * w + x) * 4;
+      out[dstOffset] = decoded.data[srcOffset];
+      out[dstOffset + 1] = decoded.data[srcOffset + 1];
+      out[dstOffset + 2] = decoded.data[srcOffset + 2];
+      out[dstOffset + 3] = decoded.data[srcOffset + 3];
+    }
+  }
+  const encoded = jpeg.encode({ data: out, width: w, height: h }, 85);
+  return new Uint8Array(encoded.data);
+}
+function resizeForApiIfJpeg(bytes: Uint8Array, mediaType: string): Uint8Array {
+  if (mediaType !== "image/jpeg") return bytes; // pure-JS decoder only reads JPEG
+  try {
+    return resizeJpegForApi(bytes, API_IMAGE_MAX_PX);
+  } catch (err) {
+    console.error("resizeForApiIfJpeg: failed, sending original bytes:", err);
+    return bytes;
+  }
+}
+
 // ---- The actual pass, run in the background --------------------------------
 
 function decodeHtmlEntities(s: string): string {
@@ -798,9 +853,11 @@ async function buildInitialCheckpoint(
             // 8MB/image -- generous for a real lot photo, small enough that
             // a handful of these can't blow the request's own size limits.
             if (imgBuffer.byteLength > 8 * 1024 * 1024) continue;
+            const candidateMediaType = contentType.split(";")[0];
+            const candidateBytes = resizeForApiIfJpeg(new Uint8Array(imgBuffer), candidateMediaType);
             docBlocks.push({
               type: "image",
-              source: { type: "base64", media_type: contentType.split(";")[0], data: encodeBase64(new Uint8Array(imgBuffer)) },
+              source: { type: "base64", media_type: candidateMediaType, data: encodeBase64(candidateBytes) },
             });
             docBlocks.push({
               type: "text",
@@ -842,7 +899,8 @@ async function buildInitialCheckpoint(
     } else {
       const ext = row.filename.split(".").pop()?.toLowerCase();
       const mediaType = ext === "png" ? "image/png" : "image/jpeg";
-      docBlocks.push({ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } });
+      const apiBytes = resizeForApiIfJpeg(bytes, mediaType);
+      docBlocks.push({ type: "image", source: { type: "base64", media_type: mediaType, data: encodeBase64(apiBytes) } });
       docBlocks.push({
         type: "text",
         text: `source_materials row id ${row.id} (use this exact id as source_material_id if you call attach_staged_work_photo against this image), filename "${row.filename}". Notes/page text for this image:\n${row.notes ?? "(none)"}`,
