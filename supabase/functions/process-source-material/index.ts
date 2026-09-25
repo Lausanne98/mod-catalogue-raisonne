@@ -374,6 +374,12 @@ const TOOLS: Anthropic.Tool[] = [
       },
       required: ["outcome", "summary"],
     },
+    // Last tool in the array -- a cache_control breakpoint here caches the
+    // entire (large, static) tool schema list, same rationale as the system
+    // prompt breakpoint in runPass(). Anthropic's prompt caching caches
+    // everything up to and including the marked block.
+    // deno-lint-ignore no-explicit-any
+    cache_control: { type: "ephemeral" } as any,
   },
 ];
 
@@ -910,6 +916,43 @@ async function callKnowledgeIndex(action: string, body: Record<string, any>): Pr
   }
 }
 
+// deno-lint-ignore no-explicit-any
+type ContentBlock = { type: string; cache_control?: unknown; [k: string]: any };
+
+// Applies rolling prompt-caching breakpoints to the conversation before each
+// API call. Without this, every single iteration of the tool loop -- and
+// every batch a checkpoint hands off to (see continueViaSelfInvoke) --
+// resent and fully reprocessed the entire original PDF/image content from
+// scratch, which for a large catalog is slow enough to risk exceeding
+// Supabase's hard Edge Function wall-clock ceiling mid-request (the
+// diagnosed cause of a run getting killed mid-flight with no chance to
+// checkpoint or log an error). The initial user message (the huge
+// PDF/grounding-data content built in buildInitialCheckpoint, identical on
+// every call for the life of this document) gets a permanent breakpoint.
+// The last message in the conversation gets a second, rolling breakpoint so
+// the ever-growing tool-call history is cached too -- each call's prefix
+// (everything up to the newest content) matches what the previous call
+// already cached, the standard pattern for an agentic tool-use loop. System
+// + tools each hold one fixed breakpoint of their own (see runPass/TOOLS),
+// so this uses the remaining two of Anthropic's 4-breakpoint-per-request
+// cap -- any marker left over from an earlier iteration (when a
+// since-superseded message was "last") is stripped first so the total never
+// exceeds that cap.
+function applyCacheControl(messages: { role: string; content: unknown }[]): void {
+  for (const m of messages) {
+    if (!Array.isArray(m.content)) continue;
+    for (const block of m.content as ContentBlock[]) delete block.cache_control;
+  }
+  const first = messages[0]?.content;
+  if (Array.isArray(first) && first.length > 0) {
+    (first[first.length - 1] as ContentBlock).cache_control = { type: "ephemeral" };
+  }
+  const last = messages[messages.length - 1]?.content;
+  if (Array.isArray(last) && last.length > 0) {
+    (last[last.length - 1] as ContentBlock).cache_control = { type: "ephemeral" };
+  }
+}
+
 async function runPass(sourceMaterialIds: string[]): Promise<void> {
   const batchStart = Date.now();
   let rows: { id: string; kind: string; filename: string; storage_path: string | null; url: string | null; notes: string | null; checkpoint: Checkpoint | null }[] = [];
@@ -959,10 +1002,11 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
       batchIterations < MAX_BATCH_ITERATIONS &&
       Date.now() - batchStart < BATCH_WALL_CLOCK_BUDGET_MS
     ) {
+      applyCacheControl(messages);
       const response = await anthropic.messages.create({
         model: "claude-sonnet-5",
         max_tokens: 8192,
-        system: SYSTEM_PROMPT,
+        system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
         tools: TOOLS,
         messages,
         // deno-lint-ignore no-explicit-any
