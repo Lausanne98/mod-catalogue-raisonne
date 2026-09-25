@@ -638,7 +638,21 @@ if(typeof pdfjsLib !== 'undefined'){
 // the duration of extraction -- transient and local, never uploaded, but
 // real memory pressure on the machine doing the upload.
 async function modcrExtractPdfPages(file, baseLabel, onProgress){
-  const MAX_PX = 2200; // this project's standing convention for catalog-sourced photos
+  // 1568px, not this project's usual 2200px catalog-photo convention --
+  // deliberately: Khalo's Mode B sends every page of a batch to Claude in
+  // one request, and Anthropic enforces a stricter per-image size cap
+  // specifically for a request carrying many images at once (2000px on the
+  // longer side) than for a single image alone. A batch rendered at 2200px
+  // fails outright on its very first API call. An Edge Function can't fix
+  // this up server-side either -- a real batch confirmed that a pure-JS
+  // resize of dozens of images in one invocation blows Supabase's per-call
+  // CPU budget and gets silently killed before a single tool call happens.
+  // Rendering safely-sized pages from the start, here, is the only place
+  // this can be fixed without extra server-side work at all. 1568px is
+  // Anthropic's own documented sweet spot (a larger image just gets
+  // downsampled internally anyway, at extra token cost for no extra detail),
+  // leaving comfortable headroom under the 2000px many-image cap.
+  const MAX_PX = 1568;
   const JPEG_QUALITY = 0.88;
   const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
