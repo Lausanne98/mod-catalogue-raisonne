@@ -1177,6 +1177,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
+  // TEMPORARY COST-CONTROL HALT (2026-09-25) -- operator-requested emergency
+  // stop while real per-call token/cost logging gets built next session.
+  // Blocks every call this function would otherwise make, including a
+  // self-invoke continuation already in flight (see continueViaSelfInvoke)
+  // and any manual "Process" click -- no Anthropic call happens past this
+  // line. Remove this block deliberately once cost logging + a real dollar
+  // ceiling are in place.
+  return jsonResponse({ error: "Processing halted for cost review -- do not remove this without the operator's say-so." }, 503);
+
   let body: { source_material_ids?: string[]; source_material_id?: string; __internal_resume?: boolean };
   try {
     body = await req.json();
