@@ -152,13 +152,13 @@
     <a href="catalogue_admin_manage_v112_sans.html">Works</a>
     <a href="catalogue_intake_v121_sans.html">Add a Work</a>
     <a href="catalogue_admin_chronology_v60_sans.html">Chronology</a>
-    <a href="catalogue_admin_sources_v46_sans.html">Sources</a>
+    <a href="catalogue_admin_sources_v47_sans.html">Sources</a>
     <div class="nav-dropdown" id="agentsNavDropdown">
       <button class="nav-dropdown-trigger nav-dark" onclick="toggleNavDropdown(event)">Agents ▾</button>
       <div class="nav-dropdown-menu">
         <a href="catalogue_admin_agents_v43_sans.html">CR Team</a>
         <a href="catalogue_admin_drafts_v49_sans.html">Archivist's Desk</a>
-        <a href="catalogue_admin_researcher_v47_sans.html">Researcher's Desk</a>
+        <a href="catalogue_admin_researcher_v48_sans.html">Researcher's Desk</a>
         <a href="catalogue_admin_it_v43_sans.html">IT</a>
       </div>
     </div>
@@ -194,12 +194,12 @@
 
   <!-- AGENT CARDS -->
   <div class="agent-grid">
-    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_researcher_v47_sans.html')">
+    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_researcher_v48_sans.html')">
       <div class="agent-name">Chloe</div>
       <div class="agent-role">Researcher</div>
       <span class="status-pill notbuilt">Not yet built</span>
       <div class="agent-desc">Gathers provenance research, exhibition history, and raw material into a holding folder for Khalo to sort through. Read-only against the database — never writes.</div>
-      <a class="agent-goto" href="catalogue_admin_researcher_v47_sans.html">Open Researcher's Desk →</a>
+      <a class="agent-goto" href="catalogue_admin_researcher_v48_sans.html">Open Researcher's Desk →</a>
       <div class="card-actions">
         <button class="btn" onclick="toggleOverview('chloe')">Overview</button>
         <button class="btn play" onclick="speakAgent('chloe', overviews.chloe, this)" aria-label="Play" title="Play">🔊</button>
@@ -509,7 +509,7 @@ async function loadBriefing(){
   try{
     const sources = await modcrFetchSourceMaterials();
     const unreviewed = sources.filter(s => s.status === 'unreviewed').length;
-    lines.push(`<li><strong>${unreviewed}</strong> source material${unreviewed === 1 ? '' : 's'} not yet mined. <a href="catalogue_admin_sources_v46_sans.html">Go to Source Materials →</a></li>`);
+    lines.push(`<li><strong>${unreviewed}</strong> source material${unreviewed === 1 ? '' : 's'} not yet mined. <a href="catalogue_admin_sources_v47_sans.html">Go to Source Materials →</a></li>`);
   }catch(e){ lines.push('<li>Could not load Source Materials count.</li>'); }
 
   lines.push('<li>Infrastructure: no IT agent built yet — check Supabase/GitHub status manually for now.</li>');

@@ -595,15 +595,83 @@ async function modcrSourceMaterialUrl(storagePath){
   if(error) throw error;
   return data.signedUrl;
 }
-async function modcrUploadSourceMaterial(blob, filename, kind, relatedWorkId){
+async function modcrUploadSourceMaterial(blob, filename, kind, relatedWorkId, notes){
   const path = `${Date.now()}-${modcrGenId()}-${filename}`;
   const { error: upErr } = await modcrSupabase.storage.from('source-materials').upload(path, blob, { upsert: false });
   if(upErr) throw upErr;
   const { data, error } = await modcrSupabase.from('source_materials')
-    .insert({ kind, filename, storage_path: path, related_work_id: relatedWorkId || null })
+    .insert({ kind, filename, storage_path: path, related_work_id: relatedWorkId || null, notes: notes || null })
     .select().single();
   if(error) throw error;
   return data;
+}
+
+// pdf.js's worker needs a script URL of its own -- only set this up on a
+// page that actually loaded pdf.js (Researcher's Desk, Sources) via its own
+// <script src=".../pdf.min.js"> tag before this file; every other page that
+// loads modcr-client.js never defines the pdfjsLib global at all, so this
+// stays a no-op there rather than throwing on load.
+if(typeof pdfjsLib !== 'undefined'){
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js';
+}
+
+// Strips a source PDF into one full-page JPEG + that page's extracted text
+// per page, entirely in the browser -- the raw PDF itself is never uploaded
+// to Supabase (per CLAUDE.md's "Source PDFs don't live in Supabase long
+// term" rule) and never leaves this tab. Companion to
+// scripts/catalog_pdf_extractor.py, which does the equivalent job locally
+// with PyMuPDF for someone with the file on their own machine and wants true
+// per-embedded-image extraction; this is the same idea made self-serve from
+// the browser, at the cost of a simpler approach -- it renders each page as
+// one flat image rather than trying to pull out individual embedded photo
+// objects, so a busy page with several works on it still needs a human (or
+// Khalo, via attach_staged_work_photo's crop option) to crop down to just
+// one work afterward. Matches that script's filename/notes convention
+// (`{label}-p{N}-{n}.jpg`, `notes` carrying the page's own extracted text)
+// so a page extracted either way reads identically to Mode B.
+//
+// Pages are rendered and encoded one at a time, each canvas discarded before
+// the next page starts, so memory stays proportional to one page's pixels
+// regardless of how many pages the document has. The one unavoidable cost:
+// pdf.js needs the whole file's bytes resident to parse its structure, so a
+// very large PDF (hundreds of MB) does sit fully in this tab's memory for
+// the duration of extraction -- transient and local, never uploaded, but
+// real memory pressure on the machine doing the upload.
+async function modcrExtractPdfPages(file, baseLabel, onProgress){
+  const MAX_PX = 2200; // this project's standing convention for catalog-sourced photos
+  const JPEG_QUALITY = 0.88;
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const results = [];
+  try{
+    for(let pageNum = 1; pageNum <= pdf.numPages; pageNum++){
+      if(onProgress) onProgress(pageNum, pdf.numPages);
+      const page = await pdf.getPage(pageNum);
+      try{
+        const textContent = await page.getTextContent();
+        const text = textContent.items.map(it => it.str || '').join(' ').replace(/\s+/g, ' ').trim();
+
+        const baseViewport = page.getViewport({ scale: 1 });
+        const renderScale = MAX_PX / Math.max(baseViewport.width, baseViewport.height);
+        const viewport = page.getViewport({ scale: renderScale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', JPEG_QUALITY));
+
+        const n = results.length + 1;
+        const filename = `${baseLabel}-p${pageNum}-${n}.jpg`;
+        const notes = `FULL PAGE (browser-side extraction renders each page whole, not individual embedded images -- may still need manual cropping before use as a work photo). From catalog: ${baseLabel}, page ${pageNum}.\n\nPage text:\n${text}`;
+        results.push({ blob, filename, notes });
+      } finally {
+        page.cleanup();
+      }
+    }
+  } finally {
+    await pdf.destroy();
+  }
+  return results;
 }
 async function modcrUpdateSourceMaterial(id, patch){
   const { error } = await modcrSupabase.from('source_materials').update(patch).eq('id', id);

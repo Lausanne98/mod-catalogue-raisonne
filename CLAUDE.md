@@ -271,6 +271,30 @@ Supabase-hosted PDF there and stop uploading new ones directly; a large PDF
 the option anyway and always needs `catalog_pdf_extractor.py` run against
 the local file first.
 
+**(2026-09-25) The "upload the raw PDF directly" convenience path above is
+gone from the two pages that had it (Researcher's Desk, Sources).** Dropping
+a PDF there no longer uploads the PDF at all, in any size: `modcrExtractPdfPages`
+in `modcr-client.js` strips it into one full-page JPEG + that page's
+extracted text per page, entirely client-side via pdf.js, one page at a time
+so a 500MB source never needs to fit in memory all at once the way loading
+every page would — only the small derived JPEGs (and their text, in `notes`)
+ever reach Supabase, matching the target state above for any size PDF, not
+just a small convenience upload. This renders each page whole rather than
+pulling out individual embedded image objects the way `catalog_pdf_extractor.py`
+does — a deliberate simplification (pdf.js has no simple equivalent to
+PyMuPDF's `get_images()`), so a busy page with several works on it still
+needs a human or Khalo (via `attach_staged_work_photo`'s `crop` option) to
+crop down to just one. `catalog_pdf_extractor.py` remains the right tool
+when true per-embedded-image extraction quality matters, or for someone
+processing a file from a machine without opening the site. On Researcher's
+Desk specifically, since the extracted pages no longer share one `kind:'pdf'`
+row for the Process button to key off of, uploading a PDF surfaces a
+one-time "Process all N pages together" action right after upload (calling
+`process-source-material` with all of that PDF's page ids at once, so Khalo
+still reads them as one cross-referenced document) — this only covers pages
+just uploaded in that same session; there's no standing multi-select in the
+grid to batch-process an older, already-uploaded set of pages together.
+
 ## Credentials / secrets
 This repo is public (served via GitHub Pages) — never commit a password, API
 secret key, or other credential into any file that goes into git, regardless
