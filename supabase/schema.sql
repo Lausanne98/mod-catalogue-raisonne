@@ -420,6 +420,14 @@ create policy "staged_works_admin_only" on staged_works for all
 alter table staged_works add column if not exists image_url text;
 alter table staged_works add column if not exists dimensions text;
 
+-- Durability principle (CLAUDE.md "PDF/image mechanical layer"): a crop's
+-- source coordinates must be stored alongside the cropped output, not
+-- discarded once applied, so a future mechanical-layer swap never requires
+-- re-deciding which pixels belong to which work. Null when image_url was set
+-- unmodified (no crop) or by a human (Manage Works/Intake) rather than
+-- attach_staged_work_photo.
+alter table staged_works add column if not exists image_crop jsonb;
+
 -- ═══ AGENT SETTINGS (global on/off switch for agent engagement) ═══
 -- A single row. Any agent (Khalo today; Chloe/Timur once built) must check
 -- engagement_enabled before doing ANY work -- research, writes, everything

@@ -534,13 +534,18 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
       const { data: fileBlob, error: dlErr } = await adminDb.storage.from("source-materials").download(sourceRow.storage_path);
       if (dlErr || !fileBlob) return { error: `Could not download source image: ${dlErr?.message ?? "unknown error"}` };
       let bytes = new Uint8Array(await fileBlob.arrayBuffer());
+      // Tracks whether the requested crop actually applied -- a crop error
+      // fails open (attach the full image rather than lose the photo
+      // entirely) but that must be visible to the model, not just logged,
+      // or a failed crop silently looks identical to a successful one.
+      let cropApplied = false;
+      let cropError: string | null = null;
       if (input.crop) {
         try {
           bytes = cropJpeg(bytes, input.crop);
+          cropApplied = true;
         } catch (err) {
-          // Fail open -- attach the full, uncropped image rather than lose
-          // the photo entirely over a crop error. Surfaced in the return
-          // value so the model can mention it wasn't cropped as requested.
+          cropError = String(err);
           console.error("attach_staged_work_photo: crop failed, using full image:", err);
         }
       }
@@ -549,14 +554,19 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
       if (upErr) return { error: `Could not upload photo: ${upErr.message}` };
       const { data: pub } = adminDb.storage.from("staged-work-photos").getPublicUrl(path);
       const publicUrl = pub.publicUrl;
+      // Durability principle (CLAUDE.md "PDF/image mechanical layer"): store
+      // the source coordinates alongside the output, not just the cropped
+      // pixels -- null crop means the whole source image was used unmodified
+      // (by request, or because the requested crop failed to apply).
+      const imageCrop = { source_material_id: input.source_material_id, crop: cropApplied ? input.crop : null };
 
       if (input.confidence === "confirmed") {
         const { error } = await adminDb
           .from("staged_works")
-          .update({ image_url: publicUrl, updated_at: new Date().toISOString() })
+          .update({ image_url: publicUrl, image_crop: imageCrop, updated_at: new Date().toISOString() })
           .eq("id", input.staged_work_id);
         if (error) throw error;
-        return { attached: true, image_url: publicUrl };
+        return { attached: true, image_url: publicUrl, ...(cropError ? { crop_failed: cropError } : {}) };
       } else {
         const { data: current, error: fetchErr } = await adminDb
           .from("staged_works")
@@ -565,13 +575,19 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
           .single();
         if (fetchErr) throw fetchErr;
         const candidates = Array.isArray(current?.candidate_photos) ? current.candidate_photos : [];
-        candidates.push({ url: publicUrl, note: input.note ?? null, source_material_id: input.source_material_id, added_at: new Date().toISOString() });
+        candidates.push({
+          url: publicUrl,
+          note: input.note ?? null,
+          source_material_id: input.source_material_id,
+          crop: cropApplied ? input.crop : null,
+          added_at: new Date().toISOString(),
+        });
         const { error } = await adminDb
           .from("staged_works")
           .update({ candidate_photos: candidates, updated_at: new Date().toISOString() })
           .eq("id", input.staged_work_id);
         if (error) throw error;
-        return { logged_as_candidate: true, image_url: publicUrl };
+        return { logged_as_candidate: true, image_url: publicUrl, ...(cropError ? { crop_failed: cropError } : {}) };
       }
     }
     case "search_classification_rules": {

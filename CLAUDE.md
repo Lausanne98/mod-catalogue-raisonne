@@ -225,6 +225,61 @@ vendor or its output load-bearing for something a human couldn't
 reconstruct from the plain data alone, that's a design mistake to fix, not
 a tradeoff to accept.
 
+## PDF/image mechanical layer (Workstream A tooling decision, 2026-10-10)
+Khalo's automated pass (`process-source-material`) needs two separable jobs on
+a source document: a **vision/layout layer** (Claude itself — deciding what's
+on a page and where: photo, title, caption, which pixels belong to the
+artwork) and a **mechanical image layer** (deterministic code that actually
+rasterizes/crops pixels once Claude has named a region — never asked to make
+judgment calls itself). The mechanical layer's stack, and why, per the
+durability principle above (every library here is replaceable; it executes a
+decision, it never stores one):
+
+- **PDF page → raster image: `pdfjs-dist` (Apache-2.0, Mozilla).** Already in
+  production, client-side, as `modcrExtractPdfPages` in `modcr-client.js` —
+  rendered into the browser's own DOM canvas. This is why PDF rasterization
+  has never needed a server-side solution: a Supabase Edge Function (Deno,
+  no native code, no DOM) has nowhere to render a canvas into, and the usual
+  server-side fix (`node-canvas`) is itself a native addon that doesn't run
+  there either (see below). Browser-side rendering isn't a workaround, it's
+  the correct answer to a constraint server-side code can't solve directly.
+- **Crop: `jpeg-js` (BSD-3-Clause/Apache-2.0), kept as-is — not replaced.**
+  The original plan here was Jimp (MIT, pure JS) as `sharp`'s permissive
+  stand-in. Checked further before actually swapping it and found two
+  reasons not to: `jpeg-js` is already exactly that — pure JS, zero native
+  deps, already permissively licensed — and Jimp's own JPEG codec
+  (`@jimp/jpeg`) depends on `jpeg-js` internally, so swapping would only add
+  an abstraction layer on top of the same decoder, never a different one.
+  More importantly, this project already hit Supabase's per-invocation CPU
+  budget once from image work here — a prior version that decoded/resampled/
+  re-encoded server-side blew the CPU quota in seconds on a real 56-page
+  batch (reverted; see the function's own history). A plain crop (decode,
+  slice, re-encode, no resample) has run safely under that budget in
+  production since. Adding Jimp's extra layers for zero functional gain
+  risked reintroducing that exact failure for no reason. `jpeg-js` stays.
+  (No resize/resample/auto-whitespace-trim step is added here for the same
+  CPU-budget reason — Claude's own vision-layer crop box is relied on to
+  already be tight, per the system prompt's existing crop instructions,
+  rather than adding a second mechanical pass that scans pixels to trim
+  further.)
+- **Explicitly rejected: `mupdf`/MuPDF.js.** Dual-licensed AGPL-3.0-or-later
+  or a paid Artifex commercial license. This repo is already fully public, which
+  weakens (but doesn't resolve) the usual "AGPL forces disclosure of private
+  code" worry — AGPL's network-use clause requires actively conveying a
+  compliant source offer tied to the exact running version, and whether a
+  public GitHub repo by itself satisfies that is genuine legal nuance, not
+  something to wave through. Avoided on "if there's doubt, don't," not used.
+- **Explicitly rejected: `sharp` (and any native addon — `node-canvas`,
+  `puppeteer`, anything with a node-gyp build step or a postinstall binary
+  download).** Independent of any licensing question, these simply do not
+  run on Supabase's Edge Runtime (Deno-based, no native bindings) — a
+  deployment wall, not a preference.
+- **Durability**: a crop's *source coordinates* (the normalized region Claude
+  named) are stored alongside the cropped output, not discarded once applied
+  — so swapping the mechanical layer for a different library later never
+  requires re-deciding which pixels belong to which work, only re-running a
+  deterministic crop against coordinates that already exist.
+
 ## Knowledge index (semantic search for Khalo & co's sorting protocols)
 `supabase/functions/knowledge-index` is a pgvector-backed semantic search
 layer, separate from Khalo's own Mode B function, covering three things —
