@@ -711,11 +711,38 @@ const MAX_BATCH_ITERATIONS = 30;
 // on calling finish.
 const MAX_TOTAL_ITERATIONS = 200;
 
+// Real dollar ceiling, not just an iteration-count proxy for one -- a chatty
+// run could hit the iteration cap at very different real costs depending on
+// how verbose each turn is. Computed from response.usage on every call
+// (exact, not estimated) against claude-sonnet-5's published per-token
+// rates (https://claude.com/pricing, checked 2026-09-30): $2/MTok input,
+// $10/MTok output, $0.20/MTok cache read, $2.50/MTok cache write. Tune this
+// per the studio's own comfort level -- $5 is a deliberately conservative
+// default for the first real test run, not a permanent number.
+const MAX_COST_USD = 5;
+const SONNET_RATES_PER_MTOK = { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 };
+function computeCallCostUsd(usage: {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens?: number | null;
+  cache_creation_input_tokens?: number | null;
+}): number {
+  return (
+    (usage.input_tokens / 1_000_000) * SONNET_RATES_PER_MTOK.input +
+    (usage.output_tokens / 1_000_000) * SONNET_RATES_PER_MTOK.output +
+    ((usage.cache_read_input_tokens ?? 0) / 1_000_000) * SONNET_RATES_PER_MTOK.cacheRead +
+    ((usage.cache_creation_input_tokens ?? 0) / 1_000_000) * SONNET_RATES_PER_MTOK.cacheWrite
+  );
+}
+
 type Checkpoint = {
   // deno-lint-ignore no-explicit-any
   messages: any[];
   totalIterations: number;
   writeCount: number;
+  // Real, measured running total (see computeCallCostUsd) -- not an
+  // estimate, and not reset across a self-invoke handoff.
+  cumulativeCostUsd: number;
 };
 
 // Tracks real writes (not get_work/get_staged_work reads, not finish
@@ -877,7 +904,7 @@ async function buildInitialCheckpoint(
     ...docBlocks,
   ];
 
-  return { messages: [{ role: "user", content: initialUserContent }], totalIterations: 0, writeCount: 0 };
+  return { messages: [{ role: "user", content: initialUserContent }], totalIterations: 0, writeCount: 0, cumulativeCostUsd: 0 };
 }
 
 // Hands off to a fresh invocation of this same function to continue from a
@@ -991,7 +1018,7 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
     if (!resuming) {
       await adminDb.from("source_materials").update({ status: "processing", progress: "Starting…", checkpoint: null }).in("id", sourceMaterialIds);
     } else {
-      await adminDb.from("source_materials").update({ status: "processing", progress: `Resuming from step ${existingCheckpoint!.totalIterations}…` }).in("id", sourceMaterialIds);
+      await adminDb.from("source_materials").update({ status: "processing", progress: `Resuming from step ${existingCheckpoint!.totalIterations}… ($${(existingCheckpoint!.cumulativeCostUsd ?? 0).toFixed(2)} so far)` }).in("id", sourceMaterialIds);
     }
 
     const checkpoint: Checkpoint = resuming ? existingCheckpoint! : (await buildInitialCheckpoint(rows))!;
@@ -1008,14 +1035,17 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
     const messages = checkpoint.messages;
     let totalIterations = checkpoint.totalIterations;
     let writeCount = checkpoint.writeCount;
+    let cumulativeCostUsd = checkpoint.cumulativeCostUsd ?? 0; // ?? 0 -- a checkpoint saved before this field existed
     let finishResult: { outcome: string; summary: string } | null = null;
     let batchIterations = 0;
+    let costCeilingHit = false;
 
     while (
       !finishResult &&
       totalIterations < MAX_TOTAL_ITERATIONS &&
       batchIterations < MAX_BATCH_ITERATIONS &&
-      Date.now() - batchStart < BATCH_WALL_CLOCK_BUDGET_MS
+      Date.now() - batchStart < BATCH_WALL_CLOCK_BUDGET_MS &&
+      !costCeilingHit
     ) {
       applyCacheControl(messages);
       const response = await anthropic.messages.create({
@@ -1026,6 +1056,10 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
         messages,
         // deno-lint-ignore no-explicit-any
       } as any);
+
+      // deno-lint-ignore no-explicit-any
+      cumulativeCostUsd += computeCallCostUsd(response.usage as any);
+      if (cumulativeCostUsd >= MAX_COST_USD) costCeilingHit = true;
 
       messages.push({ role: "assistant", content: response.content });
 
@@ -1094,7 +1128,7 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
       if (!finishResult) {
         await adminDb
           .from("source_materials")
-          .update({ progress: `Step ${totalIterations} of up to ${MAX_TOTAL_ITERATIONS} — ${writeCount} finding${writeCount === 1 ? "" : "s"} logged so far.` })
+          .update({ progress: `Step ${totalIterations} of up to ${MAX_TOTAL_ITERATIONS} — ${writeCount} finding${writeCount === 1 ? "" : "s"} logged so far — $${cumulativeCostUsd.toFixed(2)} so far.` })
           .in("id", sourceMaterialIds);
       }
     }
@@ -1104,7 +1138,29 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
       for (const r of rows) {
         await adminDb
           .from("source_materials")
-          .update({ status: finalStatus, progress: null, checkpoint: null, notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass: ${finishResult.summary}`) })
+          .update({ status: finalStatus, progress: null, checkpoint: null, notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass ($${cumulativeCostUsd.toFixed(2)}): ${finishResult.summary}`) })
+          .eq("id", r.id);
+      }
+      return;
+    }
+
+    if (costCeilingHit) {
+      // Hard dollar ceiling -- a real, measured running total (not the
+      // iteration-count proxy below), checked after every single API call.
+      // Give up honestly rather than silently blowing past the number the
+      // studio actually agreed to for this run.
+      for (const r of rows) {
+        await adminDb
+          .from("source_materials")
+          .update({
+            status: "flagged",
+            progress: null,
+            checkpoint: null,
+            notes: appendNote(
+              r.notes,
+              `[${new Date().toISOString()}] Automated pass stopped at its $${MAX_COST_USD} cost ceiling (actual: $${cumulativeCostUsd.toFixed(2)}), ${totalIterations} steps in, ${writeCount} findings logged — needs a human look at what was actually written, and a decision on whether to raise the ceiling and resume (click Process again) or leave it as-is.`,
+            ),
+          })
           .eq("id", r.id);
       }
       return;
@@ -1123,7 +1179,7 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
             checkpoint: null,
             notes: appendNote(
               r.notes,
-              `[${new Date().toISOString()}] Automated pass hit its ${MAX_TOTAL_ITERATIONS}-step safety cap without calling finish (${writeCount} findings logged) — needs a human look at what was actually written (check Work Sources / New Entries / Revisions for this document's citation).`,
+              `[${new Date().toISOString()}] Automated pass hit its ${MAX_TOTAL_ITERATIONS}-step safety cap without calling finish ($${cumulativeCostUsd.toFixed(2)}, ${writeCount} findings logged) — needs a human look at what was actually written (check Work Sources / New Entries / Revisions for this document's citation).`,
             ),
           })
           .eq("id", r.id);
@@ -1133,10 +1189,10 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
 
     // Ran out of this batch's time/iteration budget without finishing --
     // save exactly where we are and hand off to a fresh invocation.
-    const nextCheckpoint: Checkpoint = { messages, totalIterations, writeCount };
+    const nextCheckpoint: Checkpoint = { messages, totalIterations, writeCount, cumulativeCostUsd };
     await adminDb
       .from("source_materials")
-      .update({ progress: `Paused after step ${totalIterations} of up to ${MAX_TOTAL_ITERATIONS} — continuing automatically…`, checkpoint: nextCheckpoint })
+      .update({ progress: `Paused after step ${totalIterations} of up to ${MAX_TOTAL_ITERATIONS} — $${cumulativeCostUsd.toFixed(2)} so far — continuing automatically…`, checkpoint: nextCheckpoint })
       .in("id", sourceMaterialIds);
 
     const handedOff = await continueViaSelfInvoke(sourceMaterialIds);
@@ -1150,7 +1206,7 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
           .update({
             status: "flagged",
             progress: null,
-            notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass paused at step ${totalIterations} (${writeCount} findings logged) but couldn't hand off to continue automatically — click Process again to resume from here.`),
+            notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass paused at step ${totalIterations} ($${cumulativeCostUsd.toFixed(2)}, ${writeCount} findings logged) but couldn't hand off to continue automatically — click Process again to resume from here.`),
           })
           .eq("id", r.id);
       }
@@ -1177,14 +1233,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
-  // TEMPORARY COST-CONTROL HALT (2026-09-25) -- operator-requested emergency
-  // stop while real per-call token/cost logging gets built next session.
-  // Blocks every call this function would otherwise make, including a
-  // self-invoke continuation already in flight (see continueViaSelfInvoke)
-  // and any manual "Process" click -- no Anthropic call happens past this
-  // line. Remove this block deliberately once cost logging + a real dollar
-  // ceiling are in place.
-  return jsonResponse({ error: "Processing halted for cost review -- do not remove this without the operator's say-so." }, 503);
+  // (Cost-control halt removed 2026-10-10 -- real per-call cost logging and
+  // a $5 hard dollar ceiling, computeCallCostUsd()/MAX_COST_USD above, are
+  // now in place. See the operator's own note in git history for why this
+  // existed from 2026-09-25 to here.)
 
   let body: { source_material_ids?: string[]; source_material_id?: string; __internal_resume?: boolean };
   try {
