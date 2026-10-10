@@ -180,7 +180,7 @@
   <div class="header-title">MOD CR — Admin</div>
   <div class="header-nav">
     <a href="catalogue_admin_v110_sans.html">Dashboard</a>
-    <a href="catalogue_intake_v124_sans.html">Add a Work</a>
+    <a href="catalogue_intake_v125_sans.html">Add a Work</a>
     <a href="catalogue_admin_chronology_v61_sans.html">Chronology</a>
     <a href="catalogue_admin_sources_v49_sans.html">Sources</a>
     <div class="nav-dropdown" id="agentsNavDropdown">
@@ -475,7 +475,7 @@ function renderSpreadsheet(){
     // single click on one cell edits just that cell in place (see
     // startCellEdit) -- distinct gestures for "fix this one field" vs.
     // "I need the whole form" (provenance, exhibitions, photos, etc.).
-    return `<tr ondblclick="location.href='catalogue_intake_v124_sans.html?edit=${w.id}'">${cells}</tr>`;
+    return `<tr ondblclick="location.href='catalogue_intake_v125_sans.html?edit=${w.id}'">${cells}</tr>`;
   }).join('');
 }
 
@@ -624,7 +624,7 @@ function render(){
     return;
   }
   tbody.innerHTML = sorted.map(w=>{
-    return `<tr class="row-clickable" onclick="location.href='catalogue_intake_v124_sans.html?edit=${w.id}'">
+    return `<tr class="row-clickable" onclick="location.href='catalogue_intake_v125_sans.html?edit=${w.id}'">
       <td>${w.img?`<img class="row-thumb" src="${w.img}" alt="" onerror="this.style.visibility='hidden'">`:''}</td>
       <td class="row-title">${w.title}${!w.published?` <span class="draft-badge-sm">Draft</span>`:''}${w.flag?` <span class="flag-badge" title="${w.flag}"><span class="icon-mono">⚠</span> needs review</span>`:''}</td>
       <td>${w.cr}</td>
@@ -632,7 +632,7 @@ function render(){
       <td>${materialLabels[w.tag] || ''}</td>
       <td>${seriesLabels[w.series] || ''}</td>
       <td><div class="row-actions" onclick="event.stopPropagation()">
-        <a href="catalogue_intake_v124_sans.html?edit=${w.id}">Edit</a>
+        <a href="catalogue_intake_v125_sans.html?edit=${w.id}">Edit</a>
         <button class="del-link" onclick="deleteWork('${w.dbId}','${w.title.replace(/'/g,"\\'")}')">Delete</button>
       </div></td>
     </tr>`;

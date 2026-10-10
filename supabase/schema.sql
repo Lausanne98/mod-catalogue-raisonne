@@ -428,6 +428,18 @@ alter table staged_works add column if not exists dimensions text;
 -- attach_staged_work_photo.
 alter table staged_works add column if not exists image_crop jsonb;
 
+-- Distinct from candidate_photos (unconfirmed maybes awaiting a human pick):
+-- this holds CONFIRMED additional views of the SAME work as image_url --
+-- another angle, a detail shot, a back view -- found roughly 1 in 4 works
+-- per the studio's own estimate, important to keep attached to the one
+-- work record rather than mistakenly split into separate staged_works rows.
+-- Same shape as a candidate_photos entry minus note: {url, source_material_id,
+-- crop, added_at}. Populated by attach_staged_work_photo with
+-- photo_role:'supporting', or auto-populated when a new photo_role:'main'
+-- photo replaces a prior image_url (the displaced photo moves here rather
+-- than being discarded).
+alter table staged_works add column if not exists supporting_photos jsonb not null default '[]'::jsonb;
+
 -- ═══ AGENT SETTINGS (global on/off switch for agent engagement) ═══
 -- A single row. Any agent (Khalo today; Chloe/Timur once built) must check
 -- engagement_enabled before doing ANY work -- research, writes, everything

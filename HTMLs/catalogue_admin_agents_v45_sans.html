@@ -166,7 +166,7 @@
   <div class="header-nav">
     <a href="catalogue_admin_v110_sans.html">Dashboard</a>
     <a href="catalogue_admin_manage_v113_sans.html">Works</a>
-    <a href="catalogue_intake_v124_sans.html">Add a Work</a>
+    <a href="catalogue_intake_v125_sans.html">Add a Work</a>
     <a href="catalogue_admin_chronology_v61_sans.html">Chronology</a>
     <a href="catalogue_admin_sources_v49_sans.html">Sources</a>
     <div class="nav-dropdown" id="agentsNavDropdown">
@@ -692,7 +692,7 @@ function checkinOfferMenu(){
 async function checkinRouteBegin(norm){
   if(/\bintake\b|new work|add a work|new entry\b/.test(norm)){
     checkinSpeak('Let\'s go straight to Intake.');
-    setTimeout(() => { window.location.href = 'catalogue_intake_v124_sans.html?voice=1'; }, 900);
+    setTimeout(() => { window.location.href = 'catalogue_intake_v125_sans.html?voice=1'; }, 900);
     return true;
   }
   if(/draft|entries|update/.test(norm)){

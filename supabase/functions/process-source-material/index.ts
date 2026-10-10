@@ -115,7 +115,8 @@ Read, then act, work by work — never read the entire document first and only d
 7. **Read each page's own text for what it says, not just what it's attached to.** A catalog entry's prose routinely references OTHER exhibitions or publications this same work has appeared in ("previously exhibited at...", "as illustrated in..."). Treat each such mention as its own citable fact for that work — log and, where append-safe, propose it too. A single page can legitimately add several citations to one work.
 8. **Photos**:
    - *Pasted-link source*: a downloaded candidate photo (when one was found and fetched) appears as its own image content block right after the extracted text, each one labeled with which [IMAGE #N] marker it corresponds to and the real URL it came from — look at it the same way you'd look at a PDF page image. Position near a lot's description is a hint about which work a candidate belongs to, never proof by itself: confirm the picture actually matches the work's medium/form/other stated details before treating it as verified, and ignore a candidate that's clearly page furniture (a logo, an unrelated thumbnail, a different lot) rather than assuming the nearest marker number is automatically right. When a candidate IS a confirmed, real photo of the specific work, its own URL (not a marker number) goes directly into image_url (create_staged_work/update_staged_work). A full extracted image that's already a tight, clean crop of just the work is fine to set directly this way — but "tight crop" and "good enough quality" are two separate checks, do both. A phone photo of a printed catalog page (visible halftone dots, moiré pattern, blur, glare, or generally low resolution) is real, common source material — usable, never silently discarded — but flag the quality issue (see below) rather than attaching it silently as if it were a clean source. When a candidate is merely plausible — near the right lot's text but not confirmed, or ambiguous among more than one nearby image — pass it as candidate_photo_url (with candidate_photo_note explaining the uncertainty) instead of guessing it into image_url; this logs it to that draft's review bullpen for a human to check rather than silently discarding a real maybe. Ignore anything clearly unrelated entirely — don't log that as a candidate either.
-   - *Catalog/PDF source (native PDF read, or pre-extracted page images from scripts/catalog_pdf_extractor.py, each its own source_materials row with kind:'image')*: there is no separately-hosted URL for a work's photo here — it only exists as pixels on a page. Use attach_staged_work_photo, pointed at the specific source_materials image row (its id is given to you alongside that page's content). This only works against a kind:'image' row — a raw kind:'pdf' row's pages haven't been extracted yet and can't be cropped by this tool; if extraction hasn't happened, treat it exactly like having no photo at all (flag "Needs a source image:", below). Always crop tightly around just the artwork — never leave a caption strip, a second unrelated work sharing the page, or a border/mat/page background in frame; omit crop entirely only when the whole image is already nothing but the work. Use confidence:'confirmed' ONLY for an explicit, unambiguous signal: a caption directly naming this exact work next to its photo, or a table-of-contents/List-of-Works page mapping this exact title to this exact page number together with a clear photo on that page. Use confidence:'candidate' for anything short of that but still plausible (same page/spread as the work's mentioned, no explicit caption, ambiguous among several images on the page) — it lands in the draft's review bullpen instead of being silently discarded or wrongly auto-placed. Never call this tool at all for an image that's clearly unrelated to any work (decoration, a logo, a different already-placed work) — skip it entirely rather than logging noise as a candidate.
+   - *Catalog/PDF source (native PDF read, or pre-extracted page images from scripts/catalog_pdf_extractor.py, each its own source_materials row with kind:'image')*: there is no separately-hosted URL for a work's photo here — it only exists as pixels on a page. Use attach_staged_work_photo, pointed at the specific source_materials image row (its id is given to you alongside that page's content). This only works against a kind:'image' row — a raw kind:'pdf' row's pages haven't been extracted yet and can't be cropped by this tool; if extraction hasn't happened, treat it exactly like having no photo at all (flag "Needs a source image:", below). Always crop tightly around just the artwork — never leave a caption strip, a second unrelated work sharing the page, or a border/mat/page background in frame; omit crop entirely only when the whole image is already nothing but the work. Use photo_role:'main' ONLY for an explicit, unambiguous signal: a caption directly naming this exact work next to its photo, a table-of-contents/List-of-Works page mapping this exact title to this exact page number together with a clear photo on that page, or simply the clearly-best overall shot once you already have other confirmed views of this same work. Use photo_role:'candidate' for anything short of that but still plausible (same page/spread as the work's mentioned, no explicit caption, ambiguous among several images on the page) — it lands in the draft's review bullpen instead of being silently discarded or wrongly auto-placed. Never call this tool at all for an image that's clearly unrelated to any work (decoration, a logo, a different already-placed work) — skip it entirely rather than logging noise as a candidate.
+   - **Main vs. supporting views vs. a genuinely different work.** Expect this roughly 1 in 4 works: a second (or third) photo on the same page/spread, or a later page, that's another angle or a detail shot of a work you've already matched/staged — not a new work. Recognize these primarily from what the source itself tells you: a shared caption/lot number covering both images, a "detail" or "verso" label, an obviously continued view of the same object from a different angle, or a List-of-Works entry listing one title against multiple figure numbers. When you're confident it's the same work: call attach_staged_work_photo again with photo_role:'supporting' against that same staged_work_id — never create_staged_work a second time for it. The first confirmed photo you attach doesn't need to be the best one; a later, clearly-better confirmed view can still go in as photo_role:'main', and the earlier one is kept, automatically moved to supporting rather than lost. When you're genuinely not sure whether an image is another view of a work you already have or an actually distinct work — the source doesn't say, and the images don't obviously match or obviously differ — do not guess either way: attach it as photo_role:'candidate' on the work/staged work you suspect it belongs to, with a note stating plainly that it might instead be a separate work, so a human decides rather than risking a false merge or a false duplicate.
    - *Either path, for an EXISTING (already-published) work*: any candidate photo is still just a candidate regardless of source or quality — never set image_url on a live work yourself and never call attach_staged_work_photo or pass candidate_photo_url for one (both only ever touch staged_works); note it for human review via a flagged work_source instead.
    - Whenever a work ends up with no usable photo at all — nothing confirmed, not even a candidate — propose_work_revision on field: flag with a line starting exactly "Needs a source image:" plus what's missing and why (or append_note with that same line, for a staged candidate). Whenever a photo IS attached/set but isn't a clean tight crop, or is usable but visibly low-quality (blurry, low-resolution, moiré/halftone pattern from photographing a printed page, glare), use a line starting exactly "Needs a cleaner photo:" describing specifically which issue applies — same placement rules as the source-image note. Never attach a genuinely wrong-work or unverifiable image just to fill the field — an unset image renders as a clean placeholder on purpose — but a verified-correct, merely-lower-quality image is worth keeping (with the flag), not something to withhold.
 9. **Not a priority for now: exhaustively mining essay prose for every incidental title or other-exhibition mention.** Call log_citation when a title has some concrete anchor to this document (its own captioned plate, a List of Works/checklist line, a figure number) — not for a bare name floating in a curatorial essay's prose with nothing pinning it to a specific page/plate/photo. That kind of broad, low-signal essay-mining is a real capacity (log_citation and the citation index exist for exactly this), but it's bracketed for a later pass, not this one — the core job here is identifying and photographing the artworks this document actually depicts and citing this document for each one (rule 6); don't spend tool calls chasing a passing essay mention at the expense of working through the actual plates/photos. Still call log_citation for a work you're already confidently handling in steps 2-5, same as always (that's not extra essay-mining, it's just recording the anchor you already have).
@@ -307,7 +308,7 @@ const TOOLS: Anthropic.Tool[] = [
   {
     name: "attach_staged_work_photo",
     description:
-      "Attach a photo to a staged_works draft, cropped from an already-extracted catalog page image (a source_materials row with kind:'image' -- e.g. from scripts/catalog_pdf_extractor.py). Does NOT work on a raw kind:'pdf' row directly -- extraction must already have produced individual page images. Crop out anything that isn't the work itself before attaching. confidence:'confirmed' sets the draft's real photo directly -- use ONLY for an explicit, unambiguous signal (a caption naming this exact work next to its photo, or a table-of-contents/List-of-Works page number match). confidence:'candidate' logs it to the draft's review bullpen instead -- use for anything plausible but short of that bar. See rule 8 for the full guidance.",
+      "Attach a photo to a staged_works draft, cropped from an already-extracted catalog page image (a source_materials row with kind:'image' -- e.g. from scripts/catalog_pdf_extractor.py). Does NOT work on a raw kind:'pdf' row directly -- extraction must already have produced individual page images. Crop out anything that isn't the work itself before attaching. A work has supplemental photos (another angle, a detail shot) roughly 1 in 4 times -- recognize those as additional views of the SAME work, never as a reason to stage a second work. photo_role:'main' sets the draft's single featured photo -- use ONLY for an explicit, unambiguous signal (a caption naming this exact work next to its photo, a table-of-contents/List-of-Works page number match, or simply the one clearly-best overall shot when several confirmed views exist). If this draft already has a main photo, the previous one is moved to supporting automatically, never discarded. photo_role:'supporting' confirms this photo as another view of the SAME work as the main photo -- already decided, not a maybe, just not the featured shot. photo_role:'candidate' logs it to the draft's review bullpen instead -- use for anything plausible but short of confirmed, including genuine uncertainty about whether an image is another view of this work or actually a different, distinct work (see rule 8). See rule 8 for the full guidance.",
     input_schema: {
       type: "object",
       properties: {
@@ -323,10 +324,10 @@ const TOOLS: Anthropic.Tool[] = [
             height: { type: "number", description: "0-1 fraction of image height." },
           },
         },
-        confidence: { type: "string", enum: ["confirmed", "candidate"] },
-        note: { type: "string", description: "For confidence:'candidate' only -- briefly, why this is a maybe, not a certainty." },
+        photo_role: { type: "string", enum: ["main", "supporting", "candidate"] },
+        note: { type: "string", description: "For photo_role:'candidate' only -- briefly, why this is a maybe, not a certainty (including \"might be a different work\" if that's the actual uncertainty)." },
       },
-      required: ["staged_work_id", "source_material_id", "confidence"],
+      required: ["staged_work_id", "source_material_id", "photo_role"],
     },
   },
   {
@@ -560,13 +561,54 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
       // (by request, or because the requested crop failed to apply).
       const imageCrop = { source_material_id: input.source_material_id, crop: cropApplied ? input.crop : null };
 
-      if (input.confidence === "confirmed") {
+      const addedAt = new Date().toISOString();
+
+      if (input.photo_role === "main") {
+        // A draft's existing main photo (if any) is a real, already-confirmed
+        // view of this same work -- a new main never simply overwrites it.
+        // It moves to supporting_photos instead, so attaching a better/later
+        // main shot can never silently lose an earlier confirmed photo.
+        const { data: current, error: fetchErr } = await adminDb
+          .from("staged_works")
+          .select("image_url, image_crop, supporting_photos")
+          .eq("id", input.staged_work_id)
+          .single();
+        if (fetchErr) throw fetchErr;
+        const supporting = Array.isArray(current?.supporting_photos) ? current.supporting_photos : [];
+        if (current?.image_url) {
+          supporting.push({
+            url: current.image_url,
+            source_material_id: (current.image_crop as { source_material_id?: string } | null)?.source_material_id ?? null,
+            crop: (current.image_crop as { crop?: unknown } | null)?.crop ?? null,
+            added_at: addedAt,
+          });
+        }
         const { error } = await adminDb
           .from("staged_works")
-          .update({ image_url: publicUrl, image_crop: imageCrop, updated_at: new Date().toISOString() })
+          .update({ image_url: publicUrl, image_crop: imageCrop, supporting_photos: supporting, updated_at: addedAt })
           .eq("id", input.staged_work_id);
         if (error) throw error;
-        return { attached: true, image_url: publicUrl, ...(cropError ? { crop_failed: cropError } : {}) };
+        return {
+          attached_as: "main",
+          image_url: publicUrl,
+          displaced_previous_main_to_supporting: !!current?.image_url,
+          ...(cropError ? { crop_failed: cropError } : {}),
+        };
+      } else if (input.photo_role === "supporting") {
+        const { data: current, error: fetchErr } = await adminDb
+          .from("staged_works")
+          .select("supporting_photos")
+          .eq("id", input.staged_work_id)
+          .single();
+        if (fetchErr) throw fetchErr;
+        const supporting = Array.isArray(current?.supporting_photos) ? current.supporting_photos : [];
+        supporting.push({ url: publicUrl, source_material_id: input.source_material_id, crop: cropApplied ? input.crop : null, added_at: addedAt });
+        const { error } = await adminDb
+          .from("staged_works")
+          .update({ supporting_photos: supporting, updated_at: addedAt })
+          .eq("id", input.staged_work_id);
+        if (error) throw error;
+        return { attached_as: "supporting", image_url: publicUrl, ...(cropError ? { crop_failed: cropError } : {}) };
       } else {
         const { data: current, error: fetchErr } = await adminDb
           .from("staged_works")
@@ -580,11 +622,11 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
           note: input.note ?? null,
           source_material_id: input.source_material_id,
           crop: cropApplied ? input.crop : null,
-          added_at: new Date().toISOString(),
+          added_at: addedAt,
         });
         const { error } = await adminDb
           .from("staged_works")
-          .update({ candidate_photos: candidates, updated_at: new Date().toISOString() })
+          .update({ candidate_photos: candidates, updated_at: addedAt })
           .eq("id", input.staged_work_id);
         if (error) throw error;
         return { logged_as_candidate: true, image_url: publicUrl, ...(cropError ? { crop_failed: cropError } : {}) };

@@ -399,6 +399,37 @@ from documentation of the work being made — foundry, patina, studio-process sh
 tagged that way. Process photos are excluded from primary/featured-image selection —
 they document the work, they aren't a candidate to represent it.
 
+## Main vs. supporting vs. candidate photos (a staged_works draft, pre-import)
+Before a draft is turned into a live work (which uses the real multi-photo
+`work_photos` model above), Khalo's automated pass has three tiers of photo on
+`staged_works`, not two — the studio's own estimate is that roughly 1 in 4
+works have a supplemental photo (another angle, a detail shot), and losing
+track of which tier a photo belongs to is exactly how a duplicate New Entries
+row happens:
+- **`image_url` + `image_crop`** — the one featured/main photo, plus its
+  source coordinates (which `source_materials` image and what normalized crop
+  box produced it — see "PDF/image mechanical layer" above). Attaching a new
+  main photo never simply overwrites an existing one; the displaced photo
+  moves to `supporting_photos` automatically, so a later, better shot can
+  replace the featured image without losing the earlier confirmed one.
+- **`supporting_photos`** (jsonb array) — CONFIRMED additional views of the
+  *same* work (another angle, a detail/verso shot) — a real, decided fact,
+  just not the featured image. Never a reason to call `create_staged_work`
+  again for what is actually one work with two photos.
+- **`candidate_photos`** (jsonb array, pre-existing) — unconfirmed maybes
+  awaiting a human pick, same as before. This is also where genuine
+  uncertainty about whether an image is another view of a known work or an
+  actually distinct work lands — `attach_staged_work_photo`'s `photo_role`
+  parameter (`main`/`supporting`/`candidate`) never forces a same-work-or-not
+  guess; candidate plus a note is the honest result when the source itself
+  doesn't settle it.
+
+On Intake's draft-prefill (`catalogue_intake`'s `?from_draft=` path),
+`supporting_photos` are pulled into the form's own multi-photo grid the same
+way the main photo already is (`preloadDraftPhoto`, looped) — landing as
+ordinary non-primary photos a human can reorder, caption, or remove, reusing
+the live-work photo UI rather than a separate review surface.
+
 ## Admin/front-end field parity
 Every field an admin can populate must render somewhere on the public entry page,
 and every category shown on the entry page must have a corresponding admin input —
