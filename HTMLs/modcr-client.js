@@ -916,9 +916,9 @@ function modcrInitBackgroundTab(pageSlug){
     .modcr-bg-tab { position: fixed; right: 14px; bottom: 14px; z-index: 9999; }
     .modcr-bg-tab-btn {
       font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
-      background: rgba(28,28,28,.72); color: #fff; border: none; padding: 8px 12px; cursor: pointer;
+      background: rgba(120,117,114,.68); color: #fff; border: none; padding: 8px 12px; cursor: pointer;
     }
-    .modcr-bg-tab-btn:hover { background: rgba(28,28,28,.9); }
+    .modcr-bg-tab-btn:hover { background: rgba(120,117,114,.88); }
     .modcr-bg-tab-btn:disabled { opacity: .6; cursor: wait; }
   `;
   document.head.appendChild(style);
