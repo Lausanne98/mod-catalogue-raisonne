@@ -208,6 +208,25 @@ script then this file, rather than duplicating client setup or a hardcoded
 rule above doesn't apply to it directly — but it's shared by every admin and
 public page, so treat changes to it as touching all of them at once.
 
+## Supabase keepalive
+Supabase's free tier auto-pauses a project after 7+ days of "insufficient
+activity" — Supabase's own docs admit this is a fuzzy internal metric, not a
+hard rule, and a 2026-10-21 pause warning arrived despite a daily GitHub
+Actions ping (`.github/workflows/supabase-keepalive.yml`, cron, 52+
+consecutive successful runs) having run the whole time. The original ping was
+a read-only anonymous `SELECT` against `series` — apparently not enough to
+register as "activity" by Supabase's metric, even run reliably every day.
+
+Hardened by adding a `_keepalive` table (single row, `id='global'`,
+`pinged_at timestamptz`) with RLS allowing public `select` and public
+`update` (scoped via `with check (id = 'global')`) — modeled on
+`agent_settings`'s single-row RLS pattern. The workflow now does a real
+anonymous `UPDATE` (`pinged_at = now`) against this table via PostgREST
+instead of a read, so each run is an actual database write. If dormant
+periods happen anyway and a pause warning recurs, the only way to remove the
+risk entirely is upgrading to the Pro plan — a billing decision, not
+something to route around further with more automation.
+
 ## Architecture principle: AI tooling is replaceable, never source of truth
 Treat all AI-specific tooling — embedding providers, vector indexes, agent
 frameworks (Voyage AI, the knowledge-index function, Claude/Anthropic itself,

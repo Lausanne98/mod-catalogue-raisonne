@@ -2,8 +2,16 @@ name: Supabase keepalive
 
 # Supabase's free tier auto-pauses a project after 7 days with no API
 # activity. This site is static (GitHub Pages) with no server to run a
-# cron job itself, so a scheduled GitHub Actions workflow does one
-# trivial, read-only request a day to keep the project active.
+# cron job itself, so a scheduled GitHub Actions workflow pings the
+# project daily to keep it active.
+#
+# This was originally a read-only SELECT, which Supabase's own docs admit
+# "may not be enough" to count as activity for pause purposes even when it
+# runs reliably every day (confirmed via 52+ consecutive successful runs
+# that didn't stop a pause warning from arriving). Switched to a real
+# anonymous UPDATE against the `_keepalive` table (single row, id='global',
+# RLS allows public select+update — see CLAUDE.md "Supabase keepalive")
+# so each run is an actual database write, not just a read.
 on:
   schedule:
     - cron: '0 8 * * *'
@@ -16,11 +24,15 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Read one row from a public table
+      - name: Write a heartbeat row
         run: |
-          curl -sf \
-            "https://kuyyrygvaotsrhbyjyjw.supabase.co/rest/v1/series?select=slug&limit=1" \
+          now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          curl -sf -X PATCH \
+            "https://kuyyrygvaotsrhbyjyjw.supabase.co/rest/v1/_keepalive?id=eq.global" \
             -H "apikey: sb_publishable_s1HGNRWL1LbiCXzFDK4igg_41mnArJx" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d "{\"pinged_at\":\"$now\"}" \
             -o /dev/null
 
       # Failure here likely means the Supabase project auto-paused (or the
@@ -38,5 +50,5 @@ jobs:
           if [ "$existing" = "0" ]; then
             curl -sS -X POST -H "Authorization: Bearer $GH_TOKEN" \
               "https://api.github.com/repos/${{ github.repository }}/issues" \
-              -d '{"title":"Supabase keepalive ping failed","body":"The daily Supabase keepalive workflow (.github/workflows/supabase-keepalive.yml) failed. This may mean the Supabase project has auto-paused, or the API URL/key has changed. Check the failed run under the Actions tab, and check whether the live site is still loading data.","labels":["supabase-keepalive-failure"]}'
+              -d '{"title":"Supabase keepalive ping failed","body":"The daily Supabase keepalive workflow (.github/workflows/supabase-keepalive.yml) failed to write to the `_keepalive` table. This may mean the Supabase project has auto-paused, the `_keepalive` table/RLS policy was changed or dropped, or the API URL/key has changed. Check the failed run under the Actions tab, and check whether the live site is still loading data.","labels":["supabase-keepalive-failure"]}'
           fi

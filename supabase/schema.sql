@@ -464,6 +464,28 @@ drop policy if exists "agent_settings_admin_write" on agent_settings;
 create policy "agent_settings_admin_write" on agent_settings for update
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- ═══ KEEPALIVE (see CLAUDE.md "Supabase keepalive") ═══
+-- Single row written by .github/workflows/supabase-keepalive.yml's daily
+-- cron via the anon key, so Supabase sees a real database write (not just a
+-- read) and the free-tier project doesn't get flagged for 7-day-inactivity
+-- auto-pause. RLS allows public select AND public update -- intentionally,
+-- since the whole point is a credential-free ping; `with check (id =
+-- 'global')` keeps an anonymous write from doing anything but touching the
+-- one row.
+create table if not exists _keepalive (
+  id         text primary key default 'global',
+  pinged_at  timestamptz not null default now()
+);
+insert into _keepalive (id) values ('global') on conflict (id) do nothing;
+
+alter table _keepalive enable row level security;
+drop policy if exists "_keepalive_anyone_read" on _keepalive;
+create policy "_keepalive_anyone_read" on _keepalive for select
+  using (true);
+drop policy if exists "_keepalive_anyone_update" on _keepalive;
+create policy "_keepalive_anyone_update" on _keepalive for update
+  using (true) with check (id = 'global');
+
 -- ═══ WORK REVISIONS (Associate Archivist proposed changes to an EXISTING
 -- work, published or draft) ═══
 -- Companion to staged_works: staged_works is for a work the Archivist
