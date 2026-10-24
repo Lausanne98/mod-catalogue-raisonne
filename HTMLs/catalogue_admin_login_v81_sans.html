@@ -94,7 +94,7 @@ async function handleLogin(e){
     // A signed-in admin has already proven who they are — never make them clear
     // the separate visitor preview-password gate on top of that.
     modcrGrantPreviewAccess();
-    window.location.href = 'catalogue_admin_v112_sans.html';
+    window.location.href = 'catalogue_admin_v113_sans.html';
   }catch(e){
     // A network failure (blocked request, offline, etc.) would otherwise leave
     // the button disabled forever with no feedback — always surface something.
@@ -111,7 +111,7 @@ document.getElementById('loginForm').addEventListener('submit', handleLogin);
 modcrSupabase.auth.getSession().then(({data:{session}})=>{
   if(session){
     modcrGrantPreviewAccess();
-    window.location.href = 'catalogue_admin_v112_sans.html';
+    window.location.href = 'catalogue_admin_v113_sans.html';
   }
 });
 </script>
