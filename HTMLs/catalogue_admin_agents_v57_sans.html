@@ -211,8 +211,8 @@
       <button class="nav-dropdown-trigger nav-dark" onclick="toggleNavDropdown(event)">Agents ▾</button>
       <div class="nav-dropdown-menu">
         <a href="catalogue_admin_agents_v57_sans.html">CR Team</a>
-        <a href="catalogue_admin_drafts_v55_sans.html">Archivist's Desk</a>
-        <a href="catalogue_admin_researcher_v63_sans.html">Researcher's Desk</a>
+        <a href="catalogue_admin_drafts_v56_sans.html">Archivist's Desk</a>
+        <a href="catalogue_admin_researcher_v64_sans.html">Researcher's Desk</a>
         <a href="catalogue_admin_it_v49_sans.html">IT</a>
       </div>
     </div>
@@ -265,12 +265,12 @@
 
   <!-- AGENT CARDS -->
   <div class="agent-grid">
-    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_researcher_v63_sans.html')">
+    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_researcher_v64_sans.html')">
       <div class="agent-name">Chloe</div>
       <div class="agent-role">Researcher</div>
       <span class="status-pill notbuilt">Not yet built</span>
       <div class="agent-desc">Gathers provenance research, exhibition history, and raw material into a holding folder for Khalo to sort through. Read-only against the database — never writes.</div>
-      <a class="agent-goto" href="catalogue_admin_researcher_v63_sans.html">Open Researcher's Desk →</a>
+      <a class="agent-goto" href="catalogue_admin_researcher_v64_sans.html">Open Researcher's Desk →</a>
       <div class="card-actions">
         <button class="btn" onclick="toggleOverview('chloe')">Overview</button>
         <button class="btn play" onclick="speakAgent('chloe', overviews.chloe, this)" aria-label="Play" title="Play"><svg class="eq-icon" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect class="eq-bar" x="2" y="5" width="2.6" height="6"/><rect class="eq-bar" x="6.7" y="2" width="2.6" height="12"/><rect class="eq-bar" x="11.4" y="5" width="2.6" height="6"/></svg></button>
@@ -286,12 +286,12 @@
       </div>
     </div>
 
-    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_drafts_v55_sans.html')">
+    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_drafts_v56_sans.html')">
       <div class="agent-name">Khalo</div>
       <div class="agent-role">Associate Archivist</div>
       <span class="status-pill built">Built</span>
       <div class="agent-desc">Processes and verifies research, matches it against the catalogue, and proposes new entries or revisions — never writes to a live work directly.</div>
-      <a class="agent-goto" href="catalogue_admin_drafts_v55_sans.html">Open Archivist's Drafts →</a>
+      <a class="agent-goto" href="catalogue_admin_drafts_v56_sans.html">Open Archivist's Drafts →</a>
       <div class="card-actions">
         <button class="btn" onclick="toggleOverview('khalo')">Overview</button>
         <button class="btn play" onclick="speakAgent('khalo', overviews.khalo, this)" aria-label="Play" title="Play"><svg class="eq-icon" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect class="eq-bar" x="2" y="5" width="2.6" height="6"/><rect class="eq-bar" x="6.7" y="2" width="2.6" height="12"/><rect class="eq-bar" x="11.4" y="5" width="2.6" height="6"/></svg></button>
@@ -824,13 +824,13 @@ async function loadBriefing(){
   try{
     const staged = await modcrFetchStagedWorks();
     const newCount = staged.filter(s => s.status === 'new').length;
-    lines.push(`<li><strong>${newCount}</strong> new draft${newCount === 1 ? '' : 's'} in New Entries awaiting review. <a href="catalogue_admin_drafts_v55_sans.html">Go to Archivist's Drafts →</a></li>`);
+    lines.push(`<li><strong>${newCount}</strong> new draft${newCount === 1 ? '' : 's'} in New Entries awaiting review. <a href="catalogue_admin_drafts_v56_sans.html">Go to Archivist's Drafts →</a></li>`);
     spoken.push(`${newCount} new draft${newCount === 1 ? '' : 's'} in New Entries`);
   }catch(e){ lines.push('<li>Could not load New Entries count.</li>'); }
 
   try{
     const revisions = await modcrFetchWorkRevisions('pending');
-    lines.push(`<li><strong>${revisions.length}</strong> proposed revision${revisions.length === 1 ? '' : 's'} awaiting approval. <a href="catalogue_admin_drafts_v55_sans.html">Go to Archivist's Drafts →</a></li>`);
+    lines.push(`<li><strong>${revisions.length}</strong> proposed revision${revisions.length === 1 ? '' : 's'} awaiting approval. <a href="catalogue_admin_drafts_v56_sans.html">Go to Archivist's Drafts →</a></li>`);
     spoken.push(`${revisions.length} proposed revision${revisions.length === 1 ? '' : 's'} awaiting approval`);
   }catch(e){ lines.push('<li>Could not load Revisions count.</li>'); }
 
