@@ -182,6 +182,96 @@ async function modcrDeleteSeries(slug){
   if(error) throw error;
 }
 
+// ---- Exhibitions (a real browsable entity, separate from works.exhibitions'
+// free text — see supabase/schema.sql "EXHIBITIONS") ----
+async function modcrFetchExhibitions(){
+  const { data, error } = await modcrSupabase.from('exhibitions').select('*').order('created_at', { ascending: false });
+  if(error) throw error;
+  return data;
+}
+async function modcrFetchExhibitionBySlug(slug){
+  const { data, error } = await modcrSupabase.from('exhibitions').select('*').eq('slug', slug).maybeSingle();
+  if(error) throw error;
+  return data;
+}
+async function modcrSaveExhibition(payload, isNew){
+  if(isNew){
+    const { data, error } = await modcrSupabase.from('exhibitions').insert(payload).select().single();
+    if(error) throw error;
+    return data;
+  }
+  const { id, ...rest } = payload;
+  const { data, error } = await modcrSupabase.from('exhibitions').update(rest).eq('id', id).select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrDeleteExhibition(id){
+  // Cascades (work_exhibitions, exhibition_media reference exhibitions with
+  // on delete cascade) -- unlike deleting a series, there's no "still in use"
+  // guard here, since unlinking an exhibition from its works is exactly what
+  // deleting it means, not a data-loss accident to block.
+  const { error } = await modcrSupabase.from('exhibitions').delete().eq('id', id);
+  if(error) throw error;
+}
+// Works linked to one exhibition, in the same shape/sort every other work
+// grid on the site already uses (modcrAdaptWork), so the public exhibition
+// page can reuse the existing .work-card rendering verbatim.
+async function modcrFetchExhibitionWorks(exhibitionId){
+  const { data, error } = await modcrSupabase
+    .from('work_exhibitions')
+    .select('works(*, work_photos(storage_path,is_primary,photo_type))')
+    .eq('exhibition_id', exhibitionId);
+  if(error) throw error;
+  // Same chronological-by-default convention as modcrFetchWorks -- undated
+  // works (no year) sort last, not first.
+  return data.map(row => modcrAdaptWork(row.works)).sort((a, b) => {
+    if(!a.year && !b.year) return a.id - b.id;
+    if(!a.year) return 1;
+    if(!b.year) return -1;
+    return a.year - b.year || a.id - b.id;
+  });
+}
+async function modcrLinkWorkToExhibition(exhibitionId, workId){
+  const { error } = await modcrSupabase.from('work_exhibitions')
+    .insert({ exhibition_id: exhibitionId, work_id: workId });
+  if(error) throw error;
+}
+async function modcrUnlinkWorkFromExhibition(exhibitionId, workId){
+  const { error } = await modcrSupabase.from('work_exhibitions')
+    .delete().eq('exhibition_id', exhibitionId).eq('work_id', workId);
+  if(error) throw error;
+}
+function modcrExhibitionMediaUrl(storagePath){
+  return modcrSupabase.storage.from('exhibition-media').getPublicUrl(storagePath).data.publicUrl;
+}
+async function modcrFetchExhibitionMedia(exhibitionId, mediaType){
+  let q = modcrSupabase.from('exhibition_media').select('*').eq('exhibition_id', exhibitionId).order('sort_order');
+  if(mediaType) q = q.eq('media_type', mediaType);
+  const { data, error } = await q;
+  if(error) throw error;
+  return data;
+}
+async function modcrUploadExhibitionMedia(exhibitionId, file, mediaType){
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${exhibitionId}/${modcrGenId()}.${ext}`;
+  const { error: upErr } = await modcrSupabase.storage.from('exhibition-media').upload(path, file, { upsert: false });
+  if(upErr) throw upErr;
+  const { data, error } = await modcrSupabase.from('exhibition_media')
+    .insert({ exhibition_id: exhibitionId, storage_path: path, media_type: mediaType })
+    .select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrDeleteExhibitionMedia(id, storagePath){
+  await modcrSupabase.storage.from('exhibition-media').remove([storagePath]);
+  const { error } = await modcrSupabase.from('exhibition_media').delete().eq('id', id);
+  if(error) throw error;
+}
+async function modcrUpdateExhibitionMediaCaption(id, caption){
+  const { error } = await modcrSupabase.from('exhibition_media').update({ caption: caption || null }).eq('id', id);
+  if(error) throw error;
+}
+
 // ---- Shared text-cleanup helpers (research_finds -> staged_works -> intake) ----
 // Kept here, not duplicated per page, so title/tag parsing behaves
 // identically wherever it runs: at auto-promotion time (Researcher's Desk),

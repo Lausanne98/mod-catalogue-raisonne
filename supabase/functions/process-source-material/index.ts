@@ -105,6 +105,9 @@ The first user message contains: the citation anchor (a real URL, when this sour
 ## Write as you go — do not save it all for one big summary at the end
 Read, then act, work by work — never read the entire document first and only describe what you found afterward. The moment you're confident about one work, call the tool for it immediately (get_work/get_staged_work to check, then log_work_source/propose_work_revision/create_staged_work/update_staged_work to record it), then move to the next work. A message that only narrates candidates in prose without calling the matching tool has not accomplished anything — narrating "CR 12 should get a citation" is not the same as calling log_work_source for CR 12, and this run will explicitly reject a finish call that describes findings you never actually logged. If the document is long, that's fine — you have many tool-call turns; use them to work through it incrementally, not to produce one exhaustive essay before you've written a single row.
 
+## First: is this page even a work photo?
+Before treating a given page/image as a candidate artwork, recognize when it plainly isn't one — a press clipping or newspaper/magazine article, an exhibition-install shot with no single work clearly depicted, an invitation/announcement, a portrait of the artist alone. Call flag_support_material on that specific source_materials id the moment you recognize this, independent of whatever else you do with the page (its text can still be worth log_citation or propose_work_revision — flagging it as support material means "don't stage this as if its photo were an artwork," not "ignore everything it says"). Never call create_staged_work from a page you've flagged this way just because it carries a caption, date, or price.
+
 ## For every work the document names or depicts
 1. Try to match it against BOTH the \`works\` listing and the \`staged_works\` listing given to you (title, date, medium — confirm a fuzzy title match against date/medium before treating it as the same work, never on title alone). Checking \`works\` alone and missing an existing staged draft is exactly how a duplicate New Entries row happens. When a candidate feels like it MIGHT already exist under a different title/phrasing (a re-listed lot, a nickname vs. formal title, a near-identical sibling piece) and the plain listing doesn't settle it, call search_similar_works with a short description of the piece before deciding it's genuinely new.
 2. **Matches an existing work, confidently** — call get_work to see its full current fields and existing citations (don't re-cite something already logged, and don't propose text that contradicts what's already there — if it would contradict, log a flagged work_source instead and leave the field alone). Log every extracted fact with log_work_source. For append-safe narrative facts (see REVISABLE_FIELDS in the propose_work_revision tool), also call propose_work_revision so it reaches a human via the Revisions tab. For a singular-value fact (a dimension, a medium/tag/series correction, a date), log it via log_work_source only — mention it by CR number in your final summary so a human can enter it directly in Manage Works.
@@ -353,6 +356,24 @@ const TOOLS: Anthropic.Tool[] = [
         collection: { type: "string", enum: ["works", "staged_works", "both"], description: "Defaults to both." },
       },
       required: ["query"],
+    },
+  },
+  {
+    name: "flag_support_material",
+    description:
+      "Call this on a specific source_materials row (a single page/image from the batch, by its own id) that is clearly NOT a photo of a standalone artwork -- a press clipping or newspaper/magazine article, an exhibition-install shot with no single work clearly depicted, an invitation/announcement, a portrait of the artist alone, or similar. This is independent of the batch's overall finish outcome and of any citation work you still do with the page's text (a press article can still be worth log_citation/propose_work_revision for what it says, even though it isn't itself a work photo) -- call this whenever the recognition applies, regardless of what else you do with the page. Never call create_staged_work from a page you've flagged this way just because it has a caption or date on it.",
+    input_schema: {
+      type: "object",
+      properties: {
+        source_material_id: { type: "string" },
+        material_type: {
+          type: "string",
+          enum: ["press", "installation", "other"],
+          description: "press = newspaper/magazine clipping or article. installation = exhibition/install documentation with no single work clearly depicted. other = anything else that plainly isn't a work photo (invitation, portrait of the artist, etc.).",
+        },
+        reason: { type: "string", description: "One short sentence on why this isn't a work photo." },
+      },
+      required: ["source_material_id", "material_type", "reason"],
     },
   },
   {
@@ -645,6 +666,19 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
         results[c] = result.error ? { error: result.error } : result.matches;
       }
       return results;
+    }
+    case "flag_support_material": {
+      const { data: row, error: fetchErr } = await adminDb
+        .from("source_materials").select("notes").eq("id", input.source_material_id).maybeSingle();
+      if (fetchErr) throw fetchErr;
+      if (!row) return { error: "No source_materials row with that id." };
+      const { error } = await adminDb.from("source_materials").update({
+        likely_support_material: true,
+        support_material_type: input.material_type,
+        notes: appendNote(row.notes, `[${new Date().toISOString()}] Flagged as ${input.material_type}, not a work photo: ${input.reason}`),
+      }).eq("id", input.source_material_id);
+      if (error) throw error;
+      return { ok: true };
     }
     default:
       return { error: `Unknown tool: ${name}` };

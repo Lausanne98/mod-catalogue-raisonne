@@ -812,6 +812,72 @@ drop policy if exists "admin_backgrounds_admin_write" on admin_backgrounds;
 create policy "admin_backgrounds_admin_write" on admin_backgrounds for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- ═══ EXHIBITIONS — a real browsable entity (its own public page: a Works
+-- grid of everything shown there, plus an Installation & Media tab of
+-- archival photos/press clippings), modeled on how Roy Lichtenstein's CR
+-- site structures an exhibition page. This is additive: the existing
+-- free-text `exhibitions` field on `works` is untouched and keeps working
+-- for any work not (yet) linked to a formal Exhibition record here. ═══
+create table if not exists exhibitions (
+  id           uuid primary key default gen_random_uuid(),
+  slug         text not null unique,
+  title        text not null,
+  venue        text,
+  date_display text,   -- free text, e.g. "September 27, 2014–January 25, 2015" — same loose convention as works.date_display and chronology_events.date_label
+  curator      text,
+  citation     text,   -- full citation paragraph, e.g. "Galleria Civica d'Arte Moderna e Contemporanea, Turin, Italy, Roy Lichtenstein: Opera prima... (Eccher 2015b; Eccher 2014b)."
+  published    boolean not null default false,
+  created_at   timestamptz not null default now()
+);
+
+-- Many-to-many: a work can be in several exhibitions, an exhibition has many
+-- works. No extra columns -- order within the Works grid is just works' own
+-- normal chronological sort, same as every other work grid on the site.
+create table if not exists work_exhibitions (
+  work_id       uuid not null references works(id) on delete cascade,
+  exhibition_id uuid not null references exhibitions(id) on delete cascade,
+  primary key (work_id, exhibition_id)
+);
+create index if not exists work_exhibitions_exhibition_idx on work_exhibitions(exhibition_id);
+
+-- Archival material belonging to the exhibition itself, not to any one work --
+-- installation photos and press/archival clippings (many pre-date digital
+-- publication entirely, so a scan of the clipping IS the primary source).
+create table if not exists exhibition_media (
+  id            uuid primary key default gen_random_uuid(),
+  exhibition_id uuid not null references exhibitions(id) on delete cascade,
+  media_type    text not null check (media_type in ('installation','press')),
+  storage_path  text not null,
+  caption       text,
+  sort_order    integer not null default 0,
+  created_at    timestamptz not null default now()
+);
+create index if not exists exhibition_media_exhibition_idx on exhibition_media(exhibition_id);
+
+alter table exhibitions enable row level security;
+drop policy if exists "exhibitions_public_read" on exhibitions;
+create policy "exhibitions_public_read" on exhibitions for select
+  using (auth.role() = 'authenticated' or published = true);
+drop policy if exists "exhibitions_admin_write" on exhibitions;
+create policy "exhibitions_admin_write" on exhibitions for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+alter table work_exhibitions enable row level security;
+drop policy if exists "work_exhibitions_public_read" on work_exhibitions;
+create policy "work_exhibitions_public_read" on work_exhibitions for select
+  using (true);
+drop policy if exists "work_exhibitions_admin_write" on work_exhibitions;
+create policy "work_exhibitions_admin_write" on work_exhibitions for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+alter table exhibition_media enable row level security;
+drop policy if exists "exhibition_media_public_read" on exhibition_media;
+create policy "exhibition_media_public_read" on exhibition_media for select
+  using (true);
+drop policy if exists "exhibition_media_admin_write" on exhibition_media;
+create policy "exhibition_media_admin_write" on exhibition_media for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
 -- ═══ STORAGE BUCKETS ═══
 insert into storage.buckets (id, name, public)
 values ('work-photos', 'work-photos', true)
@@ -847,6 +913,10 @@ on conflict (id) do nothing;
 
 insert into storage.buckets (id, name, public)
 values ('admin-backgrounds', 'admin-backgrounds', true)
+on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('exhibition-media', 'exhibition-media', true)
 on conflict (id) do nothing;
 
 drop policy if exists "work_photos_public_read" on storage.objects;
@@ -936,6 +1006,19 @@ create policy "admin_backgrounds_bucket_admin_update" on storage.objects for upd
 drop policy if exists "admin_backgrounds_bucket_admin_delete" on storage.objects;
 create policy "admin_backgrounds_bucket_admin_delete" on storage.objects for delete
   using (bucket_id = 'admin-backgrounds' and auth.role() = 'authenticated');
+
+drop policy if exists "exhibition_media_bucket_public_read" on storage.objects;
+create policy "exhibition_media_bucket_public_read" on storage.objects for select
+  using (bucket_id = 'exhibition-media');
+drop policy if exists "exhibition_media_bucket_admin_write" on storage.objects;
+create policy "exhibition_media_bucket_admin_write" on storage.objects for insert
+  with check (bucket_id = 'exhibition-media' and auth.role() = 'authenticated');
+drop policy if exists "exhibition_media_bucket_admin_update" on storage.objects;
+create policy "exhibition_media_bucket_admin_update" on storage.objects for update
+  using (bucket_id = 'exhibition-media' and auth.role() = 'authenticated');
+drop policy if exists "exhibition_media_bucket_admin_delete" on storage.objects;
+create policy "exhibition_media_bucket_admin_delete" on storage.objects for delete
+  using (bucket_id = 'exhibition-media' and auth.role() = 'authenticated');
 
 -- ═══ WORK CITATIONS — a growing index of every work mention Khalo or Chloe
 -- encounters during any research pass, whether or not that work has its own
