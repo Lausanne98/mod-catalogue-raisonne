@@ -84,21 +84,6 @@
   .name-edit a { color: var(--light); }
   .name-edit input { font-family: 'Inter', sans-serif; font-size: 11.5px; border: 1px solid var(--rule); padding: 4px 7px; }
 
-  /* ── Check In (voice-driven briefing) ── */
-  .checkin-row { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
-  .mic-btn {
-    width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--agent); background: var(--white);
-    cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    transition: background .2s, border-color .2s;
-  }
-  .mic-btn svg { width: 18px; height: 18px; stroke: var(--agent); }
-  .mic-btn.recording { background: var(--red); border-color: var(--red); animation: pulse 1.4s infinite; }
-  .mic-btn.recording svg { stroke: var(--white); }
-  .mic-btn:disabled { opacity: .4; cursor: not-allowed; }
-  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(168,50,50,.35);} 50%{box-shadow:0 0 0 10px rgba(168,50,50,0);} }
-  .checkin-status { font-size: 12.5px; color: var(--mid); }
-  .checkin-transcript { font-size: 13px; color: var(--mid); font-style: italic; margin-top: 8px; min-height: 1.3em; }
-
   .btn {
     font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; padding: 9px 16px;
     border: 1px solid var(--rule); background: var(--white); color: var(--ink); cursor: pointer; transition: all .15s;
@@ -121,7 +106,21 @@
   .eq-icon.playing .eq-bar:nth-child(1) { animation-delay: 0s; }
   .eq-icon.playing .eq-bar:nth-child(2) { animation-delay: .15s; }
   .eq-icon.playing .eq-bar:nth-child(3) { animation-delay: .3s; }
+  .eq-icon.playing .eq-bar:nth-child(4) { animation-delay: .15s; }
+  .eq-icon.playing .eq-bar:nth-child(5) { animation-delay: 0s; }
   @keyframes eqBounce { 0%, 100% { transform: scaleY(.45); } 50% { transform: scaleY(1); } }
+  /* The big floating briefing Play button -- no border/background box (per
+     the studio's direction: "no bounding box, just floating"), larger
+     click target than the small per-card icon, just the wave glyph itself
+     plus a subtle hover/press cue since there's no visible button shape to
+     signal interactivity otherwise. */
+  .play-wave {
+    border: none; background: none; padding: 10px; margin: -10px 0; cursor: pointer;
+    color: var(--agent); display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%; transition: background .15s;
+  }
+  .play-wave:hover { background: var(--agent-lt); }
+  .play-wave:disabled { opacity: .5; cursor: wait; }
 
   /* AGENT CARDS */
   .agent-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 40px; }
@@ -221,28 +220,14 @@
     </div>
     <div class="briefing-actions">
       <button class="btn agent" onclick="showUpdates()">Share the Updates</button>
-      <button class="btn play" onclick="speakAgent('khalo', document.getElementById('greetingText').textContent, this)" aria-label="Play" title="Play"><svg class="eq-icon" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect class="eq-bar" x="2" y="5" width="2.6" height="6"/><rect class="eq-bar" x="6.7" y="2" width="2.6" height="12"/><rect class="eq-bar" x="11.4" y="5" width="2.6" height="6"/></svg></button>
+      <button class="play-wave" onclick="speakAgent('khalo', document.getElementById('greetingText').textContent, this)" aria-label="Play" title="Play"><svg class="eq-icon" viewBox="0 0 28 20" width="28" height="20" aria-hidden="true">
+        <rect class="eq-bar" x="1" y="7" width="3.2" height="6"/>
+        <rect class="eq-bar" x="7" y="3" width="3.2" height="14"/>
+        <rect class="eq-bar" x="13" y="0" width="3.2" height="20"/>
+        <rect class="eq-bar" x="19" y="3" width="3.2" height="14"/>
+        <rect class="eq-bar" x="24.8" y="7" width="3.2" height="6"/>
+      </svg></button>
     </div>
-    <!-- Check In: the same conversational pattern as Intake's Voice Intake
-         (record with MediaRecorder, transcribe via agent-transcribe, speak
-         with agent-voice) -- a verbal alternative to reading the greeting
-         and clicking "Share the Updates" by hand. Khalo opens by checking
-         who it's talking to (defaults to guessing Michelle, the artist,
-         since she's the primary expected voice) rather than assuming
-         whatever name happens to be stored from a prior session. -->
-    <div id="checkinStartRow">
-      <button type="button" class="btn agent" onclick="checkinStart()">Check In by Voice</button>
-    </div>
-    <div class="checkin-row" id="checkinRow" style="display:none;">
-      <button type="button" class="mic-btn" id="checkinMicBtn" onclick="checkinToggleRecording()" title="Record your answer">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-          <rect x="9" y="2" width="6" height="12" rx="3"/>
-          <path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/>
-        </svg>
-      </button>
-      <div class="checkin-status" id="checkinStatus">Tap to answer</div>
-    </div>
-    <div class="checkin-transcript" id="checkinTranscript"></div>
     <div class="briefing-body" id="briefingBody"></div>
     <div class="name-edit" id="nameEdit">
       Not the right name? <a href="#" onclick="editName();return false;">Update it</a>
@@ -367,8 +352,9 @@ let speakingAudio = null;
 const audioCache = {}; // agentKey+text -> object URL, so replaying the same
                         // greeting/overview in one visit doesn't re-spend credits.
 
-// Three-bar equalizer icon markup -- see .eq-icon/.eq-bar/.playing in the
-// <style> block above for the look and the undulate-while-playing animation.
+// Three-bar equalizer icon markup (the small per-card Play buttons) -- see
+// .eq-icon/.eq-bar/.playing in the <style> block above for the look and the
+// undulate-while-playing animation.
 function eqIconHtml(playing){
   return `<svg class="eq-icon${playing ? ' playing' : ''}" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
     <rect class="eq-bar" x="2" y="5" width="2.6" height="6"/>
@@ -376,11 +362,26 @@ function eqIconHtml(playing){
     <rect class="eq-bar" x="11.4" y="5" width="2.6" height="6"/>
   </svg>`;
 }
+// Five-bar version for the big floating briefing Play button (.play-wave) --
+// same animation, taller middle bars tapering outward so it actually reads
+// as a wave rather than a flat row.
+function waveIconHtml(playing){
+  return `<svg class="eq-icon${playing ? ' playing' : ''}" viewBox="0 0 28 20" width="28" height="20" aria-hidden="true">
+    <rect class="eq-bar" x="1" y="7" width="3.2" height="6"/>
+    <rect class="eq-bar" x="7" y="3" width="3.2" height="14"/>
+    <rect class="eq-bar" x="13" y="0" width="3.2" height="20"/>
+    <rect class="eq-bar" x="19" y="3" width="3.2" height="14"/>
+    <rect class="eq-bar" x="24.8" y="7" width="3.2" height="6"/>
+  </svg>`;
+}
+function iconHtmlFor(btn, playing){
+  return (btn && btn.classList.contains('play-wave')) ? waveIconHtml(playing) : eqIconHtml(playing);
+}
 
 function resetPlayButton(btn){
   if(!btn) return;
   btn.disabled = false;
-  btn.innerHTML = eqIconHtml(false);
+  btn.innerHTML = iconHtmlFor(btn, false);
   btn.setAttribute('aria-label', 'Play');
   btn.setAttribute('title', 'Play');
 }
@@ -396,7 +397,7 @@ async function speakAgent(agentKey, text, btn){
   if(wasThisButtonSpeaking) return; // clicking Stop just stops it
 
   const cacheKey = agentKey + '::' + text;
-  if(btn){ btn.disabled = true; btn.innerHTML = eqIconHtml(false); btn.setAttribute('aria-label', 'Loading'); btn.setAttribute('title', 'Loading'); }
+  if(btn){ btn.disabled = true; btn.innerHTML = iconHtmlFor(btn, false); btn.setAttribute('aria-label', 'Loading'); btn.setAttribute('title', 'Loading'); }
 
   let url = audioCache[cacheKey];
   if(!url){
@@ -430,7 +431,7 @@ async function speakAgent(agentKey, text, btn){
   audio.onended = () => { resetPlayButton(btn); if(speakingButton === btn) speakingButton = null; speakingAudio = null; };
   audio.onerror = audio.onended;
   btn.disabled = false;
-  btn.innerHTML = eqIconHtml(true);
+  btn.innerHTML = iconHtmlFor(btn, true);
   btn.setAttribute('aria-label', 'Stop');
   btn.setAttribute('title', 'Stop');
   speakingButton = btn;
@@ -588,198 +589,6 @@ async function loadBriefing(){
 
   updateSummary = '<ul>' + lines.join('') + '</ul>';
   updateSummarySpoken = spoken.length ? spoken.join('. ') + '.' : 'Nothing new to report.';
-}
-
-// ---- Check In (voice-driven briefing) ----
-// A verbal alternative to reading the greeting and clicking "Share the
-// Updates" by hand -- same record/transcribe/speak pattern as Intake's
-// Voice Intake (catalogue_intake), reusing the same agent-transcribe and
-// agent-voice functions. Deliberately not the browser's Web Speech API --
-// see the note in catalogue_intake's own Voice Intake section for why.
-const micSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
-let checkinRecorder = null;
-let checkinChunks = [];
-// 'identity' -> 'identity-followup' (only if the first answer was a bare
-// "no" with no name given) -> 'begin' -> 'begin-followup' (only if the
-// first answer to "where would you like to begin" didn't match anything).
-let checkinPhase = 'identity';
-
-function checkinSetStatus(text){ document.getElementById('checkinStatus').textContent = text; }
-
-async function checkinSpeak(text){
-  document.getElementById('greetingText').textContent = text;
-  try{
-    const { data: { session } } = await modcrSupabase.auth.getSession();
-    if(!session) return;
-    const resp = await fetch(MODCR_SUPABASE_URL + '/functions/v1/agent-voice', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': MODCR_SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + session.access_token,
-      },
-      body: JSON.stringify({ agentKey: 'khalo', text }),
-    });
-    if(!resp.ok) return; // the line is already shown as text -- voice is a nice-to-have
-    const blob = await resp.blob();
-    new Audio(URL.createObjectURL(blob)).play().catch(()=>{});
-  }catch(_e){ /* same -- fail silently */ }
-}
-
-function checkinStart(){
-  if(!micSupported){
-    checkinSetStatus("Recording isn't supported in this browser.");
-    return;
-  }
-  checkinPhase = 'identity';
-  document.getElementById('checkinStartRow').style.display = 'none';
-  document.getElementById('checkinRow').style.display = 'flex';
-  const guess = (agentSettings && agentSettings.admin_display_name) || 'Michelle';
-  checkinSpeak(`Good ${timeOfDayGreeting()}. Is that ${guess}?`);
-  checkinSetStatus('Tap to answer');
-}
-
-async function checkinToggleRecording(){
-  if(!micSupported) return;
-  if(checkinRecorder && checkinRecorder.state === 'recording'){
-    checkinRecorder.stop();
-    return;
-  }
-  document.getElementById('checkinTranscript').textContent = '';
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    checkinChunks = [];
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
-    checkinRecorder = mimeType ? new MediaRecorder(stream,{mimeType}) : new MediaRecorder(stream);
-    checkinRecorder.ondataavailable = e => { if(e.data.size>0) checkinChunks.push(e.data); };
-    checkinRecorder.onstop = async () => {
-      stream.getTracks().forEach(t=>t.stop());
-      document.getElementById('checkinMicBtn').classList.remove('recording');
-      const blob = new Blob(checkinChunks, {type: checkinRecorder.mimeType || 'audio/webm'});
-      await checkinTranscribe(blob, checkinRecorder.mimeType || 'audio/webm');
-    };
-    checkinRecorder.start();
-    document.getElementById('checkinMicBtn').classList.add('recording');
-    checkinSetStatus('Listening — tap again to stop');
-  }catch(e){
-    checkinSetStatus("Couldn't access the microphone.");
-  }
-}
-
-async function checkinTranscribe(blob, mimeType){
-  checkinSetStatus('Transcribing…');
-  try{
-    const { data: { session } } = await modcrSupabase.auth.getSession();
-    const resp = await fetch(MODCR_SUPABASE_URL + '/functions/v1/agent-transcribe', {
-      method: 'POST',
-      headers: {
-        'Content-Type': mimeType,
-        'apikey': MODCR_SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + session.access_token,
-      },
-      body: blob,
-    });
-    const data = await resp.json();
-    if(!resp.ok || data.error) throw new Error(data.error || 'Transcription failed.');
-    if(!data.text){
-      checkinSetStatus("Didn't catch that — tap to try again.");
-      return;
-    }
-    document.getElementById('checkinTranscript').textContent = `"${data.text}"`;
-    checkinHandleTranscript(data.text);
-  }catch(e){
-    checkinSetStatus('Could not transcribe that — tap to try again.');
-  }
-}
-
-// A bare "it's Jordan"/"this is the studio assistant"/"no, Jordan" answer --
-// strip the common lead-in phrasing and keep what's left as the name.
-function checkinExtractName(text){
-  const t = text.trim();
-  if(/^(no|nope|nah)\.?$/i.test(t)) return null; // a bare "no" isn't a name
-  const stripped = t.replace(/^(no,?\s*)?(it'?s|this is|i'?m|i am|my name is)\s+/i, '').trim();
-  return stripped || null;
-}
-
-async function checkinSaveName(name){
-  try{
-    await modcrSetAdminDisplayName(name);
-    agentSettings.admin_display_name = name;
-  }catch(e){ /* not fatal -- the check-in flow still continues either way */ }
-}
-
-function checkinAskBegin(){
-  checkinPhase = 'begin';
-  checkinSpeak('Where would you like to begin?');
-  checkinSetStatus('Tap to answer');
-}
-
-function checkinOfferMenu(){
-  checkinPhase = 'begin-followup';
-  checkinSpeak('Would you like to hear the new draft entries, move directly to an intake, or is something else on your mind?');
-  checkinSetStatus('Tap to answer');
-}
-
-async function checkinRouteBegin(norm){
-  if(/\bintake\b|new work|add a work|new entry\b/.test(norm)){
-    checkinSpeak('Let\'s go straight to Intake.');
-    setTimeout(() => { window.location.href = 'catalogue_intake_v126_sans.html?voice=1'; }, 900);
-    return true;
-  }
-  if(/draft|entries|update/.test(norm)){
-    showUpdates();
-    await checkinSpeak(`Here's where things stand: ${updateSummarySpoken}`);
-    checkinSetStatus('');
-    checkinPhase = 'done';
-    return true;
-  }
-  return false;
-}
-
-async function checkinHandleTranscript(text){
-  const norm = text.toLowerCase().trim().replace(/[.!?]+$/, '');
-
-  if(checkinPhase === 'identity'){
-    if(/^(yes|yeah|yep|correct|that'?s (me|right))\b/.test(norm)){
-      checkinAskBegin();
-      return;
-    }
-    const name = checkinExtractName(text);
-    if(name){
-      await checkinSaveName(name);
-      checkinAskBegin();
-      return;
-    }
-    // A bare "no" with nothing else -- ask once more (identity-followup),
-    // rather than looping forever on a name it can't catch.
-    checkinPhase = 'identity-followup';
-    checkinSpeak('Who am I speaking with?');
-    checkinSetStatus('Tap to answer');
-    return;
-  }
-
-  if(checkinPhase === 'identity-followup'){
-    const name = checkinExtractName(text) || text.trim();
-    if(name) await checkinSaveName(name);
-    checkinAskBegin();
-    return;
-  }
-
-  if(checkinPhase === 'begin' || checkinPhase === 'begin-followup'){
-    const routed = await checkinRouteBegin(norm);
-    if(routed) return;
-    if(checkinPhase === 'begin'){
-      checkinOfferMenu();
-      return;
-    }
-    // Already offered the explicit menu once and still nothing matched --
-    // stop prompting rather than loop indefinitely; everything is still
-    // right there to click by hand.
-    checkinSpeak('No problem — everything is right here whenever you\'re ready.');
-    checkinSetStatus('');
-    checkinPhase = 'done';
-    return;
-  }
 }
 
 (async function(){
