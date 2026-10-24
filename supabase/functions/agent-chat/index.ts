@@ -2,9 +2,18 @@
 //
 // Gives Chloe/Khalo/Timur real, live back-and-forth conversation grounded in
 // the actual Supabase data each persona works with, replacing the static
-// Overview blurbs on the Agents hub page. This talks to the catalogue; it
-// never edits it — no write ever happens from this function. It's read-only
-// end to end, purely conversational.
+// Overview blurbs on the Agents hub page.
+//
+// Chloe and Timur stay fully read-only, purely conversational. Khalo is the
+// one exception (2026-10-24): a live conversation can describe a new,
+// previously-uncatalogued work -- "voice intake" -- and Khalo can stage it
+// via create_staged_work/update_staged_work, the exact same tools
+// process-source-material's automated document pass already uses. This is
+// not a new trust boundary: a staged_works row is still just a draft sitting
+// in Archivist's Drafts > New Entries, still requires a human to review and
+// import it before it's a real, published work, same as every other path
+// that reaches that table. Khalo never writes to a live `works` row from
+// here, same as everywhere else in this project.
 //
 // Deploy: supabase functions deploy agent-chat
 // Requires the ANTHROPIC_API_KEY secret (Project Settings -> Edge Functions
@@ -81,7 +90,9 @@ This conversation is read-only: you can discuss, explain, and answer questions a
 const PERSONA_SYSTEM_PROMPTS: Record<Persona, string> = {
   khalo: `You are Khalo, the Associate Archivist for the Michele Oka Doner Catalogue Raisonné project. You research works, verify names/dates/mediums/dimensions against what's already catalogued, and process uploaded source materials (exhibition catalogs, legacy photography) to find every work they mention or depict. When you find something worth adding, you propose it as a new draft entry or a revision — you never touch a live, published work directly, and a human always reviews your proposals in Archivist's Drafts before anything goes live. You're careful, precise, and a little formal, but warm — an archivist who takes provenance seriously.
 
-This is a real back-and-forth, not a scripted Q&A — the person you're talking with (the artist or studio staff) may want to reason through a specific work, a classification call, or what's known/unknown about something, the same way they'd talk it through with a human archivist. You have real lookup tools for this (get_work, get_staged_work, search_classification_rules, search_similar_works) — use them whenever the conversation turns on a specific work's actual details or a classification rule, rather than answering from memory or general impression. A wrong guess presented as fact is worse than saying "let me check" and actually checking. Still never fabricate a fact your tools didn't confirm, and still never claim you changed anything — you can look things up and reason about them here, but any real change still only happens through the actual admin pages.
+This is a real back-and-forth, not a scripted Q&A — the person you're talking with (the artist or studio staff) may want to reason through a specific work, a classification call, or what's known/unknown about something, the same way they'd talk it through with a human archivist. You have real lookup tools for this (get_work, get_staged_work, search_classification_rules, search_similar_works) — use them whenever the conversation turns on a specific work's actual details or a classification rule, rather than answering from memory or general impression. A wrong guess presented as fact is worse than saying "let me check" and actually checking. Still never fabricate a fact your tools didn't confirm.
+
+**Voice/verbal intake.** When the person describes a new, previously-uncatalogued work out loud -- a piece that isn't in the works or staged_works listings you were given -- you can actually stage it, right here in this conversation, via create_staged_work. Call it as soon as you have at least a title (use "Untitled" if they haven't named it yet, same as the written-intake convention) -- don't wait for every field before creating the row. As more details come up later in the same conversation (a date, a medium, a dimension), call update_staged_work with that same staged_work_id rather than creating a second row -- re-read the conversation so far to recall which id you already created. Always check get_work and search_similar_works first if there's any chance this might already be catalogued (a re-described piece, a nickname) -- never stage a duplicate. Mention plainly, once a draft exists, that it's sitting in Archivist's Drafts > New Entries and still needs a human review before it's a real, published work -- this is staging a candidate, not publishing one. Everything else is still exactly as before: never write to a live 'works' row, never set published, never assign a cr_number -- your only write path, ever, is a staged_works draft.
 ${SHARED_RULES}`,
   chloe: `You are Chloe, the Researcher for the Michele Oka Doner Catalogue Raisonné project. Your role is to gather provenance research, exhibition history, and raw material — photography, catalogs, documents — into a holding folder for Khalo to sort through. You're read-only against the database and don't propose or write anything yourself. Be upfront that you're not built as an autonomous skill yet, so in practice Khalo currently does this research directly — you can still talk about the project, the catalogue's state, and what your role will cover once you exist. You're curious, energetic, and enthusiastic about tracking down a work's history.
 ${SHARED_RULES}`,
@@ -179,6 +190,44 @@ const KHALO_TOOLS: Anthropic.Tool[] = [
       required: ["query"],
     },
   },
+  {
+    name: "create_staged_work",
+    description:
+      "Stage a brand-new candidate work described in this live conversation -- lands in Archivist's Drafts > New Entries for human review, exactly like a document-sourced draft. Call this as soon as you have at least a title (or 'Untitled' if none was given yet) -- don't wait for every field. Never assign a cr_number.",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        date_display: { type: "string" },
+        year: { type: "integer" },
+        medium: { type: "string" },
+        tag: { type: "string", description: "Must match a real materials.slug -- never invent one; leave unset if unsure." },
+        suggested_series: { type: "string", description: "Must match a real series.slug, the most specific tier that genuinely fits." },
+        dimensions: { type: "string" },
+        notes: { type: "string", description: "Briefly, what was said in this conversation that justifies staging it." },
+      },
+      required: ["title", "notes"],
+    },
+  },
+  {
+    name: "update_staged_work",
+    description:
+      "Add or correct fields on a staged_works draft THIS conversation already created -- call again as more details come up rather than creating a second row. Pass only the fields you're changing; append_note adds a new dated line, never replacing what's there.",
+    input_schema: {
+      type: "object",
+      properties: {
+        staged_id: { type: "string" },
+        date_display: { type: "string" },
+        year: { type: "integer" },
+        medium: { type: "string" },
+        tag: { type: "string" },
+        suggested_series: { type: "string" },
+        dimensions: { type: "string" },
+        append_note: { type: "string" },
+      },
+      required: ["staged_id"],
+    },
+  },
 ];
 
 // deno-lint-ignore no-explicit-any
@@ -240,6 +289,46 @@ async function execKhaloTool(name: string, input: any): Promise<unknown> {
       }
       return results;
     }
+    case "create_staged_work": {
+      const { data, error } = await adminDb
+        .from("staged_works")
+        .insert({
+          title: input.title,
+          title_source: "Verbal intake (live conversation with Khalo)",
+          date_display: input.date_display ?? null,
+          year: input.year ?? null,
+          medium: input.medium ?? null,
+          tag: input.tag ?? null,
+          suggested_series: input.suggested_series ?? null,
+          dimensions: input.dimensions ?? null,
+          source_url: `Verbal intake, ${new Date().toISOString().slice(0, 10)}`,
+          source_type: "verbal",
+          confidence: "candidate",
+          status: "new",
+          notes: input.notes,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return { staged_work_id: data.id };
+    }
+    case "update_staged_work": {
+      // deno-lint-ignore no-explicit-any
+      const patch: Record<string, any> = {};
+      for (const k of ["date_display", "year", "medium", "tag", "suggested_series", "dimensions"]) {
+        if (input[k] !== undefined) patch[k] = input[k];
+      }
+      if (input.append_note) {
+        const { data: current, error: fetchErr } = await adminDb
+          .from("staged_works").select("notes").eq("id", input.staged_id).single();
+        if (fetchErr) throw fetchErr;
+        patch.notes = current?.notes ? `${current.notes}\n\n${input.append_note}` : input.append_note;
+      }
+      patch.updated_at = new Date().toISOString();
+      const { error } = await adminDb.from("staged_works").update(patch).eq("id", input.staged_id);
+      if (error) throw error;
+      return { ok: true, staged_work_id: input.staged_id };
+    }
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -250,8 +339,15 @@ async function execKhaloTool(name: string, input: any): Promise<unknown> {
 // rounds is generous for "look up a work, maybe check a classification rule,
 // answer" and comfortably inside an Edge Function's wall-clock budget.
 const MAX_KHALO_TOOL_ITERATIONS = 5;
-async function runKhaloWithTools(system: string, initialMessages: Anthropic.MessageParam[]): Promise<string> {
+async function runKhaloWithTools(
+  system: string,
+  initialMessages: Anthropic.MessageParam[],
+): Promise<{ text: string; stagedWorkId: string | null }> {
   const messages = [...initialMessages];
+  // Tracks the most recent staged_works id this call actually touched (create
+  // or update), so the client can surface an "Open in Intake Form" link
+  // without having to parse it back out of Claude's own prose.
+  let stagedWorkId: string | null = null;
   for (let i = 0; i < MAX_KHALO_TOOL_ITERATIONS; i++) {
     const response = await anthropic.messages.create({
       model: MODEL_BY_PERSONA.khalo,
@@ -263,10 +359,11 @@ async function runKhaloWithTools(system: string, initialMessages: Anthropic.Mess
     // deno-lint-ignore no-explicit-any
     const toolUses = response.content.filter((b: any) => b.type === "tool_use");
     if (toolUses.length === 0) {
-      return response.content
+      const text = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === "text")
         .map((b) => b.text)
         .join("\n\n");
+      return { text, stagedWorkId };
     }
     messages.push({ role: "assistant", content: response.content });
     // deno-lint-ignore no-explicit-any
@@ -274,6 +371,9 @@ async function runKhaloWithTools(system: string, initialMessages: Anthropic.Mess
     for (const tu of toolUses) {
       try {
         const result = await execKhaloTool(tu.name, tu.input);
+        if (result && typeof result === "object" && "staged_work_id" in result) {
+          stagedWorkId = (result as { staged_work_id: string }).staged_work_id;
+        }
         toolResults.push({ type: "tool_result", tool_use_id: tu.id, content: JSON.stringify(result) });
       } catch (err) {
         toolResults.push({ type: "tool_result", tool_use_id: tu.id, content: JSON.stringify({ error: String(err) }), is_error: true });
@@ -281,7 +381,10 @@ async function runKhaloWithTools(system: string, initialMessages: Anthropic.Mess
     }
     messages.push({ role: "user", content: toolResults });
   }
-  return "I wasn't able to finish looking that up in time — try asking again, or a bit more specifically.";
+  return {
+    text: "I wasn't able to finish looking that up in time — try asking again, or a bit more specifically.",
+    stagedWorkId,
+  };
 }
 
 async function buildGroundingContext(persona: Persona): Promise<string> {
@@ -388,8 +491,8 @@ Deno.serve(async (req) => {
     // client-side custom tools, which need a genuine loop (call, execute,
     // send results back, call again), unlike Timur's web_search below.
     if (persona === "khalo") {
-      const replyText = await runKhaloWithTools(system, [...trimmedHistory, { role: "user", content: message }]);
-      return jsonResponse({ reply: replyText });
+      const { text, stagedWorkId } = await runKhaloWithTools(system, [...trimmedHistory, { role: "user", content: message }]);
+      return jsonResponse({ reply: text, staged_work_id: stagedWorkId });
     }
 
     // Only Timur gets web search — he's the one persona whose job (checking
