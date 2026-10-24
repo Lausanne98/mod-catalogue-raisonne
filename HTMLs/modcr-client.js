@@ -622,7 +622,7 @@ async function modcrImportStagedWork(staged, publish){
 // and only modcrApproveRevision actually applies it, on a human's say-so. ----
 async function modcrFetchWorkRevisions(status){
   let q = modcrSupabase.from('work_revisions')
-    .select('*, works(cr_number, title, published), work_sources(url, finding, source_type)')
+    .select('*, works(cr_number, title, published, img), work_sources(url, finding, source_type)')
     .order('created_at', { ascending: false });
   if(status) q = q.eq('status', status);
   const { data, error } = await q;
