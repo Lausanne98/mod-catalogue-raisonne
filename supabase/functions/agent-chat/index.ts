@@ -241,17 +241,30 @@ type KnowledgeIndexResult = { error?: string; matches?: any };
 // to "no results" instead of breaking the whole reply.
 // deno-lint-ignore no-explicit-any
 async function callKnowledgeIndex(action: string, body: Record<string, any>): Promise<KnowledgeIndexResult> {
+  // This had no timeout at all -- a slow/hung Voyage AI embedding call here
+  // would block Khalo's whole tool-use loop indefinitely, which the client
+  // has no way to detect or recover from (no error ever arrives, the
+  // conversation just hangs). A degraded "no results" after 15s is far
+  // better than hanging the whole reply.
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), 15_000);
   try {
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/knowledge-index`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${getServiceRoleKey()}` },
       body: JSON.stringify({ action, ...body }),
+      signal: timeoutController.signal,
     });
     const data = await resp.json();
     if (!resp.ok) return { error: data.error ?? `HTTP ${resp.status}` };
     return data;
   } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      return { error: "knowledge-index timed out after 15s" };
+    }
     return { error: String(err) };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
