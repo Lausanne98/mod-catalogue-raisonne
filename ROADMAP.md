@@ -132,27 +132,68 @@ and IT Desk — distinct from the structured Voice Intake form (item 3).
       Same hard rule as everywhere else Khalo appears: no tool here can write
       to a live `works` row, publish anything, or assign a cr_number — the
       only write path is a `staged_works` draft for human review.
-- [ ] **Blocked on the studio**: `ELEVENLABS_TOOL_SECRET` needs to be saved in
-      the Supabase dashboard (Project Settings → Edge Functions → Secrets) —
-      Supabase's own tooling never lets an AI client pass a secret value
-      directly, this one step is unavoidably manual. Until it's saved, every
-      tool call the agent makes gets a 401 (she'd talk, but couldn't actually
-      look anything up or stage a draft).
-- [ ] **Not yet done on purpose**: wiring this agent into the live Agents hub
-      page (replacing or sitting alongside the current push-to-talk button).
-      Wanted a real tested conversation first, confirming the tools actually
-      work end-to-end, before shipping a "Talk to Khalo" button to a live
-      admin page on faith. Test via the ElevenLabs dashboard's own test
-      console (Conversational AI → Agents → Khalo) once the secret above is
-      saved, or ask for the widget to be embedded on the Agents hub page.
-- [ ] Chloe and Timur have no equivalent agent yet — this was piloted on
-      Khalo only, per the explicit "let's do Khalo" direction. Same build
-      pattern (persona prompt + voice + a narrow webhook-tool surface off a
-      dedicated, secret-gated Edge Function) would carry over directly for
-      either of them once Khalo's is confirmed working.
-- [ ] "Not yet built" status pills already removed from the agent cards —
-      kept here as a reminder not to reintroduce that kind of internal note
-      on a user-facing page.
+- [x] `ELEVENLABS_TOOL_SECRET` saved in the Supabase dashboard 2026-10-25 —
+      verified with a direct call to `khalo-voice-tools` (got a real data
+      response, not a 401). Khalo's agent can actually reach the database now.
+- [x] **Tried embedding the stock `<elevenlabs-convai>` widget on the Agents
+      hub page — reverted the same day.** It's ElevenLabs' generic floating
+      bubble ("Need help? / Start a call"), which doesn't match this site's
+      design, uses a phone-call metaphor foreign to how these desks actually
+      work, and sits as a corner overlay instead of living with Chloe/Khalo/
+      Timur. The agent itself is fine; the stock embed chrome is the problem.
+      Pulled back out (`catalogue_admin_agents_v62_sans.html`) — see the
+      tailoring handoff below for the real fix.
+- [ ] Chloe, Timur, and a 4th "Executive Editor" desk have no equivalent agent
+      yet — Khalo was the pilot. **Open question, not yet answered by the
+      studio: what is the "Executive Editor" desk?** It isn't in
+      AGENT_ARCHITECTURE.md or anywhere else in this repo — only Chloe/Khalo/
+      Timur exist today. Needs clarification before building it: a genuinely
+      new 4th persona, or a new name for something that already exists?
+
+**Full handoff spec received 2026-10-25 — "ElevenLabs Agent Tailoring:
+Handoff v1."** Replaces the reverted generic-widget attempt above with a
+properly tailored agent. Scope: Claude as the model, the real project
+protocols as the system prompt, a regenerable knowledge base built from the
+repo, a restyled widget matching the site's design system, verify on one
+desk, then roll out to all four. Filed here in full since it's a multi-step
+build with its own verification gates — not started beyond Step 1 below.
+
+**Step 1 — Model:**
+- [x] Agent's LLM is already set to Claude (`claude-sonnet-5`), done when
+      Khalo's agent was first built.
+- [x] **Billing question answered, researched 2026-10-25** (sourced, not
+      guessed — see chat for citations): selecting a built-in model like
+      Claude directly in ElevenLabs' own agent LLM dropdown (what's
+      configured now) bills through **ElevenLabs' own credits**, passed
+      through on top of their per-minute platform rate (estimates found:
+      roughly $0.026/min for Claude Sonnet on top of ElevenLabs' own
+      ~$0.08/min platform rate — treat as a ballpark, not a quote). Running
+      it on **Jordan's own separate Anthropic API key is not a simple
+      toggle** — ElevenLabs' "Custom LLM" option expects an OpenAI-compatible
+      (Chat Completions format) endpoint, not Anthropic's native API, so
+      using a personal Anthropic key would require standing up a small
+      translation proxy server in between, not just pasting in a key. As
+      configured today, Khalo's voice minutes bill against the ElevenLabs
+      account, same as her existing TTS usage.
+
+**Steps 2-6 — not started, open questions before proceeding (per the
+handoff's own "report open questions, don't assume" rule):**
+- [ ] **Which desk to pilot first?** The handoff says "one desk first, then
+      all four." Khalo is the obvious candidate (furthest along, real tools
+      already proven against live data) but this hasn't been explicitly
+      confirmed by the studio.
+- [ ] **The stated Researcher→Archivist threshold ("one piece of information
+      stays with the Researcher; a second piece moves it to the Archivist")
+      doesn't obviously match the existing coded auto-promotion rule**
+      (`qualifiesForAutoPromotion` in Researcher's Desk: a real photo plus at
+      least 2 of {name, date, medium, site}). Needs clarification before
+      it's written into a system prompt: is this a simplified restatement of
+      the same rule, or a genuinely different/new threshold that should also
+      update the actual code, not just the voice agent's prompt?
+- [ ] Knowledge base build (Step 3), widget restyle to the site's actual
+      design system — Inter, the real color tokens, corner radii (Step 4),
+      and the verify-then-roll-out gates (Steps 5-6) all wait on the two
+      answers above.
 
 ## 3. Conversant intake form (structured Voice Intake)
 The "fill out the Add a Work form by talking" feature — field-by-field voice
