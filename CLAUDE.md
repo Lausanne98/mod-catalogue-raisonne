@@ -80,6 +80,29 @@ fourth item alongside the three above, with the same failure mode if missed.
 Add a stub here the same way for any other page the studio reports bookmarking
 directly, rather than assuming the Dashboard's nav is the only path in.
 
+**(2026-10-25) Found the whole stub family had drifted, not just `/admin`.**
+A routine bookmark check turned up `/works` → `catalogue_v75_sans.html` (current
+was `_v77`), `/entry` → `catalogue_entry_v70_sans.html` (current was `_v73`),
+and `/chronology` → `catalogue_chronology_v61_sans.html` (current was `_v63`)
+all silently stale — these three public-facing stubs existed before this file
+started tracking the stub pattern, so they'd never been added to a checklist
+anywhere and so never got swept. All three fixed. **`drafts/index.html`
+(`cr.micheleokadoner.com/drafts`)** was added at the same time, same pattern,
+redirecting to the current `catalogue_admin_drafts_vN_sans.html` — the studio
+reports going there directly often enough that it needed the same treatment
+as `/admin`/`/agents`. The full list of root-level stubs needing a target-URL
+update whenever their underlying page bumps is now: `index.html` (→
+`catalogue_landing_*`), `works/index.html` (→ `catalogue_*`, the main
+browse/landing page), `entry/index.html` (→ `catalogue_entry_*`),
+`chronology/index.html` (→ `catalogue_chronology_*`), `admin/index.html` (→
+`catalogue_admin_login_*`, itself a two-hop chain per the three-places rule
+above), `agents/index.html` (→ `catalogue_admin_agents_*`), and
+`drafts/index.html` (→ `catalogue_admin_drafts_*`). Treat this as one
+checklist, not two separate rules for "admin stubs" and "public stubs" — the
+failure mode (silent staleness, no error, just a bookmark that quietly stops
+reflecting new work) is identical for all seven, and a future stub for any
+other frequently-bookmarked page joins this same list.
+
 ## Work taxonomy
 Every catalogued work has two independent classifications, filterable separately:
 
