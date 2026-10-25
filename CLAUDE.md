@@ -14,6 +14,15 @@ See `AGENT_ARCHITECTURE.md` at the repo root for the named agent team
 for Archivist's Drafts (New Entries / Revisions). `.claude/skills/
 associate-archivist/SKILL.md` is Khalo's actual operating instructions.
 
+**Hard rule, stated here for visibility (full detail in that skill file):**
+when an automated pass finds a citation/fact for a work that **already
+exists** (live or already-staged), it never writes directly to that work's
+real field — it logs the finding to `work_sources` and proposes it as a
+`work_revisions` row (`status: pending`), landing in Archivist's Drafts'
+Revisions tab for a human to approve. Confirmed working correctly
+2026-10-25 (five literature/exhibition citations from one source document
+all landed as pending revisions, nothing auto-applied to a live work).
+
 ## Provisional CR numbering
 `cr_number` should ultimately reflect chronological creation order, but the full
 chronology isn't settled yet — many works (e.g. student works) are still to be
