@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
   const ext = contentType.split("/")[1]?.split(";")[0] || "webm";
   const form = new FormData();
   form.append("file", new Blob([bytes], { type: contentType }), `answer.${ext}`);
-  form.append("model_id", "scribe_v1");
+  form.append("model_id", "scribe_v2");
 
   // Same bare-fetch-has-no-timeout concern as agent-voice -- transcription
   // is usually quick for a short clip, but a stalled network path would
