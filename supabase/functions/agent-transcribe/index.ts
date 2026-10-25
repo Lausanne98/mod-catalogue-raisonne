@@ -110,8 +110,13 @@ Deno.serve(async (req) => {
     if (!elevenResponse.ok) {
       const detail = await elevenResponse.text();
       console.error("ElevenLabs speech-to-text error:", elevenResponse.status, detail);
+      // Surfacing ElevenLabs' own error text here (not just the status code)
+      // is deliberate: this session has no access to this function's server
+      // logs, and a vague "(400)" with no detail has cost several rounds of
+      // blind guessing already. ElevenLabs' message is their own public
+      // API-error text, not anything sensitive.
       return jsonResponse(
-        { error: `The transcription service returned an error (${elevenResponse.status}). Try again.` },
+        { error: `The transcription service returned an error (${elevenResponse.status}): ${detail}` },
         502,
       );
     }
