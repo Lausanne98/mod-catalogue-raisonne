@@ -90,17 +90,20 @@ anywhere and so never got swept. All three fixed. **`drafts/index.html`
 (`cr.micheleokadoner.com/drafts`)** was added at the same time, same pattern,
 redirecting to the current `catalogue_admin_drafts_vN_sans.html` — the studio
 reports going there directly often enough that it needed the same treatment
-as `/admin`/`/agents`. The full list of root-level stubs needing a target-URL
-update whenever their underlying page bumps is now: `index.html` (→
-`catalogue_landing_*`), `works/index.html` (→ `catalogue_*`, the main
-browse/landing page), `entry/index.html` (→ `catalogue_entry_*`),
-`chronology/index.html` (→ `catalogue_chronology_*`), `admin/index.html` (→
-`catalogue_admin_login_*`, itself a two-hop chain per the three-places rule
-above), `agents/index.html` (→ `catalogue_admin_agents_*`), and
-`drafts/index.html` (→ `catalogue_admin_drafts_*`). Treat this as one
-checklist, not two separate rules for "admin stubs" and "public stubs" — the
-failure mode (silent staleness, no error, just a bookmark that quietly stops
-reflecting new work) is identical for all seven, and a future stub for any
+as `/admin`/`/agents`. `researcher/index.html` (→ `catalogue_admin_researcher_*`)
+was added the same way shortly after, same reason. The full list of
+root-level stubs needing a target-URL update whenever their underlying page
+bumps is now: `index.html` (→ `catalogue_landing_*`), `works/index.html` (→
+`catalogue_*`, the main browse/landing page), `entry/index.html` (→
+`catalogue_entry_*`), `chronology/index.html` (→ `catalogue_chronology_*`),
+`admin/index.html` (→ `catalogue_admin_login_*`, itself a two-hop chain per
+the three-places rule above), `agents/index.html` (→
+`catalogue_admin_agents_*`), `drafts/index.html` (→
+`catalogue_admin_drafts_*`), and `researcher/index.html` (→
+`catalogue_admin_researcher_*`). Treat this as one checklist, not two
+separate rules for "admin stubs" and "public stubs" — the failure mode
+(silent staleness, no error, just a bookmark that quietly stops reflecting
+new work) is identical for all eight, and a future stub for any
 other frequently-bookmarked page joins this same list.
 
 ## Work taxonomy
@@ -415,6 +418,24 @@ removes something. This superseded an intermediate rule (red reserved for
 destructive-only, reversible actions like Reject went neutral) that no
 longer holds — don't reintroduce red on a button of any kind without
 checking with the studio first.
+
+## No native browser dialogs (confirm/alert/prompt)
+`window.confirm()`, `window.alert()`, and `window.prompt()` are never used
+for an app action, even a destructive one — the native dialog drops the
+browser's own chrome ("cr.micheleokadoner.com says...") on top of the page,
+which reads as a third-party interruption, not part of the app, and breaks
+the UX out of the page entirely. Use `modcrConfirm(message, opts)` from
+`modcr-client.js` instead (`opts.okLabel`, `opts.danger` for a destructive
+action's button color per the rule above) — it's a Promise<boolean>, so
+`if(!confirm(...)) return;` becomes `if(!(await modcrConfirm(...))) return;`
+in an async function (every current call site already was async). A plain
+status message (a toast) should never be a native `alert()` either — use
+`showToast()`, already present on every admin page. Converted so far:
+Researcher's Desk. Every other page's `confirm()`/`alert()` calls (Drafts,
+Manage Works, Series, Sources, Exhibitions, Chronology, IT, Intake) still
+need the same conversion — treat this as a standing backlog item, not a
+one-page fix, and convert a page's remaining native dialogs on sight
+whenever it's touched for something else anyway.
 
 ## Credentials / secrets
 This repo is public (served via GitHub Pages) — never commit a password, API

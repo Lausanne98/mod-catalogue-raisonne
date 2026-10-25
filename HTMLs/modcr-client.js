@@ -1075,3 +1075,87 @@ async function modcrLogOut(loginPage){
   await modcrSupabase.auth.signOut();
   window.location.href = loginPage;
 }
+
+// ---- In-app confirm dialog ----
+// A native window.confirm() drops the browser's own chrome (a bare system
+// dialog with "cr.micheleokadoner.com says") on top of the page -- jarring,
+// and not something any page here styles or controls. modcrConfirm renders
+// an in-app overlay instead, built from the host page's own CSS variables
+// (--ink/--white/--mid/--rule/--gold, already defined identically on every
+// admin page), so it reads as part of the app rather than a third-party
+// interruption. Returns a Promise<boolean> -- use `if(!(await modcrConfirm(...))) return;`
+// in place of `if(!confirm(...)) return;`. Pass `{ danger: true }` for an
+// irreversible action (Delete/Discard/Trash) to color the confirm button
+// red; everything else uses the standard gold accent per the site's color
+// convention (red is for actual errors, never a button).
+let _modcrConfirmStyleInjected = false;
+function _modcrInjectConfirmStyle(){
+  if(_modcrConfirmStyleInjected) return;
+  _modcrConfirmStyleInjected = true;
+  const style = document.createElement('style');
+  style.textContent = `
+    .modcr-confirm-overlay {
+      position: fixed; inset: 0; background: rgba(28,28,28,.45); z-index: 9999;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      animation: modcr-confirm-fade .12s ease;
+    }
+    @keyframes modcr-confirm-fade { from { opacity: 0; } to { opacity: 1; } }
+    .modcr-confirm-box {
+      background: var(--white, #fff); border: 1px solid var(--rule, #ddd);
+      max-width: 380px; width: 100%; padding: 22px 24px; box-shadow: 0 8px 28px rgba(0,0,0,.18);
+    }
+    .modcr-confirm-msg {
+      font-family: 'Inter', sans-serif; font-size: 13.5px; line-height: 1.6; color: var(--ink, #1c1c1c);
+      margin-bottom: 20px; white-space: pre-wrap;
+    }
+    .modcr-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    .modcr-confirm-actions button {
+      font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+      padding: 9px 18px; border: 1px solid var(--rule, #ddd); background: var(--white, #fff);
+      color: var(--mid, #5c5855); cursor: pointer;
+    }
+    .modcr-confirm-actions .modcr-confirm-ok {
+      background: var(--gold, #7a5c3a); border-color: var(--gold, #7a5c3a); color: #fff;
+    }
+    .modcr-confirm-actions .modcr-confirm-ok.danger {
+      background: var(--red, #a83232); border-color: var(--red, #a83232);
+    }
+  `;
+  document.head.appendChild(style);
+}
+function modcrConfirm(message, opts){
+  opts = opts || {};
+  _modcrInjectConfirmStyle();
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modcr-confirm-overlay';
+    overlay.innerHTML = `
+      <div class="modcr-confirm-box">
+        <div class="modcr-confirm-msg"></div>
+        <div class="modcr-confirm-actions">
+          <button class="modcr-confirm-cancel"></button>
+          <button class="modcr-confirm-ok"></button>
+        </div>
+      </div>`;
+    overlay.querySelector('.modcr-confirm-msg').textContent = message;
+    overlay.querySelector('.modcr-confirm-cancel').textContent = opts.cancelLabel || 'Cancel';
+    const okBtn = overlay.querySelector('.modcr-confirm-ok');
+    okBtn.textContent = opts.okLabel || 'OK';
+    if(opts.danger) okBtn.classList.add('danger');
+    document.body.appendChild(overlay);
+    function finish(result){
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+      resolve(result);
+    }
+    function onKey(e){
+      if(e.key === 'Escape') finish(false);
+      if(e.key === 'Enter') finish(true);
+    }
+    document.addEventListener('keydown', onKey);
+    overlay.querySelector('.modcr-confirm-cancel').onclick = () => finish(false);
+    okBtn.onclick = () => finish(true);
+    overlay.addEventListener('click', e => { if(e.target === overlay) finish(false); });
+    okBtn.focus();
+  });
+}
