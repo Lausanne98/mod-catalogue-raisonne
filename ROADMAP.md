@@ -111,14 +111,45 @@ and IT Desk — distinct from the structured Voice Intake form (item 3).
 - [ ] The hand-rolled pipeline was judged unsatisfying after ~2 months on and
       off — it transcribes but doesn't feel genuinely agentic/conversational
       (slow, no real back-and-forth, no speaks-first behavior).
-- [ ] **Recommended direction (not started): ElevenLabs Conversational AI /
-      Agents product** — a purpose-built ambient voice-agent platform
-      (continuous listening, turn-taking, speaks first, custom tools/
-      function-calling) as a likely real fix, replacing the hand-rolled
-      orchestration rather than continuing to patch it.
-- [ ] Open question from the studio: what input/setup is needed on their end
-      to stand this up (an ElevenLabs Agent config, voice selection, tool
-      wiring back into Supabase)?
+- [x] Open question from the studio (was: "what input/setup is needed on
+      their end") — answered 2026-10-25: same ElevenLabs account already used
+      for voice/TTS (confirmed via the account's own `agents_list`, which the
+      Agents product is already reachable on), so no separate signup. Khalo's
+      existing custom "Khalo" voice (`YVxQXDO973LWKdtt8G7V`) carries over
+      directly — no new voice selection needed.
+- [x] **Khalo's real ElevenLabs Conversational AI Agent built, 2026-10-25**
+      (`agent_2801m5t7ha7fex3ttaeay5he54xp`) — the recommended-direction item
+      below, actually started: Claude Sonnet 5 as the LLM, her existing voice,
+      her existing persona/voice-intake system prompt ported over from
+      `agent-chat`'s `PERSONA_SYSTEM_PROMPTS.khalo`. All 6 of her existing
+      tools (`get_work`, `get_staged_work`, `search_classification_rules`,
+      `search_similar_works`, `create_staged_work`, `update_staged_work`)
+      ported as webhook tools calling a new dedicated Supabase Edge Function,
+      `khalo-voice-tools` (deployed, `--no-verify-jwt`, gated by its own
+      `ELEVENLABS_TOOL_SECRET` header check rather than a Supabase user JWT
+      or the service-role key, so a leaked ElevenLabs tool config exposes
+      only Khalo's existing conversational capability, never raw DB access).
+      Same hard rule as everywhere else Khalo appears: no tool here can write
+      to a live `works` row, publish anything, or assign a cr_number — the
+      only write path is a `staged_works` draft for human review.
+- [ ] **Blocked on the studio**: `ELEVENLABS_TOOL_SECRET` needs to be saved in
+      the Supabase dashboard (Project Settings → Edge Functions → Secrets) —
+      Supabase's own tooling never lets an AI client pass a secret value
+      directly, this one step is unavoidably manual. Until it's saved, every
+      tool call the agent makes gets a 401 (she'd talk, but couldn't actually
+      look anything up or stage a draft).
+- [ ] **Not yet done on purpose**: wiring this agent into the live Agents hub
+      page (replacing or sitting alongside the current push-to-talk button).
+      Wanted a real tested conversation first, confirming the tools actually
+      work end-to-end, before shipping a "Talk to Khalo" button to a live
+      admin page on faith. Test via the ElevenLabs dashboard's own test
+      console (Conversational AI → Agents → Khalo) once the secret above is
+      saved, or ask for the widget to be embedded on the Agents hub page.
+- [ ] Chloe and Timur have no equivalent agent yet — this was piloted on
+      Khalo only, per the explicit "let's do Khalo" direction. Same build
+      pattern (persona prompt + voice + a narrow webhook-tool surface off a
+      dedicated, secret-gated Edge Function) would carry over directly for
+      either of them once Khalo's is confirmed working.
 - [ ] "Not yet built" status pills already removed from the agent cards —
       kept here as a reminder not to reintroduce that kind of internal note
       on a user-facing page.
