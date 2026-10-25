@@ -65,10 +65,20 @@ only ever grep for `href="..."` link patterns, not the `window.location.href =
 3. `catalogue_admin_login_*`'s own two `window.location.href` lines (one after
    a successful password sign-in, one for an already-signed-in session), whenever
    `catalogue_admin_*` (the Dashboard specifically, not other admin pages) bumps.
-Every other admin page is already reachable from the Dashboard's own nav, which
-stays in sync as part of normal version-bump cross-reference upkeep, so it
-doesn't need its own root-level stub — only the Dashboard does, because it's
-the one thing meant to be reachable before you've navigated anywhere at all.
+Every other admin page is reachable from the Dashboard's own nav, which stays
+in sync as part of normal version-bump cross-reference upkeep — but in
+practice the studio bookmarks/saves direct links to whichever page they live
+in day to day (the Agents hub, for talking to the agents), not just the
+Dashboard, and a bookmark straight to a versioned filename goes stale on the
+very next bump with no warning — the page just silently stops reflecting any
+further work. **`agents/index.html` (`cr.micheleokadoner.com/agents`)** exists
+for exactly this reason: a second stable stub, same pattern as `admin/index.html`,
+redirecting straight to the current `catalogue_admin_agents_vN_sans.html`.
+Bookmark `/agents`, not a versioned filename directly, and update this stub's
+`url=` target every time `catalogue_admin_agents_*` bumps — treat it as a
+fourth item alongside the three above, with the same failure mode if missed.
+Add a stub here the same way for any other page the studio reports bookmarking
+directly, rather than assuming the Dashboard's nav is the only path in.
 
 ## Work taxonomy
 Every catalogued work has two independent classifications, filterable separately:
