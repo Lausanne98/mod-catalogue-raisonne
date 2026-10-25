@@ -143,6 +143,9 @@
   textarea { resize: vertical; min-height: 50px; }
   .readonly-block { background: var(--sand); border: 1px solid var(--rulelg); padding: 12px 14px; font-size: 13.5px; line-height: 1.6; color: var(--ink); margin-bottom: 10px; white-space: pre-wrap; }
   .citation-block { font-size: 11.5px; color: var(--mid); border-left: 2px solid var(--goldlt); padding-left: 10px; margin-bottom: 14px; }
+  .new-filter-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .new-filter-row input[type=text] { max-width: 340px; }
+  .new-filter-bulk { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--mid); white-space: nowrap; }
   .citation-block a { color: var(--mid); }
   .notes-line { font-size: 12.5px; color: var(--mid); font-style: italic; margin-bottom: 14px; }
 
@@ -274,6 +277,15 @@
 
   <!-- NEW ENTRIES TAB -->
   <div class="tab-panel active" id="tab-new">
+    <!-- Filter + bulk discard: for clearing out a whole batch at once (e.g.
+         every draft pulled from one source PDF) without clicking Reject ->
+         Discard on each row individually. Matches against title and the raw
+         source_url text, so e.g. "PAMM Catalog" isolates everything cited
+         from that one document. -->
+    <div class="new-filter-row">
+      <input type="text" id="newEntriesFilter" placeholder="Filter by title or source (e.g. &quot;PAMM Catalog&quot;)…" oninput="renderNewEntries()">
+      <span id="newFilterBulkBar"></span>
+    </div>
     <div id="newEntriesList"><div class="empty-state">Loading…</div></div>
   </div>
 
@@ -377,12 +389,46 @@ function renderNewEntries(){
   // yet," shown together in one flat list. Imported ones are done (see
   // Manage Works); rejected/archived ones live on the Archive tab instead.
   const wrap = document.getElementById('newEntriesList');
-  const rows = stagedWorks.filter(s => s.status === 'new' || s.status === 'reviewing');
+  const bulkBar = document.getElementById('newFilterBulkBar');
+  const allRows = stagedWorks.filter(s => s.status === 'new' || s.status === 'reviewing');
+  const q = (document.getElementById('newEntriesFilter')?.value || '').trim().toLowerCase();
+  const rows = q
+    ? allRows.filter(s => (s.title || '').toLowerCase().includes(q) || (s.source_url || '').toLowerCase().includes(q))
+    : allRows;
+  // Bulk discard only ever appears once a filter has actually narrowed the
+  // list -- the point is clearing out one identifiable batch (everything
+  // cited from one source PDF, say), never a one-click way to wipe every
+  // new draft with an empty search box.
+  if(bulkBar) bulkBar.innerHTML = (q && rows.length > 0)
+    ? `<span class="new-filter-bulk">${rows.length} matching — <button class="btn reject" onclick="bulkDiscardFiltered()">Discard all ${rows.length}</button></span>`
+    : '';
   if(rows.length === 0){
-    wrap.innerHTML = '<div class="empty-state">Nothing here.</div>';
+    wrap.innerHTML = `<div class="empty-state">${q ? 'No drafts match that filter.' : 'Nothing here.'}</div>`;
     return;
   }
   wrap.innerHTML = rows.map(s => draftBar(s)).join('');
+}
+// Discards every draft currently matching the New Entries filter box --
+// e.g. typing "PAMM Catalog" then discarding all 36 test drafts pulled from
+// that one source PDF, instead of clicking Reject -> Discard on each row.
+// Confirms once up front (names the exact count) rather than once per row.
+async function bulkDiscardFiltered(){
+  const q = (document.getElementById('newEntriesFilter')?.value || '').trim().toLowerCase();
+  if(!q) return;
+  const matches = stagedWorks.filter(s =>
+    (s.status === 'new' || s.status === 'reviewing') &&
+    ((s.title || '').toLowerCase().includes(q) || (s.source_url || '').toLowerCase().includes(q))
+  );
+  if(matches.length === 0) return;
+  if(!confirm(`Permanently discard all ${matches.length} drafts matching "${q}"? This cannot be undone.`)) return;
+  let failed = 0;
+  for(const s of matches){
+    try{ await modcrDeleteStagedWork(s.id); }
+    catch(e){ failed++; console.error('Could not discard', s.id, e); }
+  }
+  await loadNewEntries();
+  renderArchive();
+  showToast(failed ? `Discarded ${matches.length - failed}, ${failed} failed.` : `Discarded ${matches.length}.`, failed > 0);
 }
 
 function renderArchive(){
