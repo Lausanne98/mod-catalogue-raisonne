@@ -1,10 +1,27 @@
 # MOD Catalogue Raisonné — conventions
 
+## Running task list
+See `ROADMAP.md` at the repo root for the living, cross-session list of
+high-level initiatives (PDF processing, conversant agents, conversant
+intake form, automatic web crawl, social media crawl) and their open
+subtasks. Add to it whenever a new idea/bug/feature comes up that isn't
+handled immediately, rather than letting it live only in chat history —
+and check it at the start of a session covering any of its initiatives.
+
 ## Agent team
 See `AGENT_ARCHITECTURE.md` at the repo root for the named agent team
 (Chloe/Khalo/Timur), their scoped permissions, and the write-access model
 for Archivist's Drafts (New Entries / Revisions). `.claude/skills/
 associate-archivist/SKILL.md` is Khalo's actual operating instructions.
+
+**Hard rule, stated here for visibility (full detail in that skill file):**
+when an automated pass finds a citation/fact for a work that **already
+exists** (live or already-staged), it never writes directly to that work's
+real field — it logs the finding to `work_sources` and proposes it as a
+`work_revisions` row (`status: pending`), landing in Archivist's Drafts'
+Revisions tab for a human to approve. Confirmed working correctly
+2026-10-25 (five literature/exhibition citations from one source document
+all landed as pending revisions, nothing auto-applied to a live work).
 
 ## Provisional CR numbering
 `cr_number` should ultimately reflect chronological creation order, but the full
@@ -65,10 +82,46 @@ only ever grep for `href="..."` link patterns, not the `window.location.href =
 3. `catalogue_admin_login_*`'s own two `window.location.href` lines (one after
    a successful password sign-in, one for an already-signed-in session), whenever
    `catalogue_admin_*` (the Dashboard specifically, not other admin pages) bumps.
-Every other admin page is already reachable from the Dashboard's own nav, which
-stays in sync as part of normal version-bump cross-reference upkeep, so it
-doesn't need its own root-level stub — only the Dashboard does, because it's
-the one thing meant to be reachable before you've navigated anywhere at all.
+Every other admin page is reachable from the Dashboard's own nav, which stays
+in sync as part of normal version-bump cross-reference upkeep — but in
+practice the studio bookmarks/saves direct links to whichever page they live
+in day to day (the Agents hub, for talking to the agents), not just the
+Dashboard, and a bookmark straight to a versioned filename goes stale on the
+very next bump with no warning — the page just silently stops reflecting any
+further work. **`agents/index.html` (`cr.micheleokadoner.com/agents`)** exists
+for exactly this reason: a second stable stub, same pattern as `admin/index.html`,
+redirecting straight to the current `catalogue_admin_agents_vN_sans.html`.
+Bookmark `/agents`, not a versioned filename directly, and update this stub's
+`url=` target every time `catalogue_admin_agents_*` bumps — treat it as a
+fourth item alongside the three above, with the same failure mode if missed.
+Add a stub here the same way for any other page the studio reports bookmarking
+directly, rather than assuming the Dashboard's nav is the only path in.
+
+**(2026-10-25) Found the whole stub family had drifted, not just `/admin`.**
+A routine bookmark check turned up `/works` → `catalogue_v75_sans.html` (current
+was `_v77`), `/entry` → `catalogue_entry_v70_sans.html` (current was `_v73`),
+and `/chronology` → `catalogue_chronology_v61_sans.html` (current was `_v63`)
+all silently stale — these three public-facing stubs existed before this file
+started tracking the stub pattern, so they'd never been added to a checklist
+anywhere and so never got swept. All three fixed. **`drafts/index.html`
+(`cr.micheleokadoner.com/drafts`)** was added at the same time, same pattern,
+redirecting to the current `catalogue_admin_drafts_vN_sans.html` — the studio
+reports going there directly often enough that it needed the same treatment
+as `/admin`/`/agents`. `researcher/index.html` (→ `catalogue_admin_researcher_*`)
+was added the same way shortly after, same reason. The full list of
+root-level stubs needing a target-URL update whenever their underlying page
+bumps is now: `index.html` (→ `catalogue_landing_*`), `works/index.html` (→
+`catalogue_*`, the main browse/landing page), `entry/index.html` (→
+`catalogue_entry_*`), `chronology/index.html` (→ `catalogue_chronology_*`),
+`admin/index.html` (→ `catalogue_admin_login_*`, itself a two-hop chain per
+the three-places rule above), `agents/index.html` (→
+`catalogue_admin_agents_*`), `drafts/index.html` (→
+`catalogue_admin_drafts_*`), and `researcher/index.html` (→
+`catalogue_admin_researcher_*`). Treat this as one checklist, not two
+separate rules for "admin stubs" and "public stubs" — the failure mode
+(silent staleness, no error, just a bookmark that quietly stops reflecting
+new work) is identical for all eight, and a future stub for any
+other frequently-bookmarked page joins this same list.
 
 ## Work taxonomy
 Every catalogued work has two independent classifications, filterable separately:
@@ -208,6 +261,25 @@ script then this file, rather than duplicating client setup or a hardcoded
 rule above doesn't apply to it directly — but it's shared by every admin and
 public page, so treat changes to it as touching all of them at once.
 
+## Supabase keepalive
+Supabase's free tier auto-pauses a project after 7+ days of "insufficient
+activity" — Supabase's own docs admit this is a fuzzy internal metric, not a
+hard rule, and a 2026-10-21 pause warning arrived despite a daily GitHub
+Actions ping (`.github/workflows/supabase-keepalive.yml`, cron, 52+
+consecutive successful runs) having run the whole time. The original ping was
+a read-only anonymous `SELECT` against `series` — apparently not enough to
+register as "activity" by Supabase's metric, even run reliably every day.
+
+Hardened by adding a `_keepalive` table (single row, `id='global'`,
+`pinged_at timestamptz`) with RLS allowing public `select` and public
+`update` (scoped via `with check (id = 'global')`) — modeled on
+`agent_settings`'s single-row RLS pattern. The workflow now does a real
+anonymous `UPDATE` (`pinged_at = now`) against this table via PostgREST
+instead of a read, so each run is an actual database write. If dormant
+periods happen anyway and a pause warning recurs, the only way to remove the
+risk entirely is upgrading to the Pro plan — a billing decision, not
+something to route around further with more automation.
+
 ## Architecture principle: AI tooling is replaceable, never source of truth
 Treat all AI-specific tooling — embedding providers, vector indexes, agent
 frameworks (Voyage AI, the knowledge-index function, Claude/Anthropic itself,
@@ -224,6 +296,61 @@ rebuild, never a data-loss event. If a future change ever makes an AI
 vendor or its output load-bearing for something a human couldn't
 reconstruct from the plain data alone, that's a design mistake to fix, not
 a tradeoff to accept.
+
+## PDF/image mechanical layer (Workstream A tooling decision, 2026-10-10)
+Khalo's automated pass (`process-source-material`) needs two separable jobs on
+a source document: a **vision/layout layer** (Claude itself — deciding what's
+on a page and where: photo, title, caption, which pixels belong to the
+artwork) and a **mechanical image layer** (deterministic code that actually
+rasterizes/crops pixels once Claude has named a region — never asked to make
+judgment calls itself). The mechanical layer's stack, and why, per the
+durability principle above (every library here is replaceable; it executes a
+decision, it never stores one):
+
+- **PDF page → raster image: `pdfjs-dist` (Apache-2.0, Mozilla).** Already in
+  production, client-side, as `modcrExtractPdfPages` in `modcr-client.js` —
+  rendered into the browser's own DOM canvas. This is why PDF rasterization
+  has never needed a server-side solution: a Supabase Edge Function (Deno,
+  no native code, no DOM) has nowhere to render a canvas into, and the usual
+  server-side fix (`node-canvas`) is itself a native addon that doesn't run
+  there either (see below). Browser-side rendering isn't a workaround, it's
+  the correct answer to a constraint server-side code can't solve directly.
+- **Crop: `jpeg-js` (BSD-3-Clause/Apache-2.0), kept as-is — not replaced.**
+  The original plan here was Jimp (MIT, pure JS) as `sharp`'s permissive
+  stand-in. Checked further before actually swapping it and found two
+  reasons not to: `jpeg-js` is already exactly that — pure JS, zero native
+  deps, already permissively licensed — and Jimp's own JPEG codec
+  (`@jimp/jpeg`) depends on `jpeg-js` internally, so swapping would only add
+  an abstraction layer on top of the same decoder, never a different one.
+  More importantly, this project already hit Supabase's per-invocation CPU
+  budget once from image work here — a prior version that decoded/resampled/
+  re-encoded server-side blew the CPU quota in seconds on a real 56-page
+  batch (reverted; see the function's own history). A plain crop (decode,
+  slice, re-encode, no resample) has run safely under that budget in
+  production since. Adding Jimp's extra layers for zero functional gain
+  risked reintroducing that exact failure for no reason. `jpeg-js` stays.
+  (No resize/resample/auto-whitespace-trim step is added here for the same
+  CPU-budget reason — Claude's own vision-layer crop box is relied on to
+  already be tight, per the system prompt's existing crop instructions,
+  rather than adding a second mechanical pass that scans pixels to trim
+  further.)
+- **Explicitly rejected: `mupdf`/MuPDF.js.** Dual-licensed AGPL-3.0-or-later
+  or a paid Artifex commercial license. This repo is already fully public, which
+  weakens (but doesn't resolve) the usual "AGPL forces disclosure of private
+  code" worry — AGPL's network-use clause requires actively conveying a
+  compliant source offer tied to the exact running version, and whether a
+  public GitHub repo by itself satisfies that is genuine legal nuance, not
+  something to wave through. Avoided on "if there's doubt, don't," not used.
+- **Explicitly rejected: `sharp` (and any native addon — `node-canvas`,
+  `puppeteer`, anything with a node-gyp build step or a postinstall binary
+  download).** Independent of any licensing question, these simply do not
+  run on Supabase's Edge Runtime (Deno-based, no native bindings) — a
+  deployment wall, not a preference.
+- **Durability**: a crop's *source coordinates* (the normalized region Claude
+  named) are stored alongside the cropped output, not discarded once applied
+  — so swapping the mechanical layer for a different library later never
+  requires re-deciding which pixels belong to which work, only re-running a
+  deterministic crop against coordinates that already exist.
 
 ## Knowledge index (semantic search for Khalo & co's sorting protocols)
 `supabase/functions/knowledge-index` is a pgvector-backed semantic search
@@ -270,6 +397,62 @@ Supabase-hosted PDF there and stop uploading new ones directly; a large PDF
 (Supabase's cap rejects raw e-cats in the 100MB+ range outright) never had
 the option anyway and always needs `catalog_pdf_extractor.py` run against
 the local file first.
+
+**(2026-09-25) The "upload the raw PDF directly" convenience path above is
+gone from the two pages that had it (Researcher's Desk, Sources).** Dropping
+a PDF there no longer uploads the PDF at all, in any size: `modcrExtractPdfPages`
+in `modcr-client.js` strips it into one full-page JPEG + that page's
+extracted text per page, entirely client-side via pdf.js, one page at a time
+so a 500MB source never needs to fit in memory all at once the way loading
+every page would — only the small derived JPEGs (and their text, in `notes`)
+ever reach Supabase, matching the target state above for any size PDF, not
+just a small convenience upload. This renders each page whole rather than
+pulling out individual embedded image objects the way `catalog_pdf_extractor.py`
+does — a deliberate simplification (pdf.js has no simple equivalent to
+PyMuPDF's `get_images()`), so a busy page with several works on it still
+needs a human or Khalo (via `attach_staged_work_photo`'s `crop` option) to
+crop down to just one. `catalog_pdf_extractor.py` remains the right tool
+when true per-embedded-image extraction quality matters, or for someone
+processing a file from a machine without opening the site. On Researcher's
+Desk specifically, since the extracted pages no longer share one `kind:'pdf'`
+row for the Process button to key off of, uploading a PDF surfaces a
+one-time "Process all N pages together" action right after upload (calling
+`process-source-material` with all of that PDF's page ids at once, so Khalo
+still reads them as one cross-referenced document) — this only covers pages
+just uploaded in that same session; there's no standing multi-select in the
+grid to batch-process an older, already-uploaded set of pages together.
+
+## Color conventions (admin UI)
+Red (`var(--red)`) is reserved for an actual error/failure state only — a
+toast reporting a failed save, a chat message that didn't send, a form
+validation error. It is **not** used on any button, including a genuinely
+destructive one (Discard/Trash/Delete/Remove) — red read as "angry" even
+there, by explicit studio direction. Every destructive action instead
+hovers to `var(--gold)` (the dark bronze/brown `#7a5c3a` already used for
+every other accent on these pages), same family as a non-destructive
+action's neutral/ink treatment, just distinguishable as the one that
+removes something. This superseded an intermediate rule (red reserved for
+destructive-only, reversible actions like Reject went neutral) that no
+longer holds — don't reintroduce red on a button of any kind without
+checking with the studio first.
+
+## No native browser dialogs (confirm/alert/prompt)
+`window.confirm()`, `window.alert()`, and `window.prompt()` are never used
+for an app action, even a destructive one — the native dialog drops the
+browser's own chrome ("cr.micheleokadoner.com says...") on top of the page,
+which reads as a third-party interruption, not part of the app, and breaks
+the UX out of the page entirely. Use `modcrConfirm(message, opts)` from
+`modcr-client.js` instead (`opts.okLabel`, `opts.danger` for a destructive
+action's button color per the rule above) — it's a Promise<boolean>, so
+`if(!confirm(...)) return;` becomes `if(!(await modcrConfirm(...))) return;`
+in an async function (every current call site already was async). A plain
+status message (a toast) should never be a native `alert()` either — use
+`showToast()`, already present on every admin page. Converted so far:
+Researcher's Desk. Every other page's `confirm()`/`alert()` calls (Drafts,
+Manage Works, Series, Sources, Exhibitions, Chronology, IT, Intake) still
+need the same conversion — treat this as a standing backlog item, not a
+one-page fix, and convert a page's remaining native dialogs on sight
+whenever it's touched for something else anyway.
 
 ## Credentials / secrets
 This repo is public (served via GitHub Pages) — never commit a password, API
@@ -319,6 +502,37 @@ from documentation of the work being made — foundry, patina, studio-process sh
 "Process" nav item and section on the entry page) when a work actually has a photo
 tagged that way. Process photos are excluded from primary/featured-image selection —
 they document the work, they aren't a candidate to represent it.
+
+## Main vs. supporting vs. candidate photos (a staged_works draft, pre-import)
+Before a draft is turned into a live work (which uses the real multi-photo
+`work_photos` model above), Khalo's automated pass has three tiers of photo on
+`staged_works`, not two — the studio's own estimate is that roughly 1 in 4
+works have a supplemental photo (another angle, a detail shot), and losing
+track of which tier a photo belongs to is exactly how a duplicate New Entries
+row happens:
+- **`image_url` + `image_crop`** — the one featured/main photo, plus its
+  source coordinates (which `source_materials` image and what normalized crop
+  box produced it — see "PDF/image mechanical layer" above). Attaching a new
+  main photo never simply overwrites an existing one; the displaced photo
+  moves to `supporting_photos` automatically, so a later, better shot can
+  replace the featured image without losing the earlier confirmed one.
+- **`supporting_photos`** (jsonb array) — CONFIRMED additional views of the
+  *same* work (another angle, a detail/verso shot) — a real, decided fact,
+  just not the featured image. Never a reason to call `create_staged_work`
+  again for what is actually one work with two photos.
+- **`candidate_photos`** (jsonb array, pre-existing) — unconfirmed maybes
+  awaiting a human pick, same as before. This is also where genuine
+  uncertainty about whether an image is another view of a known work or an
+  actually distinct work lands — `attach_staged_work_photo`'s `photo_role`
+  parameter (`main`/`supporting`/`candidate`) never forces a same-work-or-not
+  guess; candidate plus a note is the honest result when the source itself
+  doesn't settle it.
+
+On Intake's draft-prefill (`catalogue_intake`'s `?from_draft=` path),
+`supporting_photos` are pulled into the form's own multi-photo grid the same
+way the main photo already is (`preloadDraftPhoto`, looped) — landing as
+ordinary non-primary photos a human can reorder, caption, or remove, reusing
+the live-work photo UI rather than a separate review surface.
 
 ## Admin/front-end field parity
 Every field an admin can populate must render somewhere on the public entry page,

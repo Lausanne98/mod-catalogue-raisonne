@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="modcr-gate.js"></script><script>modcrRequirePreviewAccess();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exhibition — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--white:#ffffff;--sand:#f4f4f4;--sand2:#ebebeb;--ink:#111111;--mid:#555555;--light:#999999;--rule:#dddddd;--rulelg:#e8e8e8;--gold:#7a5c3a;--goldlt:#b08a5a;--hover:#f7f7f7;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--white);color:var(--ink);font-family:'Inter',sans-serif;font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+
+header{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--white);border-bottom:1px solid var(--rule);height:58px;display:flex;align-items:center;padding:0 32px;gap:24px;}
+.site-cr{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mid);white-space:nowrap;cursor:pointer;transition:color .2s;text-decoration:none;font-weight:400;}
+.site-cr:hover{color:var(--ink);}
+nav{display:flex;align-items:center;flex:1;border-left:1px solid var(--rule);padding-left:24px;margin-left:24px;}
+nav a{font-family:'Inter',sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--light);text-decoration:none;padding:6px 14px;transition:color .2s;white-space:nowrap;font-weight:400;}
+nav a:hover{color:var(--ink);}
+.ndiv{width:1px;height:11px;background:var(--rule);}
+
+main{margin-top:58px;min-height:calc(100vh - 58px);max-width:1100px;margin-left:auto;margin-right:auto;padding:0 32px 64px;}
+
+.back-link{display:inline-block;font-family:'Inter',sans-serif;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--light);text-decoration:none;margin:28px 0 20px;}
+.back-link:hover{color:var(--ink);}
+
+.ex-head{padding-bottom:28px;border-bottom:1px solid var(--rule);margin-bottom:0;}
+.ex-kicker{font-family:'Inter',sans-serif;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--light);margin-bottom:10px;font-weight:500;}
+.ex-title{font-family:'Inter',sans-serif;font-size:28px;font-weight:300;letter-spacing:-.01em;color:var(--ink);margin-bottom:10px;}
+.ex-venue-line{font-family:'Inter',sans-serif;font-size:13px;color:var(--mid);margin-bottom:16px;font-weight:400;}
+.ex-citation{font-family:'Inter',sans-serif;font-size:13.5px;line-height:1.85;color:var(--ink);max-width:760px;font-weight:400;}
+.ex-citation em{font-style:italic;}
+
+.ex-tabs{display:flex;gap:28px;margin-top:30px;border-bottom:1px solid var(--rule);}
+.ex-tab{font-family:'Inter',sans-serif;font-size:14px;font-weight:400;color:var(--light);background:none;border:none;cursor:pointer;padding:0 2px 12px;margin-bottom:-1px;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+.ex-tab.active{color:var(--ink);font-weight:500;border-bottom-color:var(--ink);}
+.ex-panel{display:none;padding-top:24px;}
+.ex-panel.active{display:block;}
+
+/* WORKS GRID — same card markup/classes as the main Browse the Works page */
+.work-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0;background:var(--white);border:1px solid var(--rule);margin-top:1px;}
+.work-card{display:block;background:var(--white);cursor:pointer;transition:background .18s;overflow:hidden;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);text-decoration:none;color:inherit;}
+.work-card:hover{background:var(--hover);}
+.wc-img-wrap{width:100%;aspect-ratio:4/3;overflow:hidden;background:var(--white);display:flex;align-items:center;justify-content:center;padding:20px;border-bottom:1px solid var(--rulelg);}
+.wc-img{max-width:100%;max-height:100%;object-fit:contain;display:block;filter:grayscale(5%) contrast(.97);transition:filter .28s,transform .28s;}
+.work-card:hover .wc-img{filter:none;transform:scale(1.02);}
+.wc-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--light);text-align:center;padding:12px;font-family:'Inter',sans-serif;}
+.wc-info{padding:14px 16px 18px;}
+.wc-title{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--ink);line-height:1.3;margin-bottom:4px;}
+.wc-date{font-family:'Inter',sans-serif;font-size:11px;color:var(--mid);margin-bottom:3px;font-weight:400;}
+.wc-num{font-family:'Inter',sans-serif;font-size:10px;letter-spacing:.06em;color:var(--light);font-weight:400;}
+
+/* INSTALLATION & MEDIA — simple tile grid, click to enlarge */
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:2px;background:var(--rule);border:1px solid var(--rule);}
+.media-tile{background:var(--white);aspect-ratio:4/3;overflow:hidden;cursor:zoom-in;}
+.media-tile img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .28s;}
+.media-tile:hover img{transform:scale(1.03);}
+.media-caption{font-family:'Inter',sans-serif;font-size:11px;color:var(--mid);padding:6px 2px 0;}
+
+.empty-state{padding:48px 0;text-align:center;color:var(--light);font-size:13px;font-style:italic;}
+
+/* LIGHTBOX */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(17,17,17,.92);z-index:300;align-items:center;justify-content:center;padding:40px;}
+.lightbox.open{display:flex;}
+.lightbox img{max-width:100%;max-height:100%;object-fit:contain;display:block;}
+.lightbox-close{position:absolute;top:20px;right:28px;color:var(--white);font-size:28px;line-height:1;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-weight:300;}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="catalogue_v77_sans.html" class="site-cr">Catalogue Raisonné</a>
+  <nav>
+    <a href="catalogue_v77_sans.html">Browse the Works</a>
+    <div class="ndiv"></div>
+    <a href="catalogue_chronology_v63_sans.html">Chronology</a>
+    <div class="ndiv"></div>
+    <a href="https://micheleokadoner.com/bio/" target="_blank">Michele Oka Doner</a>
+  </nav>
+</header>
+
+<main>
+  <a href="catalogue_v77_sans.html" class="back-link">← Back to Browse the Works</a>
+
+  <div class="ex-head" id="exHead">
+    <div class="empty-state">Loading…</div>
+  </div>
+
+  <div class="ex-tabs" id="exTabs" style="display:none;">
+    <button class="ex-tab active" data-tab="works" onclick="setExTab('works')">Works <span id="worksCount"></span></button>
+    <button class="ex-tab" data-tab="media" onclick="setExTab('media')">Installation &amp; Media</button>
+  </div>
+
+  <div class="ex-panel active" id="panelWorks" data-panel="works">
+    <div class="work-grid" id="workGrid"></div>
+  </div>
+  <div class="ex-panel" id="panelMedia" data-panel="media">
+    <div class="media-grid" id="installMediaGrid"></div>
+    <div style="height:28px;"></div>
+    <div class="media-grid" id="pressMediaGrid"></div>
+  </div>
+</main>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox();event.stopPropagation();">×</button>
+  <img id="lightboxImg" src="" alt="" onclick="event.stopPropagation()">
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+<script src="modcr-client.js"></script>
+<script>
+function setExTab(tab){
+  document.querySelectorAll('.ex-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.ex-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === tab));
+}
+function openLightbox(src){
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox(){
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightboxImg').src = '';
+}
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeLightbox(); });
+
+function renderWorksGrid(works){
+  const grid = document.getElementById('workGrid');
+  if(works.length === 0){
+    grid.outerHTML = '<div class="empty-state">No works linked to this exhibition yet.</div>';
+    return;
+  }
+  grid.innerHTML = works.map(w => `
+    <a class="work-card" href="catalogue_entry_v73_sans.html?id=${w.id}">
+      <div class="wc-img-wrap">
+        ${w.img?`<img class="wc-img" src="${w.img}" alt="${w.title}" loading="lazy" onerror="this.outerHTML='<div class=wc-placeholder>${w.title}</div>'">`:`<div class="wc-placeholder">${w.title}</div>`}
+      </div>
+      <div class="wc-info">
+        <div class="wc-title">${w.title}</div>
+        <div class="wc-date">${w.date}</div>
+        <div class="wc-num">${w.cr}</div>
+      </div>
+    </a>`).join('');
+}
+
+function renderMediaTiles(elId, items){
+  const grid = document.getElementById(elId);
+  if(items.length === 0){ grid.style.display = 'none'; return; }
+  grid.style.display = '';
+  grid.innerHTML = items.map(m => {
+    const src = modcrExhibitionMediaUrl(m.storage_path);
+    return `<div class="media-tile" onclick="openLightbox('${src}')"><img src="${src}" alt="${(m.caption||'').replace(/"/g,'&quot;')}" loading="lazy"></div>`;
+  }).join('');
+}
+
+async function loadExhibitionPage(){
+  const params = new URLSearchParams(location.search);
+  const slug = params.get('slug');
+  const head = document.getElementById('exHead');
+  if(!slug){ head.innerHTML = '<div class="empty-state">No exhibition specified.</div>'; return; }
+
+  let ex;
+  try{
+    ex = await modcrFetchExhibitionBySlug(slug);
+  }catch(e){
+    head.innerHTML = `<div class="empty-state">Could not load this exhibition: ${e.message}</div>`;
+    return;
+  }
+  if(!ex){
+    head.innerHTML = '<div class="empty-state">Exhibition not found.</div>';
+    return;
+  }
+
+  document.title = `${ex.title} — Michele Oka Doner: A Catalogue Raisonné`;
+  const venueLine = [ex.venue, ex.date_display].filter(Boolean).join(' · ');
+  head.innerHTML = `
+    <div class="ex-kicker">Exhibition</div>
+    <div class="ex-title">${ex.title}</div>
+    ${venueLine ? `<div class="ex-venue-line">${venueLine}${ex.curator ? ' · Curated by ' + ex.curator : ''}</div>` : (ex.curator ? `<div class="ex-venue-line">Curated by ${ex.curator}</div>` : '')}
+    ${ex.citation ? `<div class="ex-citation">${ex.citation}</div>` : ''}
+  `;
+
+  const [works, installation, press] = await Promise.all([
+    modcrFetchExhibitionWorks(ex.id),
+    modcrFetchExhibitionMedia(ex.id, 'installation'),
+    modcrFetchExhibitionMedia(ex.id, 'press'),
+  ]);
+
+  document.getElementById('worksCount').textContent = `(${works.length})`;
+  document.getElementById('exTabs').style.display = (installation.length || press.length) ? 'flex' : 'none';
+  renderWorksGrid(works);
+  renderMediaTiles('installMediaGrid', installation);
+  renderMediaTiles('pressMediaGrid', press);
+}
+
+loadExhibitionPage();
+</script>
+</body>
+</html>

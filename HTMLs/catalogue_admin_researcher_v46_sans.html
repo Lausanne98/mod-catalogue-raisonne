@@ -286,14 +286,14 @@
   <div class="header-nav">
     <a href="catalogue_admin_v109_sans.html">Dashboard</a>
     <a href="catalogue_admin_manage_v112_sans.html">Works</a>
-    <a href="catalogue_intake_v119_sans.html">Add a Work</a>
+    <a href="catalogue_intake_v121_sans.html">Add a Work</a>
     <a href="catalogue_admin_chronology_v60_sans.html">Chronology</a>
     <a href="catalogue_admin_sources_v46_sans.html">Sources</a>
     <div class="nav-dropdown" id="agentsNavDropdown">
       <button class="nav-dropdown-trigger nav-dark" onclick="toggleNavDropdown(event)">Agents ▾</button>
       <div class="nav-dropdown-menu">
         <a href="catalogue_admin_agents_v43_sans.html">CR Team</a>
-        <a href="catalogue_admin_drafts_v47_sans.html">Archivist's Desk</a>
+        <a href="catalogue_admin_drafts_v49_sans.html">Archivist's Desk</a>
         <a href="catalogue_admin_researcher_v46_sans.html">Researcher's Desk</a>
         <a href="catalogue_admin_it_v43_sans.html">IT</a>
       </div>
@@ -652,7 +652,7 @@ async function renderGrid(){
         ${m.related_work_id ? `<div class="m-matched">Linked to a work</div>` : ''}
         ${drafts.length ? `
         <div class="m-drafts">
-          ${drafts.map(d => `<a href="catalogue_intake_v119_sans.html?from_draft=${d.id}" target="_blank">View Draft: ${(d.title || '(untitled)').replace(/"/g,'&quot;')} →</a>`).join('')}
+          ${drafts.map(d => `<a href="catalogue_intake_v121_sans.html?from_draft=${d.id}" target="_blank">View Draft: ${(d.title || '(untitled)').replace(/"/g,'&quot;')} →</a>`).join('')}
         </div>` : ''}
         <textarea placeholder="Notes…" onblur="updateNotes('${m.id}', this.value)">${m.notes || ''}</textarea>
         ${m.status === 'processing' ? renderProcessingRow(m) : ''}
@@ -978,11 +978,11 @@ function findBar(f){
   const clickable = !!f.staged_work_id;
   const site = siteLabel(f);
   const statusPill = f.staged_work_id
-    ? `<a class="find-status-pill approved" href="catalogue_admin_drafts_v47_sans.html" style="text-decoration:none;">With Archivist</a>`
+    ? `<a class="find-status-pill approved" href="catalogue_admin_drafts_v49_sans.html" style="text-decoration:none;">With Archivist</a>`
     : f.status === 'approved' ? '<span class="find-status-pill approved">Approved</span>'
     : '<span class="find-status-pill rejected">Rejected</span>';
   return `
-    <div class="find-bar ${clickable ? 'clickable' : ''}" data-id="${f.id}" ${clickable ? `onclick="location.href='catalogue_intake_v119_sans.html?from_draft=${f.staged_work_id}'"` : ''}>
+    <div class="find-bar ${clickable ? 'clickable' : ''}" data-id="${f.id}" ${clickable ? `onclick="location.href='catalogue_intake_v121_sans.html?from_draft=${f.staged_work_id}'"` : ''}>
       <div class="find-bar-thumb">${findThumb(f)}</div>
       <div class="find-bar-fields">
         ${findBarFieldHtml('Title', f.title || 'Untitled')}

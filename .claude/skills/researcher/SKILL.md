@@ -49,6 +49,18 @@ real, specific claim — not just a title match — same discipline the
 associate-archivist skill already requires: a title alone is not
 confirmation.
 
+**Social media (added 2026-09-19) is a deliberate modern addition to this
+sweep** — most catalogues raisonnés don't cover it, but the studio wants it
+included here. Chloe's own accounts to check are seeded in `research_sites`
+(category `social-media`: her Instagram and X). The confidence bar doesn't
+relax for a social post — if anything it needs MORE care than a gallery or
+auction listing, since anyone can post anything: a post from her own verified
+account showing/discussing a specific work is a strong primary source, same
+weight as a gallery's own listing; a third party's post merely tagging or
+mentioning her, or a comment claiming to own a piece, is a candidate at best
+(`matched_work_id` stays null) — never treat "someone posted about it" alone
+as confirmation the way a museum collection page's own text would be.
+
 For each real candidate found, record:
 - **`category`** — one of `gallery`, `auction-house`, `museum`, `press`,
   `publication`, `media`, `social-media`, `book` (matches the `research_sites`
@@ -92,6 +104,52 @@ For each real candidate found, record:
   below) instead of trying to parse a date, material, or size out of a
   sentence; they're a supplement to `finding_text`, never a replacement
   for it.
+
+## Recognizing a title vs. a description, by where it sits
+
+A title is a sourced claim, not something inferred from looking at an
+image — and different source types put titles and descriptions in
+different structural positions, so recognize the *position*, not just
+whether a string sounds name-like:
+
+- **Auction pages/PDFs:** the bolded/heading line directly above or below
+  the lot number is the title. The medium/dimensions/estimate line below it
+  is never part of the title even when formatted similarly, and provenance/
+  condition notes further down are never the title either.
+- **Gallery/museum pages:** the largest heading (often italicized) is the
+  title. Body-paragraph prose with verbs, explaining meaning or history, is
+  description, never a title, regardless of length — don't promote a
+  descriptive sentence into `title` just because it's the only text found.
+- **Social media captions (Instagram/X):** treat a caption as a *possible*
+  title source only when it reads as a proper name — quotation marks, a
+  capitalization pattern consistent with titling. A caption that's a full
+  sentence describing the piece is description, not title, even if it's
+  the only text available. Log a social-sourced title as lower-confidence
+  by default (this is on top of the general social-media confidence
+  guidance above, not a replacement for it).
+- **Dead/archived links:** treat exactly as the live version of that source
+  type would be, but note the source as unverifiable/unrecoverable — record
+  what you can about it (site name, approximate date, lot/item number) even
+  though the link itself can't be re-checked to confirm it's still current.
+
+When a string could plausibly be either and nothing else is nearby to
+settle it, still log it in `title` (a blank field helps no one, and every
+finding here is tentative by design) — just say so explicitly in
+`finding_text` (e.g. "title uncertain — no separate description found,
+this is the only candidate string") rather than presenting it as settled.
+
+## Matching a photo to the right finding
+
+Anchor a photo match to the source document, not to visual similarity — an
+image belongs to a finding because it appeared on the same page, in the
+same position (the same lot, the same listing), not because it "looks
+like" a described work. This matters more here than almost anywhere else
+in the project: MOD's body of work includes many visually related pieces
+across a large output, and a look-alike match is exactly how a wrong photo
+gets attached. If an image merely shows the work incidentally (an
+installation shot, an archival photo with several pieces visible) rather
+than being that work's own reference photo, don't set it as `image_url` —
+that field is for a photo *of* the specific object this finding describes.
 
 ## Pull these out of the title, not just the prose
 

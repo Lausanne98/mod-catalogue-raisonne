@@ -420,6 +420,26 @@ create policy "staged_works_admin_only" on staged_works for all
 alter table staged_works add column if not exists image_url text;
 alter table staged_works add column if not exists dimensions text;
 
+-- Durability principle (CLAUDE.md "PDF/image mechanical layer"): a crop's
+-- source coordinates must be stored alongside the cropped output, not
+-- discarded once applied, so a future mechanical-layer swap never requires
+-- re-deciding which pixels belong to which work. Null when image_url was set
+-- unmodified (no crop) or by a human (Manage Works/Intake) rather than
+-- attach_staged_work_photo.
+alter table staged_works add column if not exists image_crop jsonb;
+
+-- Distinct from candidate_photos (unconfirmed maybes awaiting a human pick):
+-- this holds CONFIRMED additional views of the SAME work as image_url --
+-- another angle, a detail shot, a back view -- found roughly 1 in 4 works
+-- per the studio's own estimate, important to keep attached to the one
+-- work record rather than mistakenly split into separate staged_works rows.
+-- Same shape as a candidate_photos entry minus note: {url, source_material_id,
+-- crop, added_at}. Populated by attach_staged_work_photo with
+-- photo_role:'supporting', or auto-populated when a new photo_role:'main'
+-- photo replaces a prior image_url (the displaced photo moves here rather
+-- than being discarded).
+alter table staged_works add column if not exists supporting_photos jsonb not null default '[]'::jsonb;
+
 -- ═══ AGENT SETTINGS (global on/off switch for agent engagement) ═══
 -- A single row. Any agent (Khalo today; Chloe/Timur once built) must check
 -- engagement_enabled before doing ANY work -- research, writes, everything
@@ -443,6 +463,28 @@ create policy "agent_settings_public_read" on agent_settings for select
 drop policy if exists "agent_settings_admin_write" on agent_settings;
 create policy "agent_settings_admin_write" on agent_settings for update
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- ═══ KEEPALIVE (see CLAUDE.md "Supabase keepalive") ═══
+-- Single row written by .github/workflows/supabase-keepalive.yml's daily
+-- cron via the anon key, so Supabase sees a real database write (not just a
+-- read) and the free-tier project doesn't get flagged for 7-day-inactivity
+-- auto-pause. RLS allows public select AND public update -- intentionally,
+-- since the whole point is a credential-free ping; `with check (id =
+-- 'global')` keeps an anonymous write from doing anything but touching the
+-- one row.
+create table if not exists _keepalive (
+  id         text primary key default 'global',
+  pinged_at  timestamptz not null default now()
+);
+insert into _keepalive (id) values ('global') on conflict (id) do nothing;
+
+alter table _keepalive enable row level security;
+drop policy if exists "_keepalive_anyone_read" on _keepalive;
+create policy "_keepalive_anyone_read" on _keepalive for select
+  using (true);
+drop policy if exists "_keepalive_anyone_update" on _keepalive;
+create policy "_keepalive_anyone_update" on _keepalive for update
+  using (true) with check (id = 'global');
 
 -- ═══ WORK REVISIONS (Associate Archivist proposed changes to an EXISTING
 -- work, published or draft) ═══
@@ -770,6 +812,72 @@ drop policy if exists "admin_backgrounds_admin_write" on admin_backgrounds;
 create policy "admin_backgrounds_admin_write" on admin_backgrounds for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- ═══ EXHIBITIONS — a real browsable entity (its own public page: a Works
+-- grid of everything shown there, plus an Installation & Media tab of
+-- archival photos/press clippings), modeled on how Roy Lichtenstein's CR
+-- site structures an exhibition page. This is additive: the existing
+-- free-text `exhibitions` field on `works` is untouched and keeps working
+-- for any work not (yet) linked to a formal Exhibition record here. ═══
+create table if not exists exhibitions (
+  id           uuid primary key default gen_random_uuid(),
+  slug         text not null unique,
+  title        text not null,
+  venue        text,
+  date_display text,   -- free text, e.g. "September 27, 2014–January 25, 2015" — same loose convention as works.date_display and chronology_events.date_label
+  curator      text,
+  citation     text,   -- full citation paragraph, e.g. "Galleria Civica d'Arte Moderna e Contemporanea, Turin, Italy, Roy Lichtenstein: Opera prima... (Eccher 2015b; Eccher 2014b)."
+  published    boolean not null default false,
+  created_at   timestamptz not null default now()
+);
+
+-- Many-to-many: a work can be in several exhibitions, an exhibition has many
+-- works. No extra columns -- order within the Works grid is just works' own
+-- normal chronological sort, same as every other work grid on the site.
+create table if not exists work_exhibitions (
+  work_id       uuid not null references works(id) on delete cascade,
+  exhibition_id uuid not null references exhibitions(id) on delete cascade,
+  primary key (work_id, exhibition_id)
+);
+create index if not exists work_exhibitions_exhibition_idx on work_exhibitions(exhibition_id);
+
+-- Archival material belonging to the exhibition itself, not to any one work --
+-- installation photos and press/archival clippings (many pre-date digital
+-- publication entirely, so a scan of the clipping IS the primary source).
+create table if not exists exhibition_media (
+  id            uuid primary key default gen_random_uuid(),
+  exhibition_id uuid not null references exhibitions(id) on delete cascade,
+  media_type    text not null check (media_type in ('installation','press')),
+  storage_path  text not null,
+  caption       text,
+  sort_order    integer not null default 0,
+  created_at    timestamptz not null default now()
+);
+create index if not exists exhibition_media_exhibition_idx on exhibition_media(exhibition_id);
+
+alter table exhibitions enable row level security;
+drop policy if exists "exhibitions_public_read" on exhibitions;
+create policy "exhibitions_public_read" on exhibitions for select
+  using (auth.role() = 'authenticated' or published = true);
+drop policy if exists "exhibitions_admin_write" on exhibitions;
+create policy "exhibitions_admin_write" on exhibitions for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+alter table work_exhibitions enable row level security;
+drop policy if exists "work_exhibitions_public_read" on work_exhibitions;
+create policy "work_exhibitions_public_read" on work_exhibitions for select
+  using (true);
+drop policy if exists "work_exhibitions_admin_write" on work_exhibitions;
+create policy "work_exhibitions_admin_write" on work_exhibitions for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+alter table exhibition_media enable row level security;
+drop policy if exists "exhibition_media_public_read" on exhibition_media;
+create policy "exhibition_media_public_read" on exhibition_media for select
+  using (true);
+drop policy if exists "exhibition_media_admin_write" on exhibition_media;
+create policy "exhibition_media_admin_write" on exhibition_media for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
 -- ═══ STORAGE BUCKETS ═══
 insert into storage.buckets (id, name, public)
 values ('work-photos', 'work-photos', true)
@@ -805,6 +913,10 @@ on conflict (id) do nothing;
 
 insert into storage.buckets (id, name, public)
 values ('admin-backgrounds', 'admin-backgrounds', true)
+on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('exhibition-media', 'exhibition-media', true)
 on conflict (id) do nothing;
 
 drop policy if exists "work_photos_public_read" on storage.objects;
@@ -894,6 +1006,119 @@ create policy "admin_backgrounds_bucket_admin_update" on storage.objects for upd
 drop policy if exists "admin_backgrounds_bucket_admin_delete" on storage.objects;
 create policy "admin_backgrounds_bucket_admin_delete" on storage.objects for delete
   using (bucket_id = 'admin-backgrounds' and auth.role() = 'authenticated');
+
+drop policy if exists "exhibition_media_bucket_public_read" on storage.objects;
+create policy "exhibition_media_bucket_public_read" on storage.objects for select
+  using (bucket_id = 'exhibition-media');
+drop policy if exists "exhibition_media_bucket_admin_write" on storage.objects;
+create policy "exhibition_media_bucket_admin_write" on storage.objects for insert
+  with check (bucket_id = 'exhibition-media' and auth.role() = 'authenticated');
+drop policy if exists "exhibition_media_bucket_admin_update" on storage.objects;
+create policy "exhibition_media_bucket_admin_update" on storage.objects for update
+  using (bucket_id = 'exhibition-media' and auth.role() = 'authenticated');
+drop policy if exists "exhibition_media_bucket_admin_delete" on storage.objects;
+create policy "exhibition_media_bucket_admin_delete" on storage.objects for delete
+  using (bucket_id = 'exhibition-media' and auth.role() = 'authenticated');
+
+-- ═══ WORK CITATIONS — a growing index of every work mention Khalo or Chloe
+-- encounters during any research pass, whether or not that work has its own
+-- staged/live record yet. Solves "a PDF mentions 40 works in passing while
+-- researching one of them -- log all 40, so when any of them gets its own
+-- entry later (manually or via a draft), the citation is already there to
+-- pull in" rather than being silently dropped because it wasn't the specific
+-- work being staged in that pass. ═══
+create table if not exists work_citations (
+  id               uuid primary key default gen_random_uuid(),
+  title_raw        text not null,            -- exactly as it appeared in the source
+  normalized_title text not null,            -- lowercased/trimmed, for matching against a new entry's title
+  citation_kind    text not null check (citation_kind in ('publication','exhibition','provenance','auction','other')),
+  citation_text    text not null,            -- the actual citation content (a provenance line, an exhibition line, a lit. reference...)
+  source_url       text,
+  source_material_id uuid references source_materials(id) on delete set null,
+  work_id          uuid references works(id) on delete set null,        -- set once this title is matched to a live work
+  staged_work_id   uuid references staged_works(id) on delete set null, -- set once this title is matched to a draft
+  created_at       timestamptz not null default now()
+);
+create index if not exists work_citations_normalized_title_idx on work_citations(normalized_title);
+create index if not exists work_citations_work_id_idx on work_citations(work_id);
+create index if not exists work_citations_staged_work_id_idx on work_citations(staged_work_id);
+
+alter table work_citations enable row level security;
+drop policy if exists "work_citations_admin_only" on work_citations;
+create policy "work_citations_admin_only" on work_citations for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- pg_trgm powers a fuzzy ILIKE/similarity match from a new entry's title
+-- against normalized_title -- titles are rarely quoted identically across
+-- sources (see CLAUDE.md's title-parsing rule), so exact match alone would
+-- miss most real matches.
+create extension if not exists pg_trgm;
+create index if not exists work_citations_normalized_title_trgm_idx on work_citations using gin (normalized_title gin_trgm_ops);
+
+-- Fuzzy title match against the citation index, called from Intake when a
+-- new entry begins (manual or from a draft) to auto-prime Provenance/
+-- Exhibitions/Literature, and from process-source-material's log_citation
+-- tool to check whether an incoming citation already matches a live work or
+-- staged draft. similarity() comes from pg_trgm; 0.35 is a deliberately
+-- permissive floor since real-world title variance is high (quoted-name
+-- extraction, punctuation, articles) -- callers still show/apply results as
+-- suggestions, not silent auto-writes, so a loose floor costs a human a
+-- glance, not a wrong publish.
+create or replace function match_work_citations(p_title text, p_limit int default 20)
+returns table (
+  id uuid,
+  title_raw text,
+  citation_kind text,
+  citation_text text,
+  source_url text,
+  work_id uuid,
+  staged_work_id uuid,
+  similarity real
+)
+language sql
+stable
+as $$
+  select
+    wc.id, wc.title_raw, wc.citation_kind, wc.citation_text, wc.source_url,
+    wc.work_id, wc.staged_work_id,
+    similarity(wc.normalized_title, lower(trim(p_title))) as similarity
+  from work_citations wc
+  where wc.normalized_title % lower(trim(p_title))
+  order by similarity desc
+  limit p_limit;
+$$;
+
+-- ═══ STAGED WORK PHOTO CANDIDATES — the "maybe" bullpen. A photo Khalo
+-- found plausibly related to a draft but not confidently enough to set as
+-- its actual image_url outright (no explicit caption, ambiguous among
+-- several images on the same page, etc.) lands here instead of being
+-- silently discarded -- a human reviewing the draft can promote one to the
+-- real photo. High-confidence photos (an explicit caption naming the work,
+-- or a table-of-contents/List of Works page number match) still go straight
+-- to image_url as before -- this is only for the gray area in between. ═══
+alter table staged_works add column if not exists candidate_photos jsonb not null default '[]'::jsonb;
+
+-- A title is a sourced claim (see the associate-archivist skill's Title
+-- rule) -- staged_works had no column to carry that source forward to
+-- import, even though works.title_source has existed all along.
+alter table staged_works add column if not exists title_source text;
+
+insert into storage.buckets (id, name, public)
+values ('staged-work-photos', 'staged-work-photos', true)
+on conflict (id) do nothing;
+
+drop policy if exists "staged_work_photos_bucket_public_read" on storage.objects;
+create policy "staged_work_photos_bucket_public_read" on storage.objects for select
+  using (bucket_id = 'staged-work-photos');
+drop policy if exists "staged_work_photos_bucket_admin_write" on storage.objects;
+create policy "staged_work_photos_bucket_admin_write" on storage.objects for insert
+  with check (bucket_id = 'staged-work-photos' and auth.role() = 'authenticated');
+drop policy if exists "staged_work_photos_bucket_admin_update" on storage.objects;
+create policy "staged_work_photos_bucket_admin_update" on storage.objects for update
+  using (bucket_id = 'staged-work-photos' and auth.role() = 'authenticated');
+drop policy if exists "staged_work_photos_bucket_admin_delete" on storage.objects;
+create policy "staged_work_photos_bucket_admin_delete" on storage.objects for delete
+  using (bucket_id = 'staged-work-photos' and auth.role() = 'authenticated');
 
 -- ═══ MIGRATE EXISTING 28 WORKS ═══
 -- Images point at the already-hosted GitHub Pages files for now (legacy_image_url)
@@ -1149,6 +1374,21 @@ insert into research_sites (name, url, category) values
   ('MoMA', 'https://www.moma.org', 'museum'),
   ('The Bunker (Palm Beach)', 'https://thebunkerartspace.com', 'museum'),
   ('Pérez Art Museum Miami (PAMM)', 'https://www.pamm.org', 'museum')
+on conflict (url) do nothing;
+
+-- Added 2026-09-19: press coverage plus a deliberate modern addition,
+-- social media (see the researcher skill's own note on this -- most
+-- catalogues raisonnés don't cover it, the studio wants it here). The two
+-- social-media rows are her accounts as identified via live web search, not
+-- a manually confirmed link -- see the notes column and the researcher
+-- skill's confidence guidance for social posts.
+insert into research_sites (name, url, category, notes) values
+  ('Brooklyn Rail', 'https://brooklynrail.org', 'press', null),
+  ('The New Criterion', 'https://newcriterion.com', 'press', null),
+  ('Instagram (Michele Oka Doner)', 'https://www.instagram.com/micheleokadoner/', 'social-media',
+    'Verified via web search as her account, not a manually confirmed link. Treat a specific work claim from a post with the same confidence bar as everything else -- her own account posting a piece is strong, someone else tagging/mentioning her is a candidate at best.'),
+  ('X / Twitter (Michele Oka Doner)', 'https://x.com/okadoner', 'social-media',
+    'Verified via web search as her account, not a manually confirmed link -- same notes as the Instagram row above.')
 on conflict (url) do nothing;
 
 -- ═══ KNOWLEDGE INDEX (semantic search for Khalo & co's sorting protocols) ═══

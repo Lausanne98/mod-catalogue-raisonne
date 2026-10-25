@@ -182,6 +182,96 @@ async function modcrDeleteSeries(slug){
   if(error) throw error;
 }
 
+// ---- Exhibitions (a real browsable entity, separate from works.exhibitions'
+// free text — see supabase/schema.sql "EXHIBITIONS") ----
+async function modcrFetchExhibitions(){
+  const { data, error } = await modcrSupabase.from('exhibitions').select('*').order('created_at', { ascending: false });
+  if(error) throw error;
+  return data;
+}
+async function modcrFetchExhibitionBySlug(slug){
+  const { data, error } = await modcrSupabase.from('exhibitions').select('*').eq('slug', slug).maybeSingle();
+  if(error) throw error;
+  return data;
+}
+async function modcrSaveExhibition(payload, isNew){
+  if(isNew){
+    const { data, error } = await modcrSupabase.from('exhibitions').insert(payload).select().single();
+    if(error) throw error;
+    return data;
+  }
+  const { id, ...rest } = payload;
+  const { data, error } = await modcrSupabase.from('exhibitions').update(rest).eq('id', id).select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrDeleteExhibition(id){
+  // Cascades (work_exhibitions, exhibition_media reference exhibitions with
+  // on delete cascade) -- unlike deleting a series, there's no "still in use"
+  // guard here, since unlinking an exhibition from its works is exactly what
+  // deleting it means, not a data-loss accident to block.
+  const { error } = await modcrSupabase.from('exhibitions').delete().eq('id', id);
+  if(error) throw error;
+}
+// Works linked to one exhibition, in the same shape/sort every other work
+// grid on the site already uses (modcrAdaptWork), so the public exhibition
+// page can reuse the existing .work-card rendering verbatim.
+async function modcrFetchExhibitionWorks(exhibitionId){
+  const { data, error } = await modcrSupabase
+    .from('work_exhibitions')
+    .select('works(*, work_photos(storage_path,is_primary,photo_type))')
+    .eq('exhibition_id', exhibitionId);
+  if(error) throw error;
+  // Same chronological-by-default convention as modcrFetchWorks -- undated
+  // works (no year) sort last, not first.
+  return data.map(row => modcrAdaptWork(row.works)).sort((a, b) => {
+    if(!a.year && !b.year) return a.id - b.id;
+    if(!a.year) return 1;
+    if(!b.year) return -1;
+    return a.year - b.year || a.id - b.id;
+  });
+}
+async function modcrLinkWorkToExhibition(exhibitionId, workId){
+  const { error } = await modcrSupabase.from('work_exhibitions')
+    .insert({ exhibition_id: exhibitionId, work_id: workId });
+  if(error) throw error;
+}
+async function modcrUnlinkWorkFromExhibition(exhibitionId, workId){
+  const { error } = await modcrSupabase.from('work_exhibitions')
+    .delete().eq('exhibition_id', exhibitionId).eq('work_id', workId);
+  if(error) throw error;
+}
+function modcrExhibitionMediaUrl(storagePath){
+  return modcrSupabase.storage.from('exhibition-media').getPublicUrl(storagePath).data.publicUrl;
+}
+async function modcrFetchExhibitionMedia(exhibitionId, mediaType){
+  let q = modcrSupabase.from('exhibition_media').select('*').eq('exhibition_id', exhibitionId).order('sort_order');
+  if(mediaType) q = q.eq('media_type', mediaType);
+  const { data, error } = await q;
+  if(error) throw error;
+  return data;
+}
+async function modcrUploadExhibitionMedia(exhibitionId, file, mediaType){
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${exhibitionId}/${modcrGenId()}.${ext}`;
+  const { error: upErr } = await modcrSupabase.storage.from('exhibition-media').upload(path, file, { upsert: false });
+  if(upErr) throw upErr;
+  const { data, error } = await modcrSupabase.from('exhibition_media')
+    .insert({ exhibition_id: exhibitionId, storage_path: path, media_type: mediaType })
+    .select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrDeleteExhibitionMedia(id, storagePath){
+  await modcrSupabase.storage.from('exhibition-media').remove([storagePath]);
+  const { error } = await modcrSupabase.from('exhibition_media').delete().eq('id', id);
+  if(error) throw error;
+}
+async function modcrUpdateExhibitionMediaCaption(id, caption){
+  const { error } = await modcrSupabase.from('exhibition_media').update({ caption: caption || null }).eq('id', id);
+  if(error) throw error;
+}
+
 // ---- Shared text-cleanup helpers (research_finds -> staged_works -> intake) ----
 // Kept here, not duplicated per page, so title/tag parsing behaves
 // identically wherever it runs: at auto-promotion time (Researcher's Desk),
@@ -532,7 +622,7 @@ async function modcrImportStagedWork(staged, publish){
 // and only modcrApproveRevision actually applies it, on a human's say-so. ----
 async function modcrFetchWorkRevisions(status){
   let q = modcrSupabase.from('work_revisions')
-    .select('*, works(cr_number, title, published), work_sources(url, finding, source_type)')
+    .select('*, works(cr_number, title, published, img), work_sources(url, finding, source_type)')
     .order('created_at', { ascending: false });
   if(status) q = q.eq('status', status);
   const { data, error } = await q;
@@ -595,15 +685,97 @@ async function modcrSourceMaterialUrl(storagePath){
   if(error) throw error;
   return data.signedUrl;
 }
-async function modcrUploadSourceMaterial(blob, filename, kind, relatedWorkId){
+async function modcrUploadSourceMaterial(blob, filename, kind, relatedWorkId, notes){
   const path = `${Date.now()}-${modcrGenId()}-${filename}`;
   const { error: upErr } = await modcrSupabase.storage.from('source-materials').upload(path, blob, { upsert: false });
   if(upErr) throw upErr;
   const { data, error } = await modcrSupabase.from('source_materials')
-    .insert({ kind, filename, storage_path: path, related_work_id: relatedWorkId || null })
+    .insert({ kind, filename, storage_path: path, related_work_id: relatedWorkId || null, notes: notes || null })
     .select().single();
   if(error) throw error;
   return data;
+}
+
+// pdf.js's worker needs a script URL of its own -- only set this up on a
+// page that actually loaded pdf.js (Researcher's Desk, Sources) via its own
+// <script src=".../pdf.min.js"> tag before this file; every other page that
+// loads modcr-client.js never defines the pdfjsLib global at all, so this
+// stays a no-op there rather than throwing on load.
+if(typeof pdfjsLib !== 'undefined'){
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js';
+}
+
+// Strips a source PDF into one full-page JPEG + that page's extracted text
+// per page, entirely in the browser -- the raw PDF itself is never uploaded
+// to Supabase (per CLAUDE.md's "Source PDFs don't live in Supabase long
+// term" rule) and never leaves this tab. Companion to
+// scripts/catalog_pdf_extractor.py, which does the equivalent job locally
+// with PyMuPDF for someone with the file on their own machine and wants true
+// per-embedded-image extraction; this is the same idea made self-serve from
+// the browser, at the cost of a simpler approach -- it renders each page as
+// one flat image rather than trying to pull out individual embedded photo
+// objects, so a busy page with several works on it still needs a human (or
+// Khalo, via attach_staged_work_photo's crop option) to crop down to just
+// one work afterward. Matches that script's filename/notes convention
+// (`{label}-p{N}-{n}.jpg`, `notes` carrying the page's own extracted text)
+// so a page extracted either way reads identically to Mode B.
+//
+// Pages are rendered and encoded one at a time, each canvas discarded before
+// the next page starts, so memory stays proportional to one page's pixels
+// regardless of how many pages the document has. The one unavoidable cost:
+// pdf.js needs the whole file's bytes resident to parse its structure, so a
+// very large PDF (hundreds of MB) does sit fully in this tab's memory for
+// the duration of extraction -- transient and local, never uploaded, but
+// real memory pressure on the machine doing the upload.
+async function modcrExtractPdfPages(file, baseLabel, onProgress){
+  // 1568px, not this project's usual 2200px catalog-photo convention --
+  // deliberately: Khalo's Mode B sends every page of a batch to Claude in
+  // one request, and Anthropic enforces a stricter per-image size cap
+  // specifically for a request carrying many images at once (2000px on the
+  // longer side) than for a single image alone. A batch rendered at 2200px
+  // fails outright on its very first API call. An Edge Function can't fix
+  // this up server-side either -- a real batch confirmed that a pure-JS
+  // resize of dozens of images in one invocation blows Supabase's per-call
+  // CPU budget and gets silently killed before a single tool call happens.
+  // Rendering safely-sized pages from the start, here, is the only place
+  // this can be fixed without extra server-side work at all. 1568px is
+  // Anthropic's own documented sweet spot (a larger image just gets
+  // downsampled internally anyway, at extra token cost for no extra detail),
+  // leaving comfortable headroom under the 2000px many-image cap.
+  const MAX_PX = 1568;
+  const JPEG_QUALITY = 0.88;
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const results = [];
+  try{
+    for(let pageNum = 1; pageNum <= pdf.numPages; pageNum++){
+      if(onProgress) onProgress(pageNum, pdf.numPages);
+      const page = await pdf.getPage(pageNum);
+      try{
+        const textContent = await page.getTextContent();
+        const text = textContent.items.map(it => it.str || '').join(' ').replace(/\s+/g, ' ').trim();
+
+        const baseViewport = page.getViewport({ scale: 1 });
+        const renderScale = MAX_PX / Math.max(baseViewport.width, baseViewport.height);
+        const viewport = page.getViewport({ scale: renderScale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', JPEG_QUALITY));
+
+        const n = results.length + 1;
+        const filename = `${baseLabel}-p${pageNum}-${n}.jpg`;
+        const notes = `FULL PAGE (browser-side extraction renders each page whole, not individual embedded images -- may still need manual cropping before use as a work photo). From catalog: ${baseLabel}, page ${pageNum}.\n\nPage text:\n${text}`;
+        results.push({ blob, filename, notes });
+      } finally {
+        page.cleanup();
+      }
+    }
+  } finally {
+    await pdf.destroy();
+  }
+  return results;
 }
 async function modcrUpdateSourceMaterial(id, patch){
   const { error } = await modcrSupabase.from('source_materials').update(patch).eq('id', id);
@@ -834,9 +1006,9 @@ function modcrInitBackgroundTab(pageSlug){
     .modcr-bg-tab { position: fixed; right: 14px; bottom: 14px; z-index: 9999; }
     .modcr-bg-tab-btn {
       font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
-      background: rgba(28,28,28,.72); color: #fff; border: none; padding: 8px 12px; cursor: pointer;
+      background: rgba(120,117,114,.68); color: #fff; border: none; padding: 8px 12px; cursor: pointer;
     }
-    .modcr-bg-tab-btn:hover { background: rgba(28,28,28,.9); }
+    .modcr-bg-tab-btn:hover { background: rgba(120,117,114,.88); }
     .modcr-bg-tab-btn:disabled { opacity: .6; cursor: wait; }
   `;
   document.head.appendChild(style);
@@ -866,6 +1038,30 @@ function modcrInitBackgroundTab(pageSlug){
   modcrFetchPageBackground(pageSlug).then(row => { if(row) modcrApplyPageBackground(row); }).catch(()=>{});
 }
 
+// ---- Citation index / live research (Intake auto-prime + search buttons) ----
+// Fuzzy title match against the work_citations index (see supabase/schema.sql
+// -- match_work_citations, pg_trgm-backed) so a new entry, however it began
+// (typed manually, or opened from a Researcher's/Archivist's draft), can be
+// auto-primed with every citation Khalo's research passes have already
+// logged for that title, even a passing mention that wasn't itself enough to
+// stage or match a work on its own.
+async function modcrFetchCitationMatches(title){
+  if(!title || !title.trim()) return [];
+  const { data, error } = await modcrSupabase.rpc('match_work_citations', { p_title: title.trim() });
+  if(error) throw error;
+  return data ?? [];
+}
+// Live web-search pass scoped to one work (research-work Edge Function) --
+// never writes to the database itself; the caller drops the result into the
+// relevant form fields as editable draft text for human review.
+async function modcrResearchWork(title, medium, dateDisplay){
+  const { data, error } = await modcrSupabase.functions.invoke('research-work', {
+    body: { title, medium: medium || undefined, date_display: dateDisplay || undefined },
+  });
+  if(error) throw await modcrUnwrapFunctionError(error);
+  return data;
+}
+
 // ---- Auth ----
 async function modcrRequireAuth(loginPage){
   const { data: { session } } = await modcrSupabase.auth.getSession();
@@ -878,4 +1074,88 @@ async function modcrRequireAuth(loginPage){
 async function modcrLogOut(loginPage){
   await modcrSupabase.auth.signOut();
   window.location.href = loginPage;
+}
+
+// ---- In-app confirm dialog ----
+// A native window.confirm() drops the browser's own chrome (a bare system
+// dialog with "cr.micheleokadoner.com says") on top of the page -- jarring,
+// and not something any page here styles or controls. modcrConfirm renders
+// an in-app overlay instead, built from the host page's own CSS variables
+// (--ink/--white/--mid/--rule/--gold, already defined identically on every
+// admin page), so it reads as part of the app rather than a third-party
+// interruption. Returns a Promise<boolean> -- use `if(!(await modcrConfirm(...))) return;`
+// in place of `if(!confirm(...)) return;`. Pass `{ danger: true }` for an
+// irreversible action (Delete/Discard/Trash) to color the confirm button
+// red; everything else uses the standard gold accent per the site's color
+// convention (red is for actual errors, never a button).
+let _modcrConfirmStyleInjected = false;
+function _modcrInjectConfirmStyle(){
+  if(_modcrConfirmStyleInjected) return;
+  _modcrConfirmStyleInjected = true;
+  const style = document.createElement('style');
+  style.textContent = `
+    .modcr-confirm-overlay {
+      position: fixed; inset: 0; background: rgba(28,28,28,.45); z-index: 9999;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      animation: modcr-confirm-fade .12s ease;
+    }
+    @keyframes modcr-confirm-fade { from { opacity: 0; } to { opacity: 1; } }
+    .modcr-confirm-box {
+      background: var(--white, #fff); border: 1px solid var(--rule, #ddd);
+      max-width: 380px; width: 100%; padding: 22px 24px; box-shadow: 0 8px 28px rgba(0,0,0,.18);
+    }
+    .modcr-confirm-msg {
+      font-family: 'Inter', sans-serif; font-size: 13.5px; line-height: 1.6; color: var(--ink, #1c1c1c);
+      margin-bottom: 20px; white-space: pre-wrap;
+    }
+    .modcr-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    .modcr-confirm-actions button {
+      font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+      padding: 9px 18px; border: 1px solid var(--rule, #ddd); background: var(--white, #fff);
+      color: var(--mid, #5c5855); cursor: pointer;
+    }
+    .modcr-confirm-actions .modcr-confirm-ok {
+      background: var(--gold, #7a5c3a); border-color: var(--gold, #7a5c3a); color: #fff;
+    }
+    .modcr-confirm-actions .modcr-confirm-ok.danger {
+      background: var(--red, #a83232); border-color: var(--red, #a83232);
+    }
+  `;
+  document.head.appendChild(style);
+}
+function modcrConfirm(message, opts){
+  opts = opts || {};
+  _modcrInjectConfirmStyle();
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modcr-confirm-overlay';
+    overlay.innerHTML = `
+      <div class="modcr-confirm-box">
+        <div class="modcr-confirm-msg"></div>
+        <div class="modcr-confirm-actions">
+          <button class="modcr-confirm-cancel"></button>
+          <button class="modcr-confirm-ok"></button>
+        </div>
+      </div>`;
+    overlay.querySelector('.modcr-confirm-msg').textContent = message;
+    overlay.querySelector('.modcr-confirm-cancel').textContent = opts.cancelLabel || 'Cancel';
+    const okBtn = overlay.querySelector('.modcr-confirm-ok');
+    okBtn.textContent = opts.okLabel || 'OK';
+    if(opts.danger) okBtn.classList.add('danger');
+    document.body.appendChild(overlay);
+    function finish(result){
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+      resolve(result);
+    }
+    function onKey(e){
+      if(e.key === 'Escape') finish(false);
+      if(e.key === 'Enter') finish(true);
+    }
+    document.addEventListener('keydown', onKey);
+    overlay.querySelector('.modcr-confirm-cancel').onclick = () => finish(false);
+    okBtn.onclick = () => finish(true);
+    overlay.addEventListener('click', e => { if(e.target === overlay) finish(false); });
+    okBtn.focus();
+  });
 }

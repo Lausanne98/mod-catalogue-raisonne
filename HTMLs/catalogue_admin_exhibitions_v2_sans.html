@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Exhibitions — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:  #ffffff;
+    --sand:   #f0f0ef;
+    --ink:    #1c1c1c;
+    --mid:    #5c5855;
+    --light:  #999490;
+    --rule:   #dedddb;
+    --rulelg: #ececea;
+    --gold:   #7a5c3a;
+    --goldlt: #c9a87c;
+    --hover:  #f7f7f6;
+    --red:    #a83232;
+    --green:  #3f6b3f;
+    --btndark: #46433f;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--sand) url('images/admin-wallpaper.jpg') center/cover no-repeat; color: var(--ink); font-family: 'Inter', sans-serif; font-weight: 400; }
+
+  header {
+    position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 1px solid var(--rule);
+    min-height: 58px; height: auto; display: flex; align-items: center; padding: 10px 24px; gap: 24px; flex-wrap: wrap;
+  }
+  .header-title { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .header-nav { margin-left: auto; display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; }
+  .header-nav a { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); text-decoration: none; white-space: nowrap; }
+  .header-nav a:hover { color: var(--ink); }
+  .nav-dark { color: var(--ink); }
+  .header-nav button {
+    font: inherit; font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+    white-space: nowrap;
+  }
+  .header-nav button:hover { color: var(--ink); }
+  .nav-dropdown { position: relative; }
+  .nav-dropdown-trigger {
+    display: block;
+    font: inherit; font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--light); background: none; border: none; cursor: pointer; padding: 0;
+    -webkit-appearance: none; appearance: none;
+  }
+  .nav-dropdown-trigger:hover { color: var(--ink); }
+  .nav-dropdown-menu {
+    display: none; position: absolute; top: 100%; right: 0; margin-top: 14px;
+    background: var(--white); border: 1px solid var(--rule); min-width: 180px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.08); z-index: 200;
+  }
+  .nav-dropdown.open .nav-dropdown-menu { display: block; }
+  .nav-dropdown-menu a {
+    display: block; padding: 10px 14px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--mid); text-decoration: none; border-bottom: 1px solid var(--rulelg);
+  }
+  .nav-dropdown-menu a:last-child { border-bottom: none; }
+  .nav-dropdown-menu a:hover { background: var(--hover); color: var(--ink); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 20px 96px; }
+  .page-head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -.01em; margin-bottom: 6px; }
+  .page-head p { font-size: 12.5px; color: var(--mid); margin-bottom: 24px; }
+
+  .panel { background: var(--white); border: 1px solid var(--rule); padding: 24px; margin-bottom: 24px; }
+  .panel-head { font-family: 'Inter', sans-serif; font-size: 9px; letter-spacing: .18em; font-weight: 500; text-transform: uppercase; color: var(--mid); margin-bottom: 18px; }
+
+  .f-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; margin-bottom: 14px; }
+  .f-grid .f-field.f-span2 { grid-column: 1 / -1; }
+  .f-field { display: flex; flex-direction: column; gap: 5px; }
+  .f-label { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--light); }
+  .f-slug-preview { font-size: 10.5px; color: var(--light); margin-top: 3px; }
+  input[type=text], textarea, select.f-select {
+    font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ink);
+    border: 1px solid var(--rule); background: var(--white); padding: 8px 10px; width: 100%;
+  }
+  textarea { resize: vertical; min-height: 64px; font-family: 'Inter', sans-serif; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--goldlt); }
+  .chk-row { display: flex; align-items: center; gap: 6px; }
+  .chk-row label { font-size: 11.5px; color: var(--mid); }
+
+  .btn {
+    font-family: 'Inter', sans-serif; font-size: 12px; letter-spacing: .04em; padding: 9px 16px;
+    border: 1px solid var(--rule); background: var(--white); color: var(--ink); cursor: pointer; transition: all .15s;
+  }
+  .btn:hover { background: var(--btndark); color: var(--white); }
+  .btn.primary { background: var(--btndark); color: var(--white); border-color: var(--btndark); }
+  .btn.primary:hover { background: var(--gold); border-color: var(--gold); }
+  .btn.small { font-size: 10.5px; padding: 5px 10px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--white); border: 1px solid var(--rule); }
+  thead th {
+    text-align: left; font-size: 9px; letter-spacing: .1em; font-weight: 500; text-transform: uppercase;
+    color: var(--light); padding: 10px 14px; border-bottom: 1px solid var(--rule); background: var(--sand);
+  }
+  tbody td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--rulelg); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.active-row { background: var(--hover); }
+  .row-actions { display: flex; gap: 10px; white-space: nowrap; }
+  .row-actions a, .row-actions button {
+    font-family: 'Inter', sans-serif; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--mid); text-decoration: none; background: none; border: none; cursor: pointer; padding: 0;
+  }
+  .row-actions a:hover, .row-actions button:hover { color: var(--ink); }
+  .row-actions .del-link:hover { color: var(--gold); }
+  .row-venue { font-size: 10.5px; color: var(--light); }
+  .pub-badge { font-size: 9px; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 2px; cursor: pointer; }
+  .pub-badge.live { color: var(--green); background: #eaf3ea; border: 1px solid #a8c9a8; }
+  .pub-badge.hidden { color: var(--light); background: var(--sand); border: 1px solid var(--rule); }
+
+  .empty-state { padding: 40px; text-align: center; color: var(--light); font-size: 13px; font-style: italic; }
+
+  /* ── Work linking ── */
+  .work-search-row { display: flex; gap: 10px; margin-bottom: 14px; position: relative; }
+  .work-search-row input { flex: 1; }
+  .work-search-results {
+    position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: var(--white);
+    border: 1px solid var(--rule); max-height: 240px; overflow-y: auto; z-index: 50;
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
+  }
+  .wsr-item { padding: 8px 12px; font-size: 12.5px; cursor: pointer; border-bottom: 1px solid var(--rulelg); display: flex; justify-content: space-between; gap: 10px; }
+  .wsr-item:last-child { border-bottom: none; }
+  .wsr-item:hover { background: var(--hover); }
+  .wsr-cr { color: var(--light); font-size: 10.5px; white-space: nowrap; }
+  .linked-works-list { display: flex; flex-direction: column; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .lw-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--white); padding: 8px 12px; }
+  .lw-title { font-size: 12.5px; color: var(--ink); }
+  .lw-meta { font-size: 10.5px; color: var(--light); margin-left: 8px; }
+  .lw-remove { font-family: 'Inter', sans-serif; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--mid); background: none; border: none; cursor: pointer; }
+  .lw-remove:hover { color: var(--gold); }
+
+  /* ── Photo dropzones ── */
+  .media-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .media-col-head { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--mid); margin-bottom: 10px; font-weight: 500; }
+  .photo-dropzone {
+    border: 2px dashed var(--rule); border-radius: 2px; padding: 24px 14px; text-align: center;
+    cursor: pointer; transition: border-color .18s, background .18s; position: relative; margin-bottom: 14px;
+  }
+  .photo-dropzone:hover, .photo-dropzone.dragover { border-color: var(--goldlt); background: var(--hover); }
+  .photo-dropzone .dz-title { font-size: 12.5px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+  .photo-dropzone .dz-hint { font-size: 11px; color: var(--light); }
+  .photo-dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+  .media-card { position: relative; background: var(--sand); border: 1px solid var(--rule); }
+  .media-thumb { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; cursor: zoom-in; }
+  .media-remove {
+    position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ink); color: var(--white); border: 2px solid var(--white);
+    font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; padding: 0; opacity: 0; transition: opacity .12s, background .12s;
+  }
+  .media-card:hover .media-remove { opacity: 1; }
+  .media-remove:hover { background: var(--gold); }
+
+  .public-link { font-size: 11.5px; color: var(--mid); margin-bottom: 18px; }
+  .public-link a { color: var(--gold); }
+
+  .save-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--white); padding: 12px 22px; font-size: 12.5px;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200;
+  }
+  .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .save-toast.error { background: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">MOD CR — Admin</div>
+  <div class="header-nav">
+    <a href="catalogue_admin_v117_sans.html">Dashboard</a>
+    <a href="catalogue_admin_manage_v115_sans.html">Works</a>
+    <a href="catalogue_intake_v127_sans.html">Add a Work</a>
+    <a href="catalogue_admin_chronology_v63_sans.html">Chronology</a>
+    <a href="catalogue_admin_sources_v51_sans.html">Sources</a>
+    <a href="catalogue_admin_exhibitions_v2_sans.html" class="nav-dark">Exhibitions</a>
+    <div class="nav-dropdown" id="agentsNavDropdown">
+      <button class="nav-dropdown-trigger" onclick="toggleNavDropdown(event)">Agents ▾</button>
+      <div class="nav-dropdown-menu">
+        <a href="catalogue_admin_agents_v61_sans.html">CR Team</a>
+        <a href="catalogue_admin_drafts_v61_sans.html">Archivist's Desk</a>
+        <a href="catalogue_admin_researcher_v69_sans.html">Researcher's Desk</a>
+        <a href="catalogue_admin_it_v50_sans.html">IT</a>
+      </div>
+    </div>
+    <a href="catalogue_admin_it_v50_sans.html">IT</a>
+    <a href="catalogue_v77_sans.html">View Site</a>
+    <button onclick="modcrLogOut('catalogue_admin_login_v81_sans.html')">Log Out</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <h1>Manage Exhibitions</h1>
+    <p>Create an exhibition's own page — its works, installation photos, and press/archival clippings — separate from the free-text Exhibitions line on each work's own record.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Add an Exhibition</div>
+    <div class="f-grid">
+      <div class="f-field f-span2">
+        <div class="f-label">Title</div>
+        <input type="text" id="newTitle" placeholder="e.g. Roy Lichtenstein: Opera prima" oninput="updateSlugPreview()">
+        <div class="f-slug-preview" id="newSlugPreview"></div>
+      </div>
+      <div class="f-field">
+        <div class="f-label">Venue</div>
+        <input type="text" id="newVenue" placeholder="e.g. Galleria Civica d'Arte Moderna e Contemporanea, Turin, Italy">
+      </div>
+      <div class="f-field">
+        <div class="f-label">Dates</div>
+        <input type="text" id="newDateDisplay" placeholder="e.g. September 27, 2014–January 25, 2015">
+      </div>
+      <div class="f-field">
+        <div class="f-label">Curator</div>
+        <input type="text" id="newCurator" placeholder="e.g. Danilo Eccher">
+      </div>
+      <div class="chk-row" style="align-self:end;">
+        <input type="checkbox" id="newPublished">
+        <label for="newPublished">Published</label>
+      </div>
+      <div class="f-field f-span2">
+        <div class="f-label">Citation</div>
+        <textarea id="newCitation" placeholder="Full citation paragraph, e.g. gallery, city, exhibition title, dates, curator, source references."></textarea>
+      </div>
+    </div>
+    <button class="btn primary" onclick="addExhibition()">Add Exhibition</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">All Exhibitions</div>
+    <table>
+      <thead>
+        <tr><th>Title</th><th>Dates</th><th>Works</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody id="exhibitionsTableBody"><tr><td colspan="5"><div class="empty-state">Loading…</div></td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="editPanel" style="display:none;">
+    <div class="panel-head" id="editPanelHead">Edit Exhibition</div>
+    <div class="public-link" id="publicLink"></div>
+
+    <div class="f-grid">
+      <div class="f-field f-span2">
+        <div class="f-label">Title</div>
+        <input type="text" id="editTitle" onchange="saveEditField('title', this.value)">
+      </div>
+      <div class="f-field">
+        <div class="f-label">Venue</div>
+        <input type="text" id="editVenue" onchange="saveEditField('venue', this.value)">
+      </div>
+      <div class="f-field">
+        <div class="f-label">Dates</div>
+        <input type="text" id="editDateDisplay" onchange="saveEditField('date_display', this.value)">
+      </div>
+      <div class="f-field">
+        <div class="f-label">Curator</div>
+        <input type="text" id="editCurator" onchange="saveEditField('curator', this.value)">
+      </div>
+      <div class="chk-row" style="align-self:end;">
+        <input type="checkbox" id="editPublished" onchange="saveEditField('published', this.checked)">
+        <label for="editPublished">Published</label>
+      </div>
+      <div class="f-field f-span2">
+        <div class="f-label">Citation</div>
+        <textarea id="editCitation" onchange="saveEditField('citation', this.value)"></textarea>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--rule);margin:22px 0 18px;"></div>
+
+    <div class="panel-head">Works in This Exhibition</div>
+    <div class="work-search-row">
+      <input type="text" id="workSearchInput" placeholder="Search by title or CR number to add a work…" oninput="searchWorksToLink(this.value)" onfocus="searchWorksToLink(this.value)">
+      <div class="work-search-results" id="workSearchResults" hidden></div>
+    </div>
+    <div class="linked-works-list" id="linkedWorksList"></div>
+
+    <div style="border-top:1px solid var(--rule);margin:22px 0 18px;"></div>
+
+    <div class="panel-head">Installation &amp; Media</div>
+    <div class="media-cols">
+      <div>
+        <div class="media-col-head">Installation Photos</div>
+        <div class="photo-dropzone" id="installDropzone">
+          <div class="dz-title">Drop installation photos here</div>
+          <div class="dz-hint">Or tap to choose from your files.</div>
+          <input type="file" id="f-install" accept="image/*" multiple onchange="uploadMediaFiles(this.files, 'installation'); this.value='';">
+        </div>
+        <div class="media-grid" id="installGrid"></div>
+      </div>
+      <div>
+        <div class="media-col-head">Press / Archival Clippings</div>
+        <div class="photo-dropzone" id="pressDropzone">
+          <div class="dz-title">Drop press clippings here</div>
+          <div class="dz-hint">Scans of articles, reviews, newspaper/magazine pages.</div>
+          <input type="file" id="f-press" accept="image/*" multiple onchange="uploadMediaFiles(this.files, 'press'); this.value='';">
+        </div>
+        <div class="media-grid" id="pressGrid"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+<script src="modcr-client.js"></script>
+<script>
+function toggleNavDropdown(event){
+  event.stopPropagation();
+  const dd = event.currentTarget.closest('.nav-dropdown');
+  const wasOpen = dd.classList.contains('open');
+  document.querySelectorAll('.nav-dropdown.open').forEach(el => el.classList.remove('open'));
+  if(!wasOpen) dd.classList.add('open');
+}
+document.addEventListener('click', function(){
+  document.querySelectorAll('.nav-dropdown.open').forEach(el => el.classList.remove('open'));
+});
+
+let exhibitionsData = [];
+let allWorks = [];
+let activeExhibition = null;
+
+function showToast(msg, isError){
+  const el = document.getElementById('saveToast');
+  el.textContent = msg;
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+function slugify(s){
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+function updateSlugPreview(){
+  const title = document.getElementById('newTitle').value.trim();
+  const slug = slugify(title);
+  document.getElementById('newSlugPreview').textContent = slug ? `Page: catalogue_exhibition_v1_sans.html?slug=${slug}` : '';
+}
+
+async function loadExhibitions(){
+  try{
+    exhibitionsData = await modcrFetchExhibitions();
+  }catch(e){
+    document.getElementById('exhibitionsTableBody').innerHTML =
+      `<tr><td colspan="5"><div class="empty-state">Could not load exhibitions: ${e.message}</div></td></tr>`;
+    return;
+  }
+  // Work counts are fetched once per render rather than per-row on load --
+  // cheap enough at this scale, and keeps the list simple to keep in sync
+  // after adding/removing a linked work from the edit panel below.
+  const counts = {};
+  await Promise.all(exhibitionsData.map(async ex => {
+    const { count } = await modcrSupabase.from('work_exhibitions').select('work_id', { count: 'exact', head: true }).eq('exhibition_id', ex.id);
+    counts[ex.id] = count || 0;
+  }));
+  renderExhibitionsTable(counts);
+}
+
+function renderExhibitionsTable(counts){
+  const tbody = document.getElementById('exhibitionsTableBody');
+  if(exhibitionsData.length === 0){
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No exhibitions yet — add one above.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = exhibitionsData.map(ex => `
+    <tr class="${activeExhibition && activeExhibition.id === ex.id ? 'active-row' : ''}">
+      <td>${(ex.title||'').replace(/</g,'&lt;')}<div class="row-venue">${ex.slug}</div></td>
+      <td>${(ex.date_display||'').replace(/</g,'&lt;') || '—'}</td>
+      <td>${counts[ex.id] || 0}</td>
+      <td>
+        <span class="pub-badge ${ex.published ? 'live' : 'hidden'}" onclick="toggleEditing('${ex.id}','published',${!ex.published})">
+          ${ex.published ? 'Published' : 'Hidden'}
+        </span>
+      </td>
+      <td><div class="row-actions">
+        <button onclick="openEditPanel('${ex.id}')">Edit</button>
+        <button class="del-link" onclick="deleteExhibition('${ex.id}','${(ex.title||'').replace(/'/g,"\\'")}')">Delete</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+async function addExhibition(){
+  const title = document.getElementById('newTitle').value.trim();
+  if(!title){ showToast('Type a title for the exhibition.', true); return; }
+  const slug = slugify(title);
+  if(!slug){ showToast('That title needs at least one letter or number.', true); return; }
+  const payload = {
+    slug,
+    title,
+    venue: document.getElementById('newVenue').value.trim() || null,
+    date_display: document.getElementById('newDateDisplay').value.trim() || null,
+    curator: document.getElementById('newCurator').value.trim() || null,
+    citation: document.getElementById('newCitation').value.trim() || null,
+    published: document.getElementById('newPublished').checked,
+  };
+  try{
+    await modcrSaveExhibition(payload, true);
+    document.getElementById('newTitle').value = '';
+    document.getElementById('newVenue').value = '';
+    document.getElementById('newDateDisplay').value = '';
+    document.getElementById('newCurator').value = '';
+    document.getElementById('newCitation').value = '';
+    document.getElementById('newPublished').checked = false;
+    document.getElementById('newSlugPreview').textContent = '';
+    await loadExhibitions();
+    showToast('Exhibition added.');
+  }catch(e){
+    const msg = /duplicate key/i.test(e.message)
+      ? `An exhibition with the page slug "${slug}" already exists — try a slightly different title.`
+      : e.message;
+    showToast('Could not add exhibition: ' + msg, true);
+  }
+}
+
+async function toggleEditing(id, field, value){
+  try{
+    await modcrSaveExhibition({ id, [field]: value }, false);
+    const row = exhibitionsData.find(e => e.id === id);
+    if(row) row[field] = value;
+    await loadExhibitions();
+    showToast('Saved.');
+  }catch(e){
+    showToast('Could not save: ' + e.message, true);
+  }
+}
+
+async function deleteExhibition(id, title){
+  if(!confirm(`Delete "${title}"? This removes its page, its work links, and every installation/press photo attached to it. This cannot be undone.`)) return;
+  try{
+    await modcrDeleteExhibition(id);
+    if(activeExhibition && activeExhibition.id === id){
+      activeExhibition = null;
+      document.getElementById('editPanel').style.display = 'none';
+    }
+    await loadExhibitions();
+    showToast('Exhibition deleted.');
+  }catch(e){
+    showToast('Could not delete: ' + e.message, true);
+  }
+}
+
+// ── Edit panel ──
+async function openEditPanel(id){
+  activeExhibition = exhibitionsData.find(e => e.id === id);
+  if(!activeExhibition) return;
+  document.getElementById('editPanelHead').textContent = `Edit — ${activeExhibition.title}`;
+  document.getElementById('publicLink').innerHTML =
+    `Public page: <a href="catalogue_exhibition_v1_sans.html?slug=${activeExhibition.slug}" target="_blank">catalogue_exhibition_v1_sans.html?slug=${activeExhibition.slug}</a>`;
+  document.getElementById('editTitle').value = activeExhibition.title || '';
+  document.getElementById('editVenue').value = activeExhibition.venue || '';
+  document.getElementById('editDateDisplay').value = activeExhibition.date_display || '';
+  document.getElementById('editCurator').value = activeExhibition.curator || '';
+  document.getElementById('editCitation').value = activeExhibition.citation || '';
+  document.getElementById('editPublished').checked = !!activeExhibition.published;
+  document.getElementById('editPanel').style.display = 'block';
+  renderExhibitionsTable(await currentCounts());
+  await reloadLinkedWorks();
+  await reloadMedia();
+  document.getElementById('editPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+async function currentCounts(){
+  const counts = {};
+  await Promise.all(exhibitionsData.map(async ex => {
+    const { count } = await modcrSupabase.from('work_exhibitions').select('work_id', { count: 'exact', head: true }).eq('exhibition_id', ex.id);
+    counts[ex.id] = count || 0;
+  }));
+  return counts;
+}
+async function saveEditField(field, value){
+  if(!activeExhibition) return;
+  try{
+    await modcrSaveExhibition({ id: activeExhibition.id, [field]: value }, false);
+    activeExhibition[field] = value;
+    const row = exhibitionsData.find(e => e.id === activeExhibition.id);
+    if(row) row[field] = value;
+    showToast('Saved.');
+  }catch(e){
+    showToast('Could not save: ' + e.message, true);
+  }
+}
+
+// ── Work linking ──
+async function ensureWorksLoaded(){
+  if(allWorks.length === 0) allWorks = await modcrFetchWorks();
+}
+async function searchWorksToLink(q){
+  await ensureWorksLoaded();
+  const box = document.getElementById('workSearchResults');
+  const query = (q || '').trim().toLowerCase();
+  if(!query){ box.hidden = true; box.innerHTML = ''; return; }
+  const linkedIds = new Set((activeExhibition.linkedWorks || []).map(w => w.dbId));
+  const matches = allWorks.filter(w =>
+    !linkedIds.has(w.dbId) &&
+    (w.title.toLowerCase().includes(query) || String(w.id).includes(query))
+  ).slice(0, 12);
+  if(matches.length === 0){ box.hidden = true; box.innerHTML = ''; return; }
+  box.innerHTML = matches.map(w => `
+    <div class="wsr-item" onclick="linkWork('${w.dbId}')">
+      <span>${w.title.replace(/</g,'&lt;')}</span>
+      <span class="wsr-cr">${w.cr}</span>
+    </div>`).join('');
+  box.hidden = false;
+}
+async function linkWork(workDbId){
+  try{
+    await modcrLinkWorkToExhibition(activeExhibition.id, workDbId);
+    document.getElementById('workSearchInput').value = '';
+    document.getElementById('workSearchResults').hidden = true;
+    await reloadLinkedWorks();
+    await loadExhibitions();
+    showToast('Work added.');
+  }catch(e){
+    showToast('Could not link work: ' + e.message, true);
+  }
+}
+async function unlinkWork(workDbId){
+  try{
+    await modcrUnlinkWorkFromExhibition(activeExhibition.id, workDbId);
+    await reloadLinkedWorks();
+    await loadExhibitions();
+    showToast('Work removed.');
+  }catch(e){
+    showToast('Could not remove work: ' + e.message, true);
+  }
+}
+async function reloadLinkedWorks(){
+  const works = await modcrFetchExhibitionWorks(activeExhibition.id);
+  activeExhibition.linkedWorks = works;
+  const list = document.getElementById('linkedWorksList');
+  if(works.length === 0){
+    list.innerHTML = `<div class="empty-state">No works linked yet — search above to add one.</div>`;
+    return;
+  }
+  list.innerHTML = works.map(w => `
+    <div class="lw-row">
+      <span class="lw-title">${w.title.replace(/</g,'&lt;')}<span class="lw-meta">${w.cr}${w.date ? ' · ' + w.date : ''}</span></span>
+      <button class="lw-remove" onclick="unlinkWork('${w.dbId}')">Remove</button>
+    </div>`).join('');
+}
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('.work-search-row')) document.getElementById('workSearchResults').hidden = true;
+});
+
+// ── Installation / Press media ──
+function mediaSrc(m){ return modcrExhibitionMediaUrl(m.storage_path); }
+function renderMediaGrid(elId, items){
+  document.getElementById(elId).innerHTML = (items||[]).map(m => `
+    <div class="media-card" data-id="${m.id}">
+      <img class="media-thumb" src="${mediaSrc(m)}" alt="" onclick="window.open('${mediaSrc(m)}','_blank')">
+      <button class="media-remove" onclick="removeMedia('${m.id}','${(m.storage_path||'').replace(/'/g,"\\'")}')" title="Remove">×</button>
+    </div>`).join('');
+}
+async function reloadMedia(){
+  const [installation, press] = await Promise.all([
+    modcrFetchExhibitionMedia(activeExhibition.id, 'installation'),
+    modcrFetchExhibitionMedia(activeExhibition.id, 'press'),
+  ]);
+  renderMediaGrid('installGrid', installation);
+  renderMediaGrid('pressGrid', press);
+}
+async function uploadMediaFiles(files, mediaType){
+  if(!activeExhibition) return;
+  for(const file of files){
+    try{
+      await modcrUploadExhibitionMedia(activeExhibition.id, file, mediaType);
+    }catch(e){
+      showToast('Upload failed: ' + e.message, true);
+    }
+  }
+  await reloadMedia();
+}
+async function removeMedia(id, storagePath){
+  try{
+    await modcrDeleteExhibitionMedia(id, storagePath);
+    await reloadMedia();
+  }catch(e){
+    showToast('Could not remove: ' + e.message, true);
+  }
+}
+['installDropzone','pressDropzone'].forEach(id => {
+  const el = document.getElementById(id);
+  const mediaType = id === 'installDropzone' ? 'installation' : 'press';
+  ['dragenter','dragover'].forEach(evt => el.addEventListener(evt, (e)=>{ e.preventDefault(); el.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(evt => el.addEventListener(evt, (e)=>{ e.preventDefault(); el.classList.remove('dragover'); }));
+  el.addEventListener('drop', async (e)=>{
+    const files = Array.from(e.dataTransfer.files || []).filter(f => f.type.startsWith('image/'));
+    if(files.length) await uploadMediaFiles(files, mediaType);
+  });
+});
+
+(async function(){
+  await modcrRequireAuth('catalogue_admin_login_v81_sans.html');
+  modcrInitBackgroundTab('exhibitions');
+  await loadExhibitions();
+})();
+</script>
+</body>
+</html>

@@ -2,9 +2,18 @@
 //
 // Gives Chloe/Khalo/Timur real, live back-and-forth conversation grounded in
 // the actual Supabase data each persona works with, replacing the static
-// Overview blurbs on the Agents hub page. This talks to the catalogue; it
-// never edits it — no write ever happens from this function. It's read-only
-// end to end, purely conversational.
+// Overview blurbs on the Agents hub page.
+//
+// Chloe and Timur stay fully read-only, purely conversational. Khalo is the
+// one exception (2026-10-24): a live conversation can describe a new,
+// previously-uncatalogued work -- "voice intake" -- and Khalo can stage it
+// via create_staged_work/update_staged_work, the exact same tools
+// process-source-material's automated document pass already uses. This is
+// not a new trust boundary: a staged_works row is still just a draft sitting
+// in Archivist's Drafts > New Entries, still requires a human to review and
+// import it before it's a real, published work, same as every other path
+// that reaches that table. Khalo never writes to a live `works` row from
+// here, same as everywhere else in this project.
 //
 // Deploy: supabase functions deploy agent-chat
 // Requires the ANTHROPIC_API_KEY secret (Project Settings -> Edge Functions
@@ -80,10 +89,16 @@ This conversation is read-only: you can discuss, explain, and answer questions a
 
 const PERSONA_SYSTEM_PROMPTS: Record<Persona, string> = {
   khalo: `You are Khalo, the Associate Archivist for the Michele Oka Doner Catalogue Raisonné project. You research works, verify names/dates/mediums/dimensions against what's already catalogued, and process uploaded source materials (exhibition catalogs, legacy photography) to find every work they mention or depict. When you find something worth adding, you propose it as a new draft entry or a revision — you never touch a live, published work directly, and a human always reviews your proposals in Archivist's Drafts before anything goes live. You're careful, precise, and a little formal, but warm — an archivist who takes provenance seriously.
+
+This is a real back-and-forth, not a scripted Q&A — the person you're talking with (the artist or studio staff) may want to reason through a specific work, a classification call, or what's known/unknown about something, the same way they'd talk it through with a human archivist. You have real lookup tools for this (get_work, get_staged_work, search_classification_rules, search_similar_works) — use them whenever the conversation turns on a specific work's actual details or a classification rule, rather than answering from memory or general impression. A wrong guess presented as fact is worse than saying "let me check" and actually checking. Still never fabricate a fact your tools didn't confirm.
+
+**Voice/verbal intake.** When the person describes a new, previously-uncatalogued work out loud -- a piece that isn't in the works or staged_works listings you were given -- you can actually stage it, right here in this conversation, via create_staged_work. Call it as soon as you have at least a title (use "Untitled" if they haven't named it yet, same as the written-intake convention) -- don't wait for every field before creating the row. As more details come up later in the same conversation (a date, a medium, a dimension), call update_staged_work with that same staged_work_id rather than creating a second row -- re-read the conversation so far to recall which id you already created. Always check get_work and search_similar_works first if there's any chance this might already be catalogued (a re-described piece, a nickname) -- never stage a duplicate. Mention plainly, once a draft exists, that it's sitting in Archivist's Drafts > New Entries and still needs a human review before it's a real, published work -- this is staging a candidate, not publishing one. Everything else is still exactly as before: never write to a live 'works' row, never set published, never assign a cr_number -- your only write path, ever, is a staged_works draft.
 ${SHARED_RULES}`,
   chloe: `You are Chloe, the Researcher for the Michele Oka Doner Catalogue Raisonné project. Your role is to gather provenance research, exhibition history, and raw material — photography, catalogs, documents — into a holding folder for Khalo to sort through. You're read-only against the database and don't propose or write anything yourself. Be upfront that you're not built as an autonomous skill yet, so in practice Khalo currently does this research directly — you can still talk about the project, the catalogue's state, and what your role will cover once you exist. You're curious, energetic, and enthusiastic about tracking down a work's history.
 ${SHARED_RULES}`,
   timur: `You are Timur, the Infrastructure Keeper for the Michele Oka Doner Catalogue Raisonné project. You track every service and piece of infrastructure this project depends on — what each one does, what it costs, whether it's active, and whether it needs attention.
+
+Your protocol, deliberately simple for now: you explain and diagnose, you never execute a fix. Opening a fresh conversation, offer the person a choice rather than launching into a rundown unprompted — something like "would you like me to take you through the tech stack, or is there an issue that needs to be addressed?" If they describe something that sounds broken (the site's down, an image is missing, a service looks misconfigured), explain what you see and your best read on why — but then say plainly that actually fixing it is a Claude Code / Claude chat job, not something you do here, and suggest by default that they take it up there. This isn't a capability limit being worked around; it's the intended division of labor — you notice and explain, a real coding session makes the change.
 
 How the pieces actually connect (this is the real architecture — describe it this way, not as one straight pipeline):
 - The GitHub repo (Lausanne98/mod-catalogue-raisonne) deploys via GitHub Pages to the custom domain cr.micheleokadoner.com. That single static-file pipeline serves BOTH halves of the site: the Admin pages (Manage Works, Archivist's Drafts, Researcher's Desk, IT Desk, intake — behind a studio login) and the Public/front-end pages (Browse the Works, entry pages, Call for Works — no login).
@@ -108,7 +123,13 @@ ${SHARED_RULES}`,
 };
 
 const MODEL_BY_PERSONA: Record<Persona, string> = {
-  khalo: "claude-haiku-4-5",
+  // Sonnet, not Haiku -- Khalo's chat is meant to be genuine archivist-level
+  // reasoning (a real back-and-forth about a work's provenance, a
+  // classification judgment call), not a quick FAQ lookup. Measured via a
+  // real 3-turn test conversation before this change: about $0.011 per
+  // exchange on Sonnet vs $0.004 on Haiku -- a real but small cost increase,
+  // nowhere near what would justify staying on the cheaper model here.
+  khalo: "claude-sonnet-5",
   chloe: "claude-haiku-4-5",
   // Timur gets a more capable model because his job now involves real
   // judgment calls (is this update critical? is this plan actually cheaper?)
@@ -116,6 +137,270 @@ const MODEL_BY_PERSONA: Record<Persona, string> = {
   // support on Haiku 4.5.
   timur: "claude-sonnet-5",
 };
+
+// ---- Khalo's real lookup tools --------------------------------------------
+// A genuine back-and-forth about a specific work needs real specifics, not a
+// guess from the aggregate counts in buildGroundingContext(). These mirror
+// the read-only tools process-source-material's automated pass already uses
+// (get_work, get_staged_work, search_classification_rules,
+// search_similar_works) -- same underlying data, same knowledge-index
+// search, just reachable from a live conversation instead of only an
+// automated document pass. Chloe/Timur don't get these -- this upgrade is
+// specifically for Khalo's archivist-level reasoning, per the explicit ask.
+const KHALO_TOOLS: Anthropic.Tool[] = [
+  {
+    name: "get_work",
+    description:
+      "Look up one live work's full record (all fields, plus its existing work_sources citations) by CR number or title -- use this whenever the conversation turns on a specific named or numbered work, rather than answering from memory.",
+    input_schema: {
+      type: "object",
+      properties: {
+        cr_number: { type: "integer", description: "The MOD CR number, if known." },
+        title: { type: "string", description: "The work's title, if the CR number isn't known -- matched loosely." },
+      },
+    },
+  },
+  {
+    name: "get_staged_work",
+    description: "Look up one New Entries draft (staged, not yet imported into the live catalogue) by title.",
+    input_schema: {
+      type: "object",
+      properties: { title: { type: "string" } },
+      required: ["title"],
+    },
+  },
+  {
+    name: "search_classification_rules",
+    description:
+      "Semantic search over CLAUDE.md's tag/series classification rules -- use this for a material or series question not obviously covered by general knowledge (an unfamiliar material, a series edge case, a cross-categorization question).",
+    input_schema: {
+      type: "object",
+      properties: { query: { type: "string", description: "Short description of the material/series situation." } },
+      required: ["query"],
+    },
+  },
+  {
+    name: "search_similar_works",
+    description:
+      "Semantic search across works and/or staged_works by meaning (title, medium, series, notes) -- use this to check whether a described piece might already exist under a different title, or to find works similar to one being discussed.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        collection: { type: "string", enum: ["works", "staged_works", "both"], description: "Defaults to both." },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "create_staged_work",
+    description:
+      "Stage a brand-new candidate work described in this live conversation -- lands in Archivist's Drafts > New Entries for human review, exactly like a document-sourced draft. Call this as soon as you have at least a title (or 'Untitled' if none was given yet) -- don't wait for every field. Never assign a cr_number.",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        date_display: { type: "string" },
+        year: { type: "integer" },
+        medium: { type: "string" },
+        tag: { type: "string", description: "Must match a real materials.slug -- never invent one; leave unset if unsure." },
+        suggested_series: { type: "string", description: "Must match a real series.slug, the most specific tier that genuinely fits." },
+        dimensions: { type: "string" },
+        notes: { type: "string", description: "Briefly, what was said in this conversation that justifies staging it." },
+      },
+      required: ["title", "notes"],
+    },
+  },
+  {
+    name: "update_staged_work",
+    description:
+      "Add or correct fields on a staged_works draft THIS conversation already created -- call again as more details come up rather than creating a second row. Pass only the fields you're changing; append_note adds a new dated line, never replacing what's there.",
+    input_schema: {
+      type: "object",
+      properties: {
+        staged_id: { type: "string" },
+        date_display: { type: "string" },
+        year: { type: "integer" },
+        medium: { type: "string" },
+        tag: { type: "string" },
+        suggested_series: { type: "string" },
+        dimensions: { type: "string" },
+        append_note: { type: "string" },
+      },
+      required: ["staged_id"],
+    },
+  },
+];
+
+// deno-lint-ignore no-explicit-any
+type KnowledgeIndexResult = { error?: string; matches?: any };
+
+// Server-to-server call into the knowledge-index Edge Function, same
+// service-role-bearer pattern process-source-material already uses. Failures
+// come back as {error} rather than throwing, so a search tool call degrades
+// to "no results" instead of breaking the whole reply.
+// deno-lint-ignore no-explicit-any
+async function callKnowledgeIndex(action: string, body: Record<string, any>): Promise<KnowledgeIndexResult> {
+  // This had no timeout at all -- a slow/hung Voyage AI embedding call here
+  // would block Khalo's whole tool-use loop indefinitely, which the client
+  // has no way to detect or recover from (no error ever arrives, the
+  // conversation just hangs). A degraded "no results" after 15s is far
+  // better than hanging the whole reply.
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), 15_000);
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/knowledge-index`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getServiceRoleKey()}` },
+      body: JSON.stringify({ action, ...body }),
+      signal: timeoutController.signal,
+    });
+    const data = await resp.json();
+    if (!resp.ok) return { error: data.error ?? `HTTP ${resp.status}` };
+    return data;
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      return { error: "knowledge-index timed out after 15s" };
+    }
+    return { error: String(err) };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+// deno-lint-ignore no-explicit-any
+async function execKhaloTool(name: string, input: any): Promise<unknown> {
+  switch (name) {
+    case "get_work": {
+      let query = adminDb.from("works").select("*");
+      if (input.cr_number) query = query.eq("cr_number", input.cr_number);
+      else if (input.title) query = query.ilike("title", `%${input.title}%`);
+      else return { error: "Provide cr_number or title." };
+      const { data: work, error } = await query.maybeSingle();
+      if (error) throw error;
+      if (!work) return { error: "No matching work found." };
+      const { data: sources } = await adminDb
+        .from("work_sources")
+        .select("url, source_type, field, finding, confidence, accessed_at")
+        .eq("work_id", work.id)
+        .order("accessed_at", { ascending: false });
+      return { work, sources: sources ?? [] };
+    }
+    case "get_staged_work": {
+      const { data, error } = await adminDb.from("staged_works").select("*").ilike("title", `%${input.title}%`).maybeSingle();
+      if (error) throw error;
+      return data ? { staged_work: data } : { error: "No matching draft found." };
+    }
+    case "search_classification_rules": {
+      const result = await callKnowledgeIndex("search", { collection: "claude_md", query: input.query, top_k: 3 });
+      return result.error ? { error: result.error } : { rules: result.matches };
+    }
+    case "search_similar_works": {
+      const collections = input.collection === "works" || input.collection === "staged_works" ? [input.collection] : ["works", "staged_works"];
+      const results: Record<string, unknown> = {};
+      for (const c of collections) {
+        const result = await callKnowledgeIndex("search", { collection: c, query: input.query, top_k: 5 });
+        results[c] = result.error ? { error: result.error } : result.matches;
+      }
+      return results;
+    }
+    case "create_staged_work": {
+      const { data, error } = await adminDb
+        .from("staged_works")
+        .insert({
+          title: input.title,
+          title_source: "Verbal intake (live conversation with Khalo)",
+          date_display: input.date_display ?? null,
+          year: input.year ?? null,
+          medium: input.medium ?? null,
+          tag: input.tag ?? null,
+          suggested_series: input.suggested_series ?? null,
+          dimensions: input.dimensions ?? null,
+          source_url: `Verbal intake, ${new Date().toISOString().slice(0, 10)}`,
+          source_type: "verbal",
+          confidence: "candidate",
+          status: "new",
+          notes: input.notes,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return { staged_work_id: data.id };
+    }
+    case "update_staged_work": {
+      // deno-lint-ignore no-explicit-any
+      const patch: Record<string, any> = {};
+      for (const k of ["date_display", "year", "medium", "tag", "suggested_series", "dimensions"]) {
+        if (input[k] !== undefined) patch[k] = input[k];
+      }
+      if (input.append_note) {
+        const { data: current, error: fetchErr } = await adminDb
+          .from("staged_works").select("notes").eq("id", input.staged_id).single();
+        if (fetchErr) throw fetchErr;
+        patch.notes = current?.notes ? `${current.notes}\n\n${input.append_note}` : input.append_note;
+      }
+      patch.updated_at = new Date().toISOString();
+      const { error } = await adminDb.from("staged_works").update(patch).eq("id", input.staged_id);
+      if (error) throw error;
+      return { ok: true, staged_work_id: input.staged_id };
+    }
+    default:
+      return { error: `Unknown tool: ${name}` };
+  }
+}
+
+// A short, bounded tool-use loop -- a chat reply, not a full document pass,
+// so this needs nothing like process-source-material's checkpointing; 5
+// rounds is generous for "look up a work, maybe check a classification rule,
+// answer" and comfortably inside an Edge Function's wall-clock budget.
+const MAX_KHALO_TOOL_ITERATIONS = 5;
+async function runKhaloWithTools(
+  system: string,
+  initialMessages: Anthropic.MessageParam[],
+): Promise<{ text: string; stagedWorkId: string | null }> {
+  const messages = [...initialMessages];
+  // Tracks the most recent staged_works id this call actually touched (create
+  // or update), so the client can surface an "Open in Intake Form" link
+  // without having to parse it back out of Claude's own prose.
+  let stagedWorkId: string | null = null;
+  for (let i = 0; i < MAX_KHALO_TOOL_ITERATIONS; i++) {
+    const response = await anthropic.messages.create({
+      model: MODEL_BY_PERSONA.khalo,
+      max_tokens: 1536,
+      system,
+      messages,
+      tools: KHALO_TOOLS,
+    });
+    // deno-lint-ignore no-explicit-any
+    const toolUses = response.content.filter((b: any) => b.type === "tool_use");
+    if (toolUses.length === 0) {
+      const text = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join("\n\n");
+      return { text, stagedWorkId };
+    }
+    messages.push({ role: "assistant", content: response.content });
+    // deno-lint-ignore no-explicit-any
+    const toolResults: any[] = [];
+    for (const tu of toolUses) {
+      try {
+        const result = await execKhaloTool(tu.name, tu.input);
+        if (result && typeof result === "object" && "staged_work_id" in result) {
+          stagedWorkId = (result as { staged_work_id: string }).staged_work_id;
+        }
+        toolResults.push({ type: "tool_result", tool_use_id: tu.id, content: JSON.stringify(result) });
+      } catch (err) {
+        toolResults.push({ type: "tool_result", tool_use_id: tu.id, content: JSON.stringify({ error: String(err) }), is_error: true });
+      }
+    }
+    messages.push({ role: "user", content: toolResults });
+  }
+  return {
+    text: "I wasn't able to finish looking that up in time — try asking again, or a bit more specifically.",
+    stagedWorkId,
+  };
+}
 
 async function buildGroundingContext(persona: Persona): Promise<string> {
   const lines: string[] = [];
@@ -216,9 +501,20 @@ Deno.serve(async (req) => {
     PERSONA_SYSTEM_PROMPTS[persona] + (grounding ? `\n\nCurrent live data:\n${grounding}` : "");
 
   try {
+    // Khalo runs through the real tool-use loop (get_work,
+    // search_classification_rules, etc.) instead of a single call -- this is
+    // client-side custom tools, which need a genuine loop (call, execute,
+    // send results back, call again), unlike Timur's web_search below.
+    if (persona === "khalo") {
+      const { text, stagedWorkId } = await runKhaloWithTools(system, [...trimmedHistory, { role: "user", content: message }]);
+      return jsonResponse({ reply: text, staged_work_id: stagedWorkId });
+    }
+
     // Only Timur gets web search — he's the one persona whose job (checking
     // for updates/cheaper plans) actually needs live external information;
-    // Chloe/Khalo stay grounded purely in the catalogue's own data.
+    // Chloe stays grounded purely in the catalogue's own data. web_search is
+    // a server-side Anthropic tool (executed inside the API call itself), so
+    // unlike Khalo's tools above this needs no client-side loop.
     const tools = persona === "timur"
       ? [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }]
       : undefined;

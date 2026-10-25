@@ -31,6 +31,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0.110.0";
 import { createClient } from "npm:@supabase/supabase-js@2.112.3";
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
+import jpeg from "npm:jpeg-js@0.4.4";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 
@@ -104,6 +105,9 @@ The first user message contains: the citation anchor (a real URL, when this sour
 ## Write as you go — do not save it all for one big summary at the end
 Read, then act, work by work — never read the entire document first and only describe what you found afterward. The moment you're confident about one work, call the tool for it immediately (get_work/get_staged_work to check, then log_work_source/propose_work_revision/create_staged_work/update_staged_work to record it), then move to the next work. A message that only narrates candidates in prose without calling the matching tool has not accomplished anything — narrating "CR 12 should get a citation" is not the same as calling log_work_source for CR 12, and this run will explicitly reject a finish call that describes findings you never actually logged. If the document is long, that's fine — you have many tool-call turns; use them to work through it incrementally, not to produce one exhaustive essay before you've written a single row.
 
+## First: is this page even a work photo?
+Before treating a given page/image as a candidate artwork, recognize when it plainly isn't one — a press clipping or newspaper/magazine article, an exhibition-install shot with no single work clearly depicted, an invitation/announcement, a portrait of the artist alone. Call flag_support_material on that specific source_materials id the moment you recognize this, independent of whatever else you do with the page (its text can still be worth log_citation or propose_work_revision — flagging it as support material means "don't stage this as if its photo were an artwork," not "ignore everything it says"). Never call create_staged_work from a page you've flagged this way just because it carries a caption, date, or price.
+
 ## For every work the document names or depicts
 1. Try to match it against BOTH the \`works\` listing and the \`staged_works\` listing given to you (title, date, medium — confirm a fuzzy title match against date/medium before treating it as the same work, never on title alone). Checking \`works\` alone and missing an existing staged draft is exactly how a duplicate New Entries row happens. When a candidate feels like it MIGHT already exist under a different title/phrasing (a re-listed lot, a nickname vs. formal title, a near-identical sibling piece) and the plain listing doesn't settle it, call search_similar_works with a short description of the piece before deciding it's genuinely new.
 2. **Matches an existing work, confidently** — call get_work to see its full current fields and existing citations (don't re-cite something already logged, and don't propose text that contradicts what's already there — if it would contradict, log a flagged work_source instead and leave the field alone). Log every extracted fact with log_work_source. For append-safe narrative facts (see REVISABLE_FIELDS in the propose_work_revision tool), also call propose_work_revision so it reaches a human via the Revisions tab. For a singular-value fact (a dimension, a medium/tag/series correction, a date), log it via log_work_source only — mention it by CR number in your final summary so a human can enter it directly in Manage Works.
@@ -112,10 +116,19 @@ Read, then act, work by work — never read the entire document first and only d
 5. **Not in either table at all** — call create_staged_work. This is the New Entries tab; never invent a cr_number.
 6. **Every work touched in steps 2-5 — matched or newly staged — gets this document logged as a Publications/Literature citation too**, not just whatever field prompted the match. Format every citation uniformly: publication/document title, and a page number whenever you have one (a page-image row's own filename/notes tag it directly — never drop it when it's right there). "Mentioned in [document]" is not a citation; "[Publication/Document], p. [N]" is, same shape every time.
 7. **Read each page's own text for what it says, not just what it's attached to.** A catalog entry's prose routinely references OTHER exhibitions or publications this same work has appeared in ("previously exhibited at...", "as illustrated in..."). Treat each such mention as its own citable fact for that work — log and, where append-safe, propose it too. A single page can legitimately add several citations to one work.
-8. **Photos**: for a pasted-link source, a downloaded candidate photo (when one was found and fetched) appears as its own image content block right after the extracted text, each one labeled with which [IMAGE #N] marker it corresponds to and the real URL it came from — look at it the same way you'd look at a PDF page image. Position near a lot's description is a hint about which work a candidate belongs to, never proof by itself: confirm the picture actually matches the work's medium/form/other stated details before treating it as verified, and ignore a candidate that's clearly page furniture (a logo, an unrelated thumbnail, a different lot) rather than assuming the nearest marker number is automatically right. When a candidate IS a confirmed, real photo of the specific work, its own URL (not a marker number) is what goes in image_url. Never attach a full-page render, or any image that still shows a border/mat/page background around the artwork, as a work's photo. A full extracted image that's already a tight, clean crop of just the work is fine to set as a NEW staged work's image_url directly — but "tight crop" and "good enough quality" are two separate checks, do both. A phone photo of a printed catalog page (visible halftone dots, moiré pattern, blur, glare, or generally low resolution) is real, common source material — it can still be used, it should never be silently discarded — but it is not the same as a clean digital scan, and that distinction matters. When the ONLY available image for a work is one of these lower-quality captures, it's fine to still set it as a new staged work's image_url (better than no image at all), but you MUST also flag the quality issue — never attach it silently as if it were a clean source. For an EXISTING work, any candidate photo is still just a candidate regardless of quality — never set image_url on a live work yourself; note it for human review via a flagged work_source instead. Whenever a work has no usable photo at all, propose_work_revision on field: flag with a line starting exactly "Needs a source image:" plus what's missing and why (or append_note with that same line, for a staged candidate). Whenever a photo exists and is the right work but isn't a clean tight crop, OR is usable but visibly low-quality (blurry, low-resolution, moiré/halftone pattern from photographing a printed page, glare), use a line starting exactly "Needs a cleaner photo:" describing specifically which of these applies (e.g. "Needs a cleaner photo: usable but shows halftone/moiré from a phone photo of a printed auction listing — a cleaner scan or the auction house's own digital image would be better") — same placement rules as the source-image note. Never attach a genuinely wrong-work or unverifiable image just to fill the field — an unset image renders as a clean placeholder on purpose — but a verified-correct, merely-lower-quality image is a candidate worth keeping (with the flag), not something to withhold.
+8. **Photos**:
+   - *Pasted-link source*: a downloaded candidate photo (when one was found and fetched) appears as its own image content block right after the extracted text, each one labeled with which [IMAGE #N] marker it corresponds to and the real URL it came from — look at it the same way you'd look at a PDF page image. Position near a lot's description is a hint about which work a candidate belongs to, never proof by itself: confirm the picture actually matches the work's medium/form/other stated details before treating it as verified, and ignore a candidate that's clearly page furniture (a logo, an unrelated thumbnail, a different lot) rather than assuming the nearest marker number is automatically right. When a candidate IS a confirmed, real photo of the specific work, its own URL (not a marker number) goes directly into image_url (create_staged_work/update_staged_work). A full extracted image that's already a tight, clean crop of just the work is fine to set directly this way — but "tight crop" and "good enough quality" are two separate checks, do both. A phone photo of a printed catalog page (visible halftone dots, moiré pattern, blur, glare, or generally low resolution) is real, common source material — usable, never silently discarded — but flag the quality issue (see below) rather than attaching it silently as if it were a clean source. When a candidate is merely plausible — near the right lot's text but not confirmed, or ambiguous among more than one nearby image — pass it as candidate_photo_url (with candidate_photo_note explaining the uncertainty) instead of guessing it into image_url; this logs it to that draft's review bullpen for a human to check rather than silently discarding a real maybe. Ignore anything clearly unrelated entirely — don't log that as a candidate either.
+   - *Catalog/PDF source (native PDF read, or pre-extracted page images from scripts/catalog_pdf_extractor.py, each its own source_materials row with kind:'image')*: there is no separately-hosted URL for a work's photo here — it only exists as pixels on a page. Use attach_staged_work_photo, pointed at the specific source_materials image row (its id is given to you alongside that page's content). This only works against a kind:'image' row — a raw kind:'pdf' row's pages haven't been extracted yet and can't be cropped by this tool; if extraction hasn't happened, treat it exactly like having no photo at all (flag "Needs a source image:", below). Always crop tightly around just the artwork — never leave a caption strip, a second unrelated work sharing the page, or a border/mat/page background in frame; omit crop entirely only when the whole image is already nothing but the work. Use photo_role:'main' ONLY for an explicit, unambiguous signal: a caption directly naming this exact work next to its photo, a table-of-contents/List-of-Works page mapping this exact title to this exact page number together with a clear photo on that page, or simply the clearly-best overall shot once you already have other confirmed views of this same work. Use photo_role:'candidate' for anything short of that but still plausible (same page/spread as the work's mentioned, no explicit caption, ambiguous among several images on the page) — it lands in the draft's review bullpen instead of being silently discarded or wrongly auto-placed. Never call this tool at all for an image that's clearly unrelated to any work (decoration, a logo, a different already-placed work) — skip it entirely rather than logging noise as a candidate.
+   - **Main vs. supporting views vs. a genuinely different work.** Expect this roughly 1 in 4 works: a second (or third) photo on the same page/spread, or a later page, that's another angle or a detail shot of a work you've already matched/staged — not a new work. Recognize these primarily from what the source itself tells you: a shared caption/lot number covering both images, a "detail" or "verso" label, an obviously continued view of the same object from a different angle, or a List-of-Works entry listing one title against multiple figure numbers. When you're confident it's the same work: call attach_staged_work_photo again with photo_role:'supporting' against that same staged_work_id — never create_staged_work a second time for it. The first confirmed photo you attach doesn't need to be the best one; a later, clearly-better confirmed view can still go in as photo_role:'main', and the earlier one is kept, automatically moved to supporting rather than lost. When you're genuinely not sure whether an image is another view of a work you already have or an actually distinct work — the source doesn't say, and the images don't obviously match or obviously differ — do not guess either way: attach it as photo_role:'candidate' on the work/staged work you suspect it belongs to, with a note stating plainly that it might instead be a separate work, so a human decides rather than risking a false merge or a false duplicate.
+   - *Either path, for an EXISTING (already-published) work*: any candidate photo is still just a candidate regardless of source or quality — never set image_url on a live work yourself and never call attach_staged_work_photo or pass candidate_photo_url for one (both only ever touch staged_works); note it for human review via a flagged work_source instead.
+   - Whenever a work ends up with no usable photo at all — nothing confirmed, not even a candidate — propose_work_revision on field: flag with a line starting exactly "Needs a source image:" plus what's missing and why (or append_note with that same line, for a staged candidate). Whenever a photo IS attached/set but isn't a clean tight crop, or is usable but visibly low-quality (blurry, low-resolution, moiré/halftone pattern from photographing a printed page, glare), use a line starting exactly "Needs a cleaner photo:" describing specifically which issue applies — same placement rules as the source-image note. Never attach a genuinely wrong-work or unverifiable image just to fill the field — an unset image renders as a clean placeholder on purpose — but a verified-correct, merely-lower-quality image is worth keeping (with the flag), not something to withhold.
+9. **Not a priority for now: exhaustively mining essay prose for every incidental title or other-exhibition mention.** Call log_citation when a title has some concrete anchor to this document (its own captioned plate, a List of Works/checklist line, a figure number) — not for a bare name floating in a curatorial essay's prose with nothing pinning it to a specific page/plate/photo. That kind of broad, low-signal essay-mining is a real capacity (log_citation and the citation index exist for exactly this), but it's bracketed for a later pass, not this one — the core job here is identifying and photographing the artworks this document actually depicts and citing this document for each one (rule 6); don't spend tool calls chasing a passing essay mention at the expense of working through the actual plates/photos. Still call log_citation for a work you're already confidently handling in steps 2-5, same as always (that's not extra essay-mining, it's just recording the anchor you already have).
 
 ## Field extraction protocol
 Extract into structured fields, never leave a fact sitting only in prose: Title (an auction/gallery listing routinely comes as one compound string like \`"Faucet," 1986, cast bronze\` — the title field gets ONLY the name, \`Faucet\`, with the date and medium pulled out into date_display/year/medium instead; a trailing year or material after a comma, in parentheses, or after the closing quote is exactly the pattern to strip, every time, not just when it's convenient. An object-first listing puts the real name in quotes instead, with the object type or edition/gallery info wrapped around it — \`Chaise 'For Eve', edition David Gill Gallery\` or \`"Coral Wave" chair\`: the title is ONLY the quoted phrase (\`For Eve\`, \`Coral Wave\`), and everything outside the quotes — the object type, edition/gallery info — moves into medium instead, never left in title. Only pull this apart when the quotes clearly wrap a proper name distinct from the surrounding description; a lone apostrophe (a possessive like "Horace's Muse") is not this pattern and title stays as-is. If the source gives no real name at all — only a bare material/date description like "cast bronze and crystal work, c. 2005" — do not carry that description into title as if it were a name; use \`Untitled\` for title and put the real description in medium/notes instead), Date (date_display as the source states it, year as a plain number), Material (medium = descriptive label — including any object-type/edition text pulled out of the title per the rule above, folded in rather than dropped — tag = the matching materials.slug — never invent one, see the tag/series rules below), Dimensions (as stated), Series (the most specific series.slug that fits — a named sub-series before a broad bucket; never set a work's own series to early-clay unless its tag is literally ceramic, per the cross-categorization rule: a ceramic work dated before 2000 shows under Early Clay automatically via live filter logic, it does not need series set to early-clay directly), Provenance (dated ownership chain; for a museum listing, state plainly whether it's a permanent-collection holding or a past loan/exhibition, and record acquisition year/method if given), Exhibitions (venue, exhibition title, city, date, and curator name if listed), Publications/Literature (see citation format above).
+
+## Title source and photo matching
+A title is a sourced claim, never inferred from an image — always set title_source alongside title on create_staged_work/update_staged_work (which document, and where on it: "auction lot heading, [sale]", "caption beneath plate, [catalog] p.[N]"). Recognize a title by its position in the source, not just how it reads: an auction/lot listing's bolded heading above/below the lot number is the title, never the medium/dimensions/estimate line below it; a gallery/museum page's largest heading is the title, body prose explaining meaning or history is description even when it's the only text present; a printed catalog's title sits under/beside its own plate/figure number, and a later prose mention of that same title elsewhere is a citation of it, not an independent second source. When two sources genuinely disagree on a title, don't silently pick one — set title/title_source from the primary one and record the disagreement in notes/append_note as "Alternate title: '[X]' per [source]". Anchor every photo match to the source document (same page, same lot, same plate) never to visual similarity — MOD's body of work includes many visually related pieces, so a look-alike match is exactly how the wrong photo lands on the wrong entry; an image that merely shows a work incidentally (an installation shot, an archival photo with several pieces visible) is not that work's own photo.
 
 ## Tag and series classification rules
 Headlines only — the full rules (and every future addition to them) live in CLAUDE.md's "Tag/series inference rules" section and are kept queryable via search_classification_rules rather than repeated here in full every time: tag is always the base material alone, never a compound phrase (organic-material is last resort, never preferred over a more specific match in the same medium string); a wearable metal object (necklace, brooch, pendant, ring, bracelet, earring, cuff) is jewelry, everything else metal is bronze-works (Sculpture) regardless of the material being precious; all clay/ceramic work defaults to bronze-works unless a more specific named sub-series clearly fits; never invent a tag for a material not in the taxonomy given to you — leave tag/suggested_series unset and flag it for a human decision instead. **Call search_classification_rules whenever a material/series call isn't obviously covered by this summary** (an unfamiliar material, an edge case, a series question) rather than guessing from the headline alone.
@@ -220,6 +233,10 @@ const TOOLS: Anthropic.Tool[] = [
       type: "object",
       properties: {
         title: { type: "string" },
+        title_source: {
+          type: "string",
+          description: "Which document produced this title, and where on it -- e.g. \"auction lot heading, Wright sale #487\", \"caption beneath plate, PAMM catalog p.19\". A title is a sourced claim, never inferred from an image -- always set this alongside title.",
+        },
         date_display: { type: "string" },
         year: { type: "integer" },
         medium: { type: "string" },
@@ -232,8 +249,13 @@ const TOOLS: Anthropic.Tool[] = [
         image_url: {
           type: "string",
           description:
-            "Only set this if you have a real, verified, tightly-cropped, right-work image already sized per this project's convention (72dpi, max 2200px). Leave unset otherwise — a source-image request note in notes is correct instead of a guess.",
+            "Only set this if you have a real, verified, tightly-cropped, right-work image already sized per this project's convention (72dpi, max 2200px) -- for a pasted-link source's own confirmed photo (see rule 8). Leave unset otherwise — a source-image request note in notes is correct instead of a guess, or use candidate_photo_url below for a plausible-but-unconfirmed pasted-link photo. For a catalog/PDF source, use attach_staged_work_photo after creating this draft instead — a PDF page's photo has no hostable URL to put here directly.",
         },
+        candidate_photo_url: {
+          type: "string",
+          description: "A plausible-but-unconfirmed pasted-link photo's URL (see rule 8) -- logged to this draft's review bullpen instead of guessed into image_url. Pair with candidate_photo_note.",
+        },
+        candidate_photo_note: { type: "string", description: "Briefly, why this candidate photo isn't confirmed." },
         source_url: { type: "string", description: "Citation anchor for this document (filename/label + page number if known)." },
         notes: { type: "string", description: "Why this reads as a genuine, previously uncatalogued work — cite specifically." },
       },
@@ -248,6 +270,7 @@ const TOOLS: Anthropic.Tool[] = [
       type: "object",
       properties: {
         staged_id: { type: "string" },
+        title_source: { type: "string", description: "Same as create_staged_work's title_source -- set/correct this whenever this document adds or clarifies where the title came from." },
         date_display: { type: "string" },
         year: { type: "integer" },
         medium: { type: "string" },
@@ -255,9 +278,59 @@ const TOOLS: Anthropic.Tool[] = [
         suggested_series: { type: "string" },
         dimensions: { type: "string" },
         image_url: { type: "string" },
+        candidate_photo_url: {
+          type: "string",
+          description: "A plausible-but-unconfirmed pasted-link photo's URL (see rule 8) -- appended to this draft's review bullpen instead of guessed into image_url. Pair with candidate_photo_note.",
+        },
+        candidate_photo_note: { type: "string", description: "Briefly, why this candidate photo isn't confirmed." },
         append_note: { type: "string", description: "A new dated, cited line to add to this draft's notes." },
       },
       required: ["staged_id"],
+    },
+  },
+  {
+    name: "log_citation",
+    description:
+      "Log a work mention into the standing citation index — call this for EVERY MOD work this document names or depicts, not just the one(s) confidently matched/staged in this pass. This builds a searchable record so a later entry for that title (created manually on Intake, or staged separately in a future pass) arrives already primed with everything ever said about it, even a passing mention that wasn't itself confident enough to match or stage a work. Always call this IN ADDITION TO, never instead of, the get_work/get_staged_work/log_work_source/create_staged_work/update_staged_work calls for a confident match — this is a supplementary index, not a replacement for those.",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "The work's title exactly as it appears in this source." },
+        citation_kind: { type: "string", enum: ["publication", "exhibition", "provenance", "auction", "other"] },
+        citation_text: {
+          type: "string",
+          description: "The actual citation content, formatted as a real citation -- a provenance line, an exhibition line, a literature reference, an auction record.",
+        },
+        source_url: { type: "string", description: "Citation anchor for this document (filename/label + page number if known), or a real URL." },
+        work_id: { type: "string", description: "Set only if this title is confidently matched to a live work you've already confirmed via get_work." },
+        staged_work_id: { type: "string", description: "Set only if this title is confidently matched to an existing staged draft you've already confirmed via get_staged_work." },
+      },
+      required: ["title", "citation_kind", "citation_text", "source_url"],
+    },
+  },
+  {
+    name: "attach_staged_work_photo",
+    description:
+      "Attach a photo to a staged_works draft, cropped from an already-extracted catalog page image (a source_materials row with kind:'image' -- e.g. from scripts/catalog_pdf_extractor.py). Does NOT work on a raw kind:'pdf' row directly -- extraction must already have produced individual page images. Crop out anything that isn't the work itself before attaching. A work has supplemental photos (another angle, a detail shot) roughly 1 in 4 times -- recognize those as additional views of the SAME work, never as a reason to stage a second work. photo_role:'main' sets the draft's single featured photo -- use ONLY for an explicit, unambiguous signal (a caption naming this exact work next to its photo, a table-of-contents/List-of-Works page number match, or simply the one clearly-best overall shot when several confirmed views exist). If this draft already has a main photo, the previous one is moved to supporting automatically, never discarded. photo_role:'supporting' confirms this photo as another view of the SAME work as the main photo -- already decided, not a maybe, just not the featured shot. photo_role:'candidate' logs it to the draft's review bullpen instead -- use for anything plausible but short of confirmed, including genuine uncertainty about whether an image is another view of this work or actually a different, distinct work (see rule 8). See rule 8 for the full guidance.",
+    input_schema: {
+      type: "object",
+      properties: {
+        staged_work_id: { type: "string" },
+        source_material_id: { type: "string", description: "The source_materials.id (kind:'image') holding the page image to crop from." },
+        crop: {
+          type: "object",
+          description: "Normalized (0-1) crop box within that image, tightly around just the artwork. Omit only when the whole image is already nothing but the work.",
+          properties: {
+            x: { type: "number", description: "Left edge, 0-1 fraction of image width." },
+            y: { type: "number", description: "Top edge, 0-1 fraction of image height." },
+            width: { type: "number", description: "0-1 fraction of image width." },
+            height: { type: "number", description: "0-1 fraction of image height." },
+          },
+        },
+        photo_role: { type: "string", enum: ["main", "supporting", "candidate"] },
+        note: { type: "string", description: "For photo_role:'candidate' only -- briefly, why this is a maybe, not a certainty (including \"might be a different work\" if that's the actual uncertainty)." },
+      },
+      required: ["staged_work_id", "source_material_id", "photo_role"],
     },
   },
   {
@@ -286,6 +359,24 @@ const TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: "flag_support_material",
+    description:
+      "Call this on a specific source_materials row (a single page/image from the batch, by its own id) that is clearly NOT a photo of a standalone artwork -- a press clipping or newspaper/magazine article, an exhibition-install shot with no single work clearly depicted, an invitation/announcement, a portrait of the artist alone, or similar. This is independent of the batch's overall finish outcome and of any citation work you still do with the page's text (a press article can still be worth log_citation/propose_work_revision for what it says, even though it isn't itself a work photo) -- call this whenever the recognition applies, regardless of what else you do with the page. Never call create_staged_work from a page you've flagged this way just because it has a caption or date on it.",
+    input_schema: {
+      type: "object",
+      properties: {
+        source_material_id: { type: "string" },
+        material_type: {
+          type: "string",
+          enum: ["press", "installation", "other"],
+          description: "press = newspaper/magazine clipping or article. installation = exhibition/install documentation with no single work clearly depicted. other = anything else that plainly isn't a work photo (invitation, portrait of the artist, etc.).",
+        },
+        reason: { type: "string", description: "One short sentence on why this isn't a work photo." },
+      },
+      required: ["source_material_id", "material_type", "reason"],
+    },
+  },
+  {
     name: "finish",
     description:
       "Call this exactly once, when you are done processing every page/image given to you. Ends the run and writes your summary to the source_materials row(s).",
@@ -305,6 +396,12 @@ const TOOLS: Anthropic.Tool[] = [
       },
       required: ["outcome", "summary"],
     },
+    // Last tool in the array -- a cache_control breakpoint here caches the
+    // entire (large, static) tool schema list, same rationale as the system
+    // prompt breakpoint in runPass(). Anthropic's prompt caching caches
+    // everything up to and including the marked block.
+    // deno-lint-ignore no-explicit-any
+    cache_control: { type: "ephemeral" } as any,
   },
 ];
 
@@ -368,6 +465,7 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
         .from("staged_works")
         .insert({
           title: input.title,
+          title_source: input.title_source ?? null,
           date_display: input.date_display ?? null,
           year: input.year ?? null,
           medium: input.medium ?? null,
@@ -375,6 +473,9 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
           suggested_series: input.suggested_series ?? null,
           dimensions: input.dimensions ?? null,
           image_url: input.image_url ?? null,
+          candidate_photos: input.candidate_photo_url
+            ? [{ url: input.candidate_photo_url, note: input.candidate_photo_note ?? null, added_at: new Date().toISOString() }]
+            : [],
           source_url: input.source_url,
           source_type: "publication",
           confidence: "candidate",
@@ -395,22 +496,162 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
     case "update_staged_work": {
       // deno-lint-ignore no-explicit-any
       const patch: Record<string, any> = {};
-      for (const k of ["date_display", "year", "medium", "tag", "suggested_series", "dimensions", "image_url"]) {
+      for (const k of ["title_source", "date_display", "year", "medium", "tag", "suggested_series", "dimensions", "image_url"]) {
         if (input[k] !== undefined) patch[k] = input[k];
       }
-      if (input.append_note) {
+      if (input.append_note || input.candidate_photo_url) {
         const { data: current, error: fetchErr } = await adminDb
           .from("staged_works")
-          .select("notes")
+          .select("notes, candidate_photos")
           .eq("id", input.staged_id)
           .single();
         if (fetchErr) throw fetchErr;
-        patch.notes = current?.notes ? `${current.notes}\n\n${input.append_note}` : input.append_note;
+        if (input.append_note) {
+          patch.notes = current?.notes ? `${current.notes}\n\n${input.append_note}` : input.append_note;
+        }
+        if (input.candidate_photo_url) {
+          const existing = Array.isArray(current?.candidate_photos) ? current.candidate_photos : [];
+          patch.candidate_photos = [
+            ...existing,
+            { url: input.candidate_photo_url, note: input.candidate_photo_note ?? null, added_at: new Date().toISOString() },
+          ];
+        }
       }
       patch.updated_at = new Date().toISOString();
       const { error } = await adminDb.from("staged_works").update(patch).eq("id", input.staged_id);
       if (error) throw error;
       return { ok: true };
+    }
+    case "log_citation": {
+      const { data, error } = await adminDb
+        .from("work_citations")
+        .insert({
+          title_raw: input.title,
+          normalized_title: String(input.title).toLowerCase().trim(),
+          citation_kind: input.citation_kind,
+          citation_text: input.citation_text,
+          source_url: input.source_url,
+          source_material_id: sourceMaterialId,
+          work_id: input.work_id ?? null,
+          staged_work_id: input.staged_work_id ?? null,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return { citation_id: data.id };
+    }
+    case "attach_staged_work_photo": {
+      const { data: sourceRow, error: srcErr } = await adminDb
+        .from("source_materials")
+        .select("kind, storage_path")
+        .eq("id", input.source_material_id)
+        .maybeSingle();
+      if (srcErr) throw srcErr;
+      if (!sourceRow || sourceRow.kind !== "image" || !sourceRow.storage_path) {
+        return {
+          error:
+            "source_material_id must reference an existing source_materials row with kind:'image' and a storage_path -- a raw kind:'pdf' row can't be cropped directly by this tool; extraction (scripts/catalog_pdf_extractor.py) must produce page images first.",
+        };
+      }
+      const { data: fileBlob, error: dlErr } = await adminDb.storage.from("source-materials").download(sourceRow.storage_path);
+      if (dlErr || !fileBlob) return { error: `Could not download source image: ${dlErr?.message ?? "unknown error"}` };
+      let bytes = new Uint8Array(await fileBlob.arrayBuffer());
+      // Tracks whether the requested crop actually applied -- a crop error
+      // fails open (attach the full image rather than lose the photo
+      // entirely) but that must be visible to the model, not just logged,
+      // or a failed crop silently looks identical to a successful one.
+      let cropApplied = false;
+      let cropError: string | null = null;
+      if (input.crop) {
+        try {
+          bytes = cropJpeg(bytes, input.crop);
+          cropApplied = true;
+        } catch (err) {
+          cropError = String(err);
+          console.error("attach_staged_work_photo: crop failed, using full image:", err);
+        }
+      }
+      const path = `${input.staged_work_id}/${crypto.randomUUID()}.jpg`;
+      const { error: upErr } = await adminDb.storage.from("staged-work-photos").upload(path, bytes, { contentType: "image/jpeg", upsert: true });
+      if (upErr) return { error: `Could not upload photo: ${upErr.message}` };
+      const { data: pub } = adminDb.storage.from("staged-work-photos").getPublicUrl(path);
+      const publicUrl = pub.publicUrl;
+      // Durability principle (CLAUDE.md "PDF/image mechanical layer"): store
+      // the source coordinates alongside the output, not just the cropped
+      // pixels -- null crop means the whole source image was used unmodified
+      // (by request, or because the requested crop failed to apply).
+      const imageCrop = { source_material_id: input.source_material_id, crop: cropApplied ? input.crop : null };
+
+      const addedAt = new Date().toISOString();
+
+      if (input.photo_role === "main") {
+        // A draft's existing main photo (if any) is a real, already-confirmed
+        // view of this same work -- a new main never simply overwrites it.
+        // It moves to supporting_photos instead, so attaching a better/later
+        // main shot can never silently lose an earlier confirmed photo.
+        const { data: current, error: fetchErr } = await adminDb
+          .from("staged_works")
+          .select("image_url, image_crop, supporting_photos")
+          .eq("id", input.staged_work_id)
+          .single();
+        if (fetchErr) throw fetchErr;
+        const supporting = Array.isArray(current?.supporting_photos) ? current.supporting_photos : [];
+        if (current?.image_url) {
+          supporting.push({
+            url: current.image_url,
+            source_material_id: (current.image_crop as { source_material_id?: string } | null)?.source_material_id ?? null,
+            crop: (current.image_crop as { crop?: unknown } | null)?.crop ?? null,
+            added_at: addedAt,
+          });
+        }
+        const { error } = await adminDb
+          .from("staged_works")
+          .update({ image_url: publicUrl, image_crop: imageCrop, supporting_photos: supporting, updated_at: addedAt })
+          .eq("id", input.staged_work_id);
+        if (error) throw error;
+        return {
+          attached_as: "main",
+          image_url: publicUrl,
+          displaced_previous_main_to_supporting: !!current?.image_url,
+          ...(cropError ? { crop_failed: cropError } : {}),
+        };
+      } else if (input.photo_role === "supporting") {
+        const { data: current, error: fetchErr } = await adminDb
+          .from("staged_works")
+          .select("supporting_photos")
+          .eq("id", input.staged_work_id)
+          .single();
+        if (fetchErr) throw fetchErr;
+        const supporting = Array.isArray(current?.supporting_photos) ? current.supporting_photos : [];
+        supporting.push({ url: publicUrl, source_material_id: input.source_material_id, crop: cropApplied ? input.crop : null, added_at: addedAt });
+        const { error } = await adminDb
+          .from("staged_works")
+          .update({ supporting_photos: supporting, updated_at: addedAt })
+          .eq("id", input.staged_work_id);
+        if (error) throw error;
+        return { attached_as: "supporting", image_url: publicUrl, ...(cropError ? { crop_failed: cropError } : {}) };
+      } else {
+        const { data: current, error: fetchErr } = await adminDb
+          .from("staged_works")
+          .select("candidate_photos")
+          .eq("id", input.staged_work_id)
+          .single();
+        if (fetchErr) throw fetchErr;
+        const candidates = Array.isArray(current?.candidate_photos) ? current.candidate_photos : [];
+        candidates.push({
+          url: publicUrl,
+          note: input.note ?? null,
+          source_material_id: input.source_material_id,
+          crop: cropApplied ? input.crop : null,
+          added_at: addedAt,
+        });
+        const { error } = await adminDb
+          .from("staged_works")
+          .update({ candidate_photos: candidates, updated_at: addedAt })
+          .eq("id", input.staged_work_id);
+        if (error) throw error;
+        return { logged_as_candidate: true, image_url: publicUrl, ...(cropError ? { crop_failed: cropError } : {}) };
+      }
     }
     case "search_classification_rules": {
       const result = await callKnowledgeIndex("search", { collection: "claude_md", query: input.query, top_k: 3 });
@@ -426,6 +667,19 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
       }
       return results;
     }
+    case "flag_support_material": {
+      const { data: row, error: fetchErr } = await adminDb
+        .from("source_materials").select("notes").eq("id", input.source_material_id).maybeSingle();
+      if (fetchErr) throw fetchErr;
+      if (!row) return { error: "No source_materials row with that id." };
+      const { error } = await adminDb.from("source_materials").update({
+        likely_support_material: true,
+        support_material_type: input.material_type,
+        notes: appendNote(row.notes, `[${new Date().toISOString()}] Flagged as ${input.material_type}, not a work photo: ${input.reason}`),
+      }).eq("id", input.source_material_id);
+      if (error) throw error;
+      return { ok: true };
+    }
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -434,6 +688,44 @@ async function execTool(name: string, input: any, sourceMaterialId: string | nul
 function appendNote(existing: string | null | undefined, line: string): string {
   return existing ? `${existing}\n\n${line}` : line;
 }
+
+// Pure-JS JPEG decode/crop/re-encode -- no native bindings, safe to run in
+// the Edge Function's sandboxed Deno runtime (which can't load an arbitrary
+// native PDF/image library the way a local script running PyMuPDF/Pillow
+// could -- see scripts/catalog_pdf_extractor.py's own docstring on exactly
+// this constraint). Only ever called on an already-extracted, already-flat
+// page image -- never asked to rasterize a PDF page itself, which is a much
+// harder problem this function deliberately does not attempt.
+function cropJpeg(bytes: Uint8Array, crop: { x: number; y: number; width: number; height: number }): Uint8Array {
+  const decoded = jpeg.decode(bytes, { useTArray: true });
+  const srcW = decoded.width, srcH = decoded.height;
+  const x = Math.max(0, Math.min(srcW - 1, Math.round(crop.x * srcW)));
+  const y = Math.max(0, Math.min(srcH - 1, Math.round(crop.y * srcH)));
+  const w = Math.max(1, Math.min(srcW - x, Math.round(crop.width * srcW)));
+  const h = Math.max(1, Math.min(srcH - y, Math.round(crop.height * srcH)));
+  const out = new Uint8Array(w * h * 4);
+  for (let row = 0; row < h; row++) {
+    const srcOffset = ((y + row) * srcW + x) * 4;
+    out.set(decoded.data.subarray(srcOffset, srcOffset + w * 4), row * w * 4);
+  }
+  const encoded = jpeg.encode({ data: out, width: w, height: h }, 88);
+  return new Uint8Array(encoded.data);
+}
+
+// (Reverted -- see below) A prior fix here decoded/resampled/re-encoded
+// each JPEG server-side to dodge Anthropic's many-image size cap. Confirmed
+// via function_logs that this is exactly what killed a real 56-page batch:
+// "CPU Time exceeded" a few seconds after boot, well before the first
+// Anthropic call -- Supabase's per-invocation CPU budget, not its wall-clock
+// ceiling (the thing runPass's own batching already protects against), and
+// nothing in buildInitialCheckpoint's pre-loop phase has any protection
+// against that at all. A pure-JS pixel-by-pixel resample, run synchronously
+// dozens of times in one invocation, is exactly the kind of CPU-bound work
+// that blows a strict CPU quota in seconds even though it's fast in wall-clock
+// terms. The real fix now lives where the images are actually produced --
+// modcrExtractPdfPages (modcr-client.js) renders each page at a resolution
+// already safe for Anthropic's many-image cap, so no server-side resize step
+// is needed here at all.
 
 // ---- The actual pass, run in the background --------------------------------
 
@@ -511,11 +803,38 @@ const MAX_BATCH_ITERATIONS = 30;
 // on calling finish.
 const MAX_TOTAL_ITERATIONS = 200;
 
+// Real dollar ceiling, not just an iteration-count proxy for one -- a chatty
+// run could hit the iteration cap at very different real costs depending on
+// how verbose each turn is. Computed from response.usage on every call
+// (exact, not estimated) against claude-sonnet-5's published per-token
+// rates (https://claude.com/pricing, checked 2026-09-30): $2/MTok input,
+// $10/MTok output, $0.20/MTok cache read, $2.50/MTok cache write. Tune this
+// per the studio's own comfort level -- $5 is a deliberately conservative
+// default for the first real test run, not a permanent number.
+const MAX_COST_USD = 5;
+const SONNET_RATES_PER_MTOK = { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 };
+function computeCallCostUsd(usage: {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens?: number | null;
+  cache_creation_input_tokens?: number | null;
+}): number {
+  return (
+    (usage.input_tokens / 1_000_000) * SONNET_RATES_PER_MTOK.input +
+    (usage.output_tokens / 1_000_000) * SONNET_RATES_PER_MTOK.output +
+    ((usage.cache_read_input_tokens ?? 0) / 1_000_000) * SONNET_RATES_PER_MTOK.cacheRead +
+    ((usage.cache_creation_input_tokens ?? 0) / 1_000_000) * SONNET_RATES_PER_MTOK.cacheWrite
+  );
+}
+
 type Checkpoint = {
   // deno-lint-ignore no-explicit-any
   messages: any[];
   totalIterations: number;
   writeCount: number;
+  // Real, measured running total (see computeCallCostUsd) -- not an
+  // estimate, and not reset across a self-invoke handoff.
+  cumulativeCostUsd: number;
 };
 
 // Tracks real writes (not get_work/get_staged_work reads, not finish
@@ -523,7 +842,14 @@ type Checkpoint = {
 // logged/proposed/staged can be caught and rejected rather than accepted
 // at face value -- a prose summary of what COULD be written is not the
 // same as it having been written.
-const WRITE_TOOLS = new Set(["log_work_source", "propose_work_revision", "create_staged_work", "update_staged_work"]);
+const WRITE_TOOLS = new Set([
+  "log_work_source",
+  "propose_work_revision",
+  "create_staged_work",
+  "update_staged_work",
+  "log_citation",
+  "attach_staged_work_photo",
+]);
 
 async function buildInitialCheckpoint(
   rows: { id: string; kind: string; filename: string; storage_path: string | null; url: string | null; notes: string | null }[],
@@ -653,7 +979,7 @@ async function buildInitialCheckpoint(
       docBlocks.push({ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } });
       docBlocks.push({
         type: "text",
-        text: `source_materials row id ${row.id}, filename "${row.filename}". Notes/page text for this image:\n${row.notes ?? "(none)"}`,
+        text: `source_materials row id ${row.id} (use this exact id as source_material_id if you call attach_staged_work_photo against this image), filename "${row.filename}". Notes/page text for this image:\n${row.notes ?? "(none)"}`,
       });
     }
   }
@@ -670,7 +996,7 @@ async function buildInitialCheckpoint(
     ...docBlocks,
   ];
 
-  return { messages: [{ role: "user", content: initialUserContent }], totalIterations: 0, writeCount: 0 };
+  return { messages: [{ role: "user", content: initialUserContent }], totalIterations: 0, writeCount: 0, cumulativeCostUsd: 0 };
 }
 
 // Hands off to a fresh invocation of this same function to continue from a
@@ -724,6 +1050,43 @@ async function callKnowledgeIndex(action: string, body: Record<string, any>): Pr
   }
 }
 
+// deno-lint-ignore no-explicit-any
+type ContentBlock = { type: string; cache_control?: unknown; [k: string]: any };
+
+// Applies rolling prompt-caching breakpoints to the conversation before each
+// API call. Without this, every single iteration of the tool loop -- and
+// every batch a checkpoint hands off to (see continueViaSelfInvoke) --
+// resent and fully reprocessed the entire original PDF/image content from
+// scratch, which for a large catalog is slow enough to risk exceeding
+// Supabase's hard Edge Function wall-clock ceiling mid-request (the
+// diagnosed cause of a run getting killed mid-flight with no chance to
+// checkpoint or log an error). The initial user message (the huge
+// PDF/grounding-data content built in buildInitialCheckpoint, identical on
+// every call for the life of this document) gets a permanent breakpoint.
+// The last message in the conversation gets a second, rolling breakpoint so
+// the ever-growing tool-call history is cached too -- each call's prefix
+// (everything up to the newest content) matches what the previous call
+// already cached, the standard pattern for an agentic tool-use loop. System
+// + tools each hold one fixed breakpoint of their own (see runPass/TOOLS),
+// so this uses the remaining two of Anthropic's 4-breakpoint-per-request
+// cap -- any marker left over from an earlier iteration (when a
+// since-superseded message was "last") is stripped first so the total never
+// exceeds that cap.
+function applyCacheControl(messages: { role: string; content: unknown }[]): void {
+  for (const m of messages) {
+    if (!Array.isArray(m.content)) continue;
+    for (const block of m.content as ContentBlock[]) delete block.cache_control;
+  }
+  const first = messages[0]?.content;
+  if (Array.isArray(first) && first.length > 0) {
+    (first[first.length - 1] as ContentBlock).cache_control = { type: "ephemeral" };
+  }
+  const last = messages[messages.length - 1]?.content;
+  if (Array.isArray(last) && last.length > 0) {
+    (last[last.length - 1] as ContentBlock).cache_control = { type: "ephemeral" };
+  }
+}
+
 async function runPass(sourceMaterialIds: string[]): Promise<void> {
   const batchStart = Date.now();
   let rows: { id: string; kind: string; filename: string; storage_path: string | null; url: string | null; notes: string | null; checkpoint: Checkpoint | null }[] = [];
@@ -747,7 +1110,7 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
     if (!resuming) {
       await adminDb.from("source_materials").update({ status: "processing", progress: "Starting…", checkpoint: null }).in("id", sourceMaterialIds);
     } else {
-      await adminDb.from("source_materials").update({ status: "processing", progress: `Resuming from step ${existingCheckpoint!.totalIterations}…` }).in("id", sourceMaterialIds);
+      await adminDb.from("source_materials").update({ status: "processing", progress: `Resuming from step ${existingCheckpoint!.totalIterations}… ($${(existingCheckpoint!.cumulativeCostUsd ?? 0).toFixed(2)} so far)` }).in("id", sourceMaterialIds);
     }
 
     const checkpoint: Checkpoint = resuming ? existingCheckpoint! : (await buildInitialCheckpoint(rows))!;
@@ -764,23 +1127,31 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
     const messages = checkpoint.messages;
     let totalIterations = checkpoint.totalIterations;
     let writeCount = checkpoint.writeCount;
+    let cumulativeCostUsd = checkpoint.cumulativeCostUsd ?? 0; // ?? 0 -- a checkpoint saved before this field existed
     let finishResult: { outcome: string; summary: string } | null = null;
     let batchIterations = 0;
+    let costCeilingHit = false;
 
     while (
       !finishResult &&
       totalIterations < MAX_TOTAL_ITERATIONS &&
       batchIterations < MAX_BATCH_ITERATIONS &&
-      Date.now() - batchStart < BATCH_WALL_CLOCK_BUDGET_MS
+      Date.now() - batchStart < BATCH_WALL_CLOCK_BUDGET_MS &&
+      !costCeilingHit
     ) {
+      applyCacheControl(messages);
       const response = await anthropic.messages.create({
         model: "claude-sonnet-5",
         max_tokens: 8192,
-        system: SYSTEM_PROMPT,
+        system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
         tools: TOOLS,
         messages,
         // deno-lint-ignore no-explicit-any
       } as any);
+
+      // deno-lint-ignore no-explicit-any
+      cumulativeCostUsd += computeCallCostUsd(response.usage as any);
+      if (cumulativeCostUsd >= MAX_COST_USD) costCeilingHit = true;
 
       messages.push({ role: "assistant", content: response.content });
 
@@ -849,7 +1220,7 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
       if (!finishResult) {
         await adminDb
           .from("source_materials")
-          .update({ progress: `Step ${totalIterations} of up to ${MAX_TOTAL_ITERATIONS} — ${writeCount} finding${writeCount === 1 ? "" : "s"} logged so far.` })
+          .update({ progress: `Step ${totalIterations} of up to ${MAX_TOTAL_ITERATIONS} — ${writeCount} finding${writeCount === 1 ? "" : "s"} logged so far — $${cumulativeCostUsd.toFixed(2)} so far.` })
           .in("id", sourceMaterialIds);
       }
     }
@@ -859,7 +1230,29 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
       for (const r of rows) {
         await adminDb
           .from("source_materials")
-          .update({ status: finalStatus, progress: null, checkpoint: null, notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass: ${finishResult.summary}`) })
+          .update({ status: finalStatus, progress: null, checkpoint: null, notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass ($${cumulativeCostUsd.toFixed(2)}): ${finishResult.summary}`) })
+          .eq("id", r.id);
+      }
+      return;
+    }
+
+    if (costCeilingHit) {
+      // Hard dollar ceiling -- a real, measured running total (not the
+      // iteration-count proxy below), checked after every single API call.
+      // Give up honestly rather than silently blowing past the number the
+      // studio actually agreed to for this run.
+      for (const r of rows) {
+        await adminDb
+          .from("source_materials")
+          .update({
+            status: "flagged",
+            progress: null,
+            checkpoint: null,
+            notes: appendNote(
+              r.notes,
+              `[${new Date().toISOString()}] Automated pass stopped at its $${MAX_COST_USD} cost ceiling (actual: $${cumulativeCostUsd.toFixed(2)}), ${totalIterations} steps in, ${writeCount} findings logged — needs a human look at what was actually written, and a decision on whether to raise the ceiling and resume (click Process again) or leave it as-is.`,
+            ),
+          })
           .eq("id", r.id);
       }
       return;
@@ -878,7 +1271,7 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
             checkpoint: null,
             notes: appendNote(
               r.notes,
-              `[${new Date().toISOString()}] Automated pass hit its ${MAX_TOTAL_ITERATIONS}-step safety cap without calling finish (${writeCount} findings logged) — needs a human look at what was actually written (check Work Sources / New Entries / Revisions for this document's citation).`,
+              `[${new Date().toISOString()}] Automated pass hit its ${MAX_TOTAL_ITERATIONS}-step safety cap without calling finish ($${cumulativeCostUsd.toFixed(2)}, ${writeCount} findings logged) — needs a human look at what was actually written (check Work Sources / New Entries / Revisions for this document's citation).`,
             ),
           })
           .eq("id", r.id);
@@ -888,10 +1281,10 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
 
     // Ran out of this batch's time/iteration budget without finishing --
     // save exactly where we are and hand off to a fresh invocation.
-    const nextCheckpoint: Checkpoint = { messages, totalIterations, writeCount };
+    const nextCheckpoint: Checkpoint = { messages, totalIterations, writeCount, cumulativeCostUsd };
     await adminDb
       .from("source_materials")
-      .update({ progress: `Paused after step ${totalIterations} of up to ${MAX_TOTAL_ITERATIONS} — continuing automatically…`, checkpoint: nextCheckpoint })
+      .update({ progress: `Paused after step ${totalIterations} of up to ${MAX_TOTAL_ITERATIONS} — $${cumulativeCostUsd.toFixed(2)} so far — continuing automatically…`, checkpoint: nextCheckpoint })
       .in("id", sourceMaterialIds);
 
     const handedOff = await continueViaSelfInvoke(sourceMaterialIds);
@@ -905,7 +1298,7 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
           .update({
             status: "flagged",
             progress: null,
-            notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass paused at step ${totalIterations} (${writeCount} findings logged) but couldn't hand off to continue automatically — click Process again to resume from here.`),
+            notes: appendNote(r.notes, `[${new Date().toISOString()}] Automated pass paused at step ${totalIterations} ($${cumulativeCostUsd.toFixed(2)}, ${writeCount} findings logged) but couldn't hand off to continue automatically — click Process again to resume from here.`),
           })
           .eq("id", r.id);
       }
@@ -931,6 +1324,11 @@ async function runPass(sourceMaterialIds: string[]): Promise<void> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+
+  // (Cost-control halt removed 2026-10-10 -- real per-call cost logging and
+  // a $5 hard dollar ceiling, computeCallCostUsd()/MAX_COST_USD above, are
+  // now in place. See the operator's own note in git history for why this
+  // existed from 2026-09-25 to here.)
 
   let body: { source_material_ids?: string[]; source_material_id?: string; __internal_resume?: boolean };
   try {
