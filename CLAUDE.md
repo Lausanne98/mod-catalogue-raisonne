@@ -402,6 +402,20 @@ still reads them as one cross-referenced document) — this only covers pages
 just uploaded in that same session; there's no standing multi-select in the
 grid to batch-process an older, already-uploaded set of pages together.
 
+## Color conventions (admin UI)
+Red (`var(--red)`) is reserved for an actual error/failure state only — a
+toast reporting a failed save, a chat message that didn't send, a form
+validation error. It is **not** used on any button, including a genuinely
+destructive one (Discard/Trash/Delete/Remove) — red read as "angry" even
+there, by explicit studio direction. Every destructive action instead
+hovers to `var(--gold)` (the dark bronze/brown `#7a5c3a` already used for
+every other accent on these pages), same family as a non-destructive
+action's neutral/ink treatment, just distinguishable as the one that
+removes something. This superseded an intermediate rule (red reserved for
+destructive-only, reversible actions like Reject went neutral) that no
+longer holds — don't reintroduce red on a button of any kind without
+checking with the studio first.
+
 ## Credentials / secrets
 This repo is public (served via GitHub Pages) — never commit a password, API
 secret key, or other credential into any file that goes into git, regardless
