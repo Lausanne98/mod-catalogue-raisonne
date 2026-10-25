@@ -170,4 +170,118 @@ Finding mentions/posts about the artist's work on social platforms.
 **Open — not started:**
 - [ ] `research_finds.category` already has a `'social-media'` option in the
       schema, but no actual crawling/searching logic targets social
-      platforms yet. Everything here is still to be designed and built.
+      platforms yet.
+
+**Full handoff spec received 2026-10-25 — "MODCR Social Media Citations:
+Handoff for Claude Code (v1)".** This is "Workstream D" of a referenced
+`MODCR_Agentic_Layer_Brief_v1.md`, which is **not currently in this repo** —
+treat that reference as external until/unless it's added here. Filed below
+as received; not started.
+
+**Context:** Social media is a subsection of Citations, on both the admin
+intake form and the public work page. Every social post — pasted in by a
+person or found automatically — lands as a draft in that Social Media
+subsection, attached to one or more works. Nothing goes public without
+human approval. Platforms in scope: Instagram, TikTok, X, YouTube.
+
+**Ground rules for whoever builds this:**
+- [ ] Build in a worktree or separate branch; create new table(s) only —
+      never alter/delete/migrate existing tables.
+- [ ] No deletes or destructive SQL — write SQL out for Jordan to run
+      himself; the Supabase connection for this work is read-only.
+- [ ] No publishing of any record without human approval.
+- [ ] No automated screenshot/screen-recording capture of third-party
+      posts — a stored copy is saved only once Permissions status is
+      "granted".
+- [ ] Version each deliverable sequentially (v1, v2, v3...).
+- [ ] If a tool call fails twice, stop and ask — don't switch to a more
+      permanent workaround.
+
+**What's recorded per post:** platform, account handle, post date, view
+count (where available), URL, which work(s) it concerns, rights status,
+and a human-entered note. Store only the URL and human-entered facts
+wherever a platform's terms don't allow persisting embed content/metadata.
+
+**Capture approach:** each platform's oEmbed endpoint for a live embed +
+basic metadata (not a copy of the photo/video file); check each platform's
+current persistence terms before storing any metadata; optionally offer an
+archived link (Wayback Machine / Perma.cc) as a link-rot safeguard, after
+confirming that service's own terms work for the platform.
+
+**Permissions tab:** tracks rights status per post (not requested / drafted
+/ sent / granted / declined); drafts outreach (DM/email) for human approval
+before sending; only on "granted" can the stored asset be saved and linked.
+
+**Stories fast path (24-hour expiry):** a Story-based mention gets flagged
+time-sensitive with a pre-drafted, one-tap permission request queued for
+human approval. If the Story expires first, log it as missed/expired
+(account, date, what was observed) with no capture.
+
+**Manual capture (intake form fields — build first):** this is expected to
+be the primary path, since capture will be serendipitous/incomplete.
+- [ ] Add a separate Social Media subsection under Citations (alongside
+      Publications) — appears only when at least one social entry exists
+      on that work (site-wide empty-is-invisible rule: no blank labels/
+      placeholders anywhere, public page or saved-record display alike).
+- [ ] Every field on a social entry is optional: media (screenshot/image/
+      video drag-and-drop, into the same media storage/library as every
+      other CR media, not a separate store), account name, post date, view
+      count, original post URL. A record with only an uploaded media file
+      and nothing else must stand on its own with no empty text below it.
+- [ ] Each new entry is a draft; rights status defaults to "not requested";
+      nothing shows publicly until approved, and a stored copy shows
+      publicly only once rights status is "granted".
+- [ ] A time-sensitive checkbox for Story captures, triggering the Stories
+      fast-path permission request.
+- Acceptance: a draft with only an uploaded screenshot saves and displays
+  with no empty labels; adding an account name makes it appear; removing
+  it makes it disappear again.
+
+**Phase 1 — research only, no building, stop for review:**
+- [ ] Per platform (Instagram, TikTok, X, YouTube): how a post can be found
+      automatically today — official API options, access requirements,
+      cost, rate limits, what each returns.
+- [ ] Paid third-party monitoring/listening services covering these
+      platforms — approximate cost/reliability; flag any relying on
+      scraping that violates platform terms.
+- [ ] Each platform's current terms on oEmbed persistence and on scraping.
+- [ ] A recommendation for the lowest-risk discovery route. Do not build
+      any crawler/scraper, and do not create accounts or API keys without
+      Jordan's approval, in this phase.
+
+**Phase 2 — manual link-paste path (build first):** researcher pastes a
+post URL into the admin citations form; system detects the platform,
+fetches the oEmbed embed + allowed metadata, shows the live embed,
+pre-fills account/date/view-count where permitted; a human links it to
+one or more works and approves before saving.
+
+**Phase 3 — Permissions tab + Stories fast path:** build the rights-status
+workflow and drafted outreach, then the Stories flag, per the sections above.
+
+**Phase 4 — public display:** under Citations on the public work page,
+social posts show as one or two example tiles at roughly one-third scale,
+expandable to the full set, each clickable into its own citation, platform
+icons identifying the source. Front-end task, follows the CR design
+language.
+
+**Phase 5 — automatic discovery, only if Phase 1 finds a compliant
+route:** expectation going in is that Instagram/TikTok/X don't allow
+reliable automatic crawling, so the manual intake fields are likely the
+whole feature in practice. Possible exception: tag/mention notifications
+from the studio's own Instagram account via the official API, feeding
+drafts. If a compliant route exists: discovered posts enter as drafts
+only, never published; a post matching an already-live work becomes a
+draft revision of that work's record; a post matching no known work
+becomes a new draft entry; a human reviews and approves every draft. If
+Phase 1 finds no compliant route, skip this phase entirely — no crawler.
+
+**Acceptance checks (whole feature):**
+- [ ] Given a post URL, the record shows platform, account, date, views
+      where permitted, and a live embed.
+- [ ] No media file is stored unless the Permissions tab shows "granted".
+- [ ] A Story mention produces a flagged, pre-drafted permission request.
+- [ ] Nothing is published without human approval.
+
+**Non-goals:** no scraping that violates a platform's terms; no automated
+capture of third-party social content without granted permission; no
+changes to the PDF pipeline or the existing agents.
