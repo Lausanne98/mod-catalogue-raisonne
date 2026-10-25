@@ -40,6 +40,35 @@ the associate-archivist skill's Mode B, `modcrExtractPdfPages` in
       silently vanishing with no trace.
 - [x] Color migration off the old yellow-green (`--agent-lt`) and off red for
       non-error states, site-wide for destructive buttons (now bronze/gold).
+- [x] **Page-attribution bug fixed** in `process-source-material`: a
+      multi-page batch (e.g. a 4-page PAMM upload) was silently crediting
+      every work/citation found on pages 2+ to page 1's `source_material_id`
+      — page 1's card showed all 7 drafts piling up, pages 2-4 looked like
+      they'd produced nothing. Root cause: `runPass` always passed the
+      batch's first page id as the default, and `create_staged_work`/
+      `log_citation` had no way to override it. Fixed by adding an explicit,
+      now-required `source_material_id` input to both tools (Khalo sets it
+      to the specific page a work was actually found on) and a new system-
+      prompt rule (5a) spelling out why. Deployed as function version 25,
+      2026-10-25.
+- [x] **"Sent to Archivist" now surfaces document-sourced drafts**, not just
+      Chloe's web/social finds — previously a draft Khalo staged straight
+      from a processed PDF/image had no `research_finds` row at all, so it
+      simply vanished from the page the moment its source document left the
+      Pending queue, with nothing showing it had landed anywhere. Researcher's
+      Desk v69 adds `documentSentToArchivistRows()`/`documentDraftBar()`
+      reading `stagedFromMaterials` directly, shown under the "All" filter
+      (these drafts don't carry one of the web/social categories), with its
+      own Trash action (`modcrDeleteStagedWork`). Wired into `renderGrid()`'s
+      15s poll loop too, so it updates live, not just on page reload.
+- [x] "Artworks only" notation added to the Intake form's photo dropzone
+      ("Drop photos here (artwork only)", v127) — wrong things (support
+      material, whole catalog pages) had been getting dropped into the
+      single-work photo zone.
+- [x] **Confirmed working well in production** (2026-10-25): the
+      `attach_staged_work_photo` crop function — a PDF upload produced an
+      accurately cropped photo landing correctly on its draft. No changes
+      needed; noted here as a validated capability, not an open item.
 
 **Open:**
 - [ ] **Stop/pause button** for an in-progress Process run — right now the
@@ -55,16 +84,16 @@ the associate-archivist skill's Mode B, `modcrExtractPdfPages` in
       upload on 2026-10-25.
 - [ ] Re-upload the cleaned PAMM Catalog PDF through Researcher's Desk for
       proper photo attachment (the original Sept run's images never
-      attached correctly; the 36 resulting test drafts were discarded).
+      attached correctly; the 36 resulting test drafts were discarded) — now
+      that the page-attribution bug above is fixed, this re-upload should
+      finally group correctly by page.
 - [ ] 95-artwork MutualArt batch: citations, reconcile flag (Death Masks
       date conflict), and ~73 new drafts are built and ready (see
       `/tmp/mutualart_work/all_sql.sql` from the 2026-10-25 session if still
       present) but the final bulk INSERT/UPDATE hasn't landed yet — the
       Supabase SQL tool keeps timing out on large multi-statement queries
-      (not just DELETEs, now confirmed). Needs retrying in smaller chunks.
-- [ ] "Artworks only" notation on the Intake form, so printed support
-      material (exhibition catalogs, gallery flyers) doesn't get mistaken
-      for an artwork photo during intake.
+      (not just DELETEs, now confirmed). Needs retrying in smaller chunks,
+      and re-verifying what, if anything, actually landed.
 - [ ] Fix the 5 (now re-pointed, but worth re-checking) MutualArt citations
       and any other non-URL `source_url` values site-wide for the same
       "shows as plain text instead of a dead link" treatment Drafts got.

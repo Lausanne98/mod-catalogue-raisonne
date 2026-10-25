@@ -180,7 +180,7 @@
   <div class="header-title">MOD CR — Admin</div>
   <div class="header-nav">
     <a href="catalogue_admin_v117_sans.html">Dashboard</a>
-    <a href="catalogue_intake_v126_sans.html">Add a Work</a>
+    <a href="catalogue_intake_v127_sans.html">Add a Work</a>
     <a href="catalogue_admin_chronology_v63_sans.html">Chronology</a>
     <a href="catalogue_admin_sources_v51_sans.html">Sources</a>
     <a href="catalogue_admin_exhibitions_v2_sans.html">Exhibitions</a>
@@ -189,7 +189,7 @@
       <div class="nav-dropdown-menu">
         <a href="catalogue_admin_agents_v60_sans.html">CR Team</a>
         <a href="catalogue_admin_drafts_v61_sans.html">Archivist's Desk</a>
-        <a href="catalogue_admin_researcher_v68_sans.html">Researcher's Desk</a>
+        <a href="catalogue_admin_researcher_v69_sans.html">Researcher's Desk</a>
         <a href="catalogue_admin_it_v50_sans.html">IT</a>
       </div>
     </div>
@@ -476,7 +476,7 @@ function renderSpreadsheet(){
     // single click on one cell edits just that cell in place (see
     // startCellEdit) -- distinct gestures for "fix this one field" vs.
     // "I need the whole form" (provenance, exhibitions, photos, etc.).
-    return `<tr ondblclick="location.href='catalogue_intake_v126_sans.html?edit=${w.id}'">${cells}</tr>`;
+    return `<tr ondblclick="location.href='catalogue_intake_v127_sans.html?edit=${w.id}'">${cells}</tr>`;
   }).join('');
 }
 
@@ -625,7 +625,7 @@ function render(){
     return;
   }
   tbody.innerHTML = sorted.map(w=>{
-    return `<tr class="row-clickable" onclick="location.href='catalogue_intake_v126_sans.html?edit=${w.id}'">
+    return `<tr class="row-clickable" onclick="location.href='catalogue_intake_v127_sans.html?edit=${w.id}'">
       <td>${w.img?`<img class="row-thumb" src="${w.img}" alt="" onerror="this.style.visibility='hidden'">`:''}</td>
       <td class="row-title">${w.title}${!w.published?` <span class="draft-badge-sm">Draft</span>`:''}${w.flag?` <span class="flag-badge" title="${w.flag}"><span class="icon-mono">⚠</span> needs review</span>`:''}</td>
       <td>${w.cr}</td>
@@ -633,7 +633,7 @@ function render(){
       <td>${materialLabels[w.tag] || ''}</td>
       <td>${seriesLabels[w.series] || ''}</td>
       <td><div class="row-actions" onclick="event.stopPropagation()">
-        <a href="catalogue_intake_v126_sans.html?edit=${w.id}">Edit</a>
+        <a href="catalogue_intake_v127_sans.html?edit=${w.id}">Edit</a>
         <button class="del-link" onclick="deleteWork('${w.dbId}','${w.title.replace(/'/g,"\\'")}')">Delete</button>
       </div></td>
     </tr>`;

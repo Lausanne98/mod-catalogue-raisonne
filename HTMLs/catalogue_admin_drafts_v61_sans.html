@@ -231,7 +231,7 @@
   <div class="header-nav">
     <a href="catalogue_admin_v117_sans.html">Dashboard</a>
     <a href="catalogue_admin_manage_v115_sans.html">Works</a>
-    <a href="catalogue_intake_v126_sans.html">Add a Work</a>
+    <a href="catalogue_intake_v127_sans.html">Add a Work</a>
     <a href="catalogue_admin_chronology_v63_sans.html">Chronology</a>
     <a href="catalogue_admin_sources_v51_sans.html">Sources</a>
     <a href="catalogue_admin_exhibitions_v2_sans.html">Exhibitions</a>
@@ -240,7 +240,7 @@
       <div class="nav-dropdown-menu">
         <a href="catalogue_admin_agents_v60_sans.html">CR Team</a>
         <a href="catalogue_admin_drafts_v61_sans.html">Archivist's Desk</a>
-        <a href="catalogue_admin_researcher_v68_sans.html">Researcher's Desk</a>
+        <a href="catalogue_admin_researcher_v69_sans.html">Researcher's Desk</a>
         <a href="catalogue_admin_it_v50_sans.html">IT</a>
       </div>
     </div>
@@ -539,7 +539,7 @@ async function openDraft(id, status){
     try{ await modcrSaveStagedWork({ status: 'reviewing' }, id); }
     catch(e){ console.error('Could not mark draft as reviewing:', e); /* navigate anyway -- this is a nicety, not a gate */ }
   }
-  location.href = `catalogue_intake_v126_sans.html?from_draft=${id}`;
+  location.href = `catalogue_intake_v127_sans.html?from_draft=${id}`;
 }
 function draftBar(s){
   const imported = s.status === 'imported';

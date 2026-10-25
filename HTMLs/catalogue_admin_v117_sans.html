@@ -117,7 +117,7 @@
   <div class="header-title">MOD CR — Admin</div>
   <div class="header-nav">
     <a href="catalogue_admin_manage_v115_sans.html">Works</a>
-    <a href="catalogue_intake_v126_sans.html">Add a Work</a>
+    <a href="catalogue_intake_v127_sans.html">Add a Work</a>
     <a href="catalogue_admin_chronology_v63_sans.html">Chronology</a>
     <a href="catalogue_admin_sources_v51_sans.html">Sources</a>
     <a href="catalogue_admin_exhibitions_v2_sans.html">Exhibitions</a>
@@ -126,7 +126,7 @@
       <div class="nav-dropdown-menu">
         <a href="catalogue_admin_agents_v60_sans.html">CR Team</a>
         <a href="catalogue_admin_drafts_v61_sans.html">Archivist's Desk</a>
-        <a href="catalogue_admin_researcher_v68_sans.html">Researcher's Desk</a>
+        <a href="catalogue_admin_researcher_v69_sans.html">Researcher's Desk</a>
         <a href="catalogue_admin_it_v50_sans.html">IT</a>
       </div>
     </div>
@@ -159,7 +159,7 @@
       <h2>Manage Works →</h2>
       <p>Browse, search, and filter every catalogued work by name, timeframe, or material. Edit or delete a work.</p>
     </a>
-    <a class="action-card" href="catalogue_intake_v126_sans.html">
+    <a class="action-card" href="catalogue_intake_v127_sans.html">
       <h2>Add a Work →</h2>
       <p>The intake form — new work details, photos, and a verbal annotation.</p>
     </a>
@@ -244,7 +244,7 @@ function setPanelTab(tab){
     flagWrap.innerHTML = '<div class="flag-empty">No works currently flagged.</div>';
   }else{
     flagWrap.innerHTML = '<ul class="flag-list">' + flagged.map(w => `
-      <li>${rowThumbHtml(w.img)}<div class="flag-body"><a href="catalogue_intake_v126_sans.html?edit=${w.id}">${w.title} (${w.cr})</a><span class="flag-note">${w.flag}</span></div></li>
+      <li>${rowThumbHtml(w.img)}<div class="flag-body"><a href="catalogue_intake_v127_sans.html?edit=${w.id}">${w.title} (${w.cr})</a><span class="flag-note">${w.flag}</span></div></li>
     `).join('') + '</ul>';
   }
 
@@ -262,7 +262,7 @@ function setPanelTab(tab){
     ]);
     const items = [
       ...staged.filter(s => s.status === 'new').map(s => ({
-        href: `catalogue_intake_v126_sans.html?from_draft=${s.id}`,
+        href: `catalogue_intake_v127_sans.html?from_draft=${s.id}`,
         title: s.title || 'Untitled new work',
         note: 'New Entry',
         img: s.image_url || null,
