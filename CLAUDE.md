@@ -1,5 +1,13 @@
 # MOD Catalogue Raisonné — conventions
 
+## Running task list
+See `ROADMAP.md` at the repo root for the living, cross-session list of
+high-level initiatives (PDF processing, conversant agents, conversant
+intake form, automatic web crawl, social media crawl) and their open
+subtasks. Add to it whenever a new idea/bug/feature comes up that isn't
+handled immediately, rather than letting it live only in chat history —
+and check it at the start of a session covering any of its initiatives.
+
 ## Agent team
 See `AGENT_ARCHITECTURE.md` at the repo root for the named agent team
 (Chloe/Khalo/Timur), their scoped permissions, and the write-access model
