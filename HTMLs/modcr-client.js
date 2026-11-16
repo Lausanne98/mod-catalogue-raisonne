@@ -257,7 +257,8 @@ async function modcrUploadExhibitionMedia(exhibitionId, file, mediaType){
   const { error: upErr } = await modcrSupabase.storage.from('exhibition-media').upload(path, file, { upsert: false });
   if(upErr) throw upErr;
   const { data, error } = await modcrSupabase.from('exhibition_media')
-    .insert({ exhibition_id: exhibitionId, storage_path: path, media_type: mediaType })
+    .insert({ exhibition_id: exhibitionId, storage_path: path, media_type: mediaType,
+      sort_order: await modcrNextSortOrder('exhibition_media', { exhibition_id: exhibitionId, media_type: mediaType }) })
     .select().single();
   if(error) throw error;
   return data;
@@ -266,6 +267,11 @@ async function modcrDeleteExhibitionMedia(id, storagePath){
   await modcrSupabase.storage.from('exhibition-media').remove([storagePath]);
   const { error } = await modcrSupabase.from('exhibition_media').delete().eq('id', id);
   if(error) throw error;
+}
+async function modcrReorderExhibitionMedia(orderedIds){
+  const results = await Promise.all(orderedIds.map((id, i) =>
+    modcrSupabase.from('exhibition_media').update({ sort_order: i }).eq('id', id)));
+  const bad = results.find(r => r.error); if(bad) throw bad.error;
 }
 async function modcrUpdateExhibitionMediaCaption(id, caption){
   const { error } = await modcrSupabase.from('exhibition_media').update({ caption: caption || null }).eq('id', id);
@@ -302,11 +308,77 @@ async function modcrUploadSectionMedia(workId, section, file, opts){
     work_id: workId, section, storage_path: path, is_public: isPublic,
     caption: opts.caption || null,
     citation_key: opts.citationKey || null,
+    sort_order: await modcrNextSortOrder('work_section_media', { work_id: workId, section }),
     extracted_text: opts.extractedText || null,
     text_status: opts.extractedText ? (opts.textStatus || 'unverified') : null
   }).select().single();
   if(error) throw error;
   return data;
+}
+async function modcrReorderSectionMedia(orderedIds){
+  const results = await Promise.all(orderedIds.map((id, i) =>
+    modcrSupabase.from('work_section_media').update({ sort_order: i }).eq('id', id)));
+  const bad = results.find(r => r.error); if(bad) throw bad.error;
+}
+// Next sort_order (max + 1) for a new item appended to a group, so a fresh upload lands last.
+async function modcrNextSortOrder(table, match){
+  let q = modcrSupabase.from(table).select('sort_order').order('sort_order', { ascending: false }).limit(1);
+  for(const k in match) q = q.eq(k, match[k]);
+  const { data } = await q;
+  return data && data.length ? (data[0].sort_order || 0) + 1 : 0;
+}
+// ---- Generic reorder for any grid of [data-id] items (drag, or the ‹ › buttons) ----
+// Pointer-based (not native HTML5 drag, which swallows <img> drags). Handlers are delegated
+// on the container once, so re-rendering its innerHTML never needs re-binding. onChange(ids)
+// gets the new order of data-id values after every move.
+function modcrMakeReorderable(container, itemSel, onChange){
+  if(!container) return;
+  container._rSel = itemSel; container._rCb = onChange;
+  if(container._rBound) return;
+  container._rBound = true;
+  let el = null, pid = null, active = false, sx = 0, sy = 0;
+  container.addEventListener('pointerdown', e => {
+    const it = e.target.closest(container._rSel);
+    if(!it || !container.contains(it) || e.target.closest('input, textarea, select')) return;
+    el = it; pid = e.pointerId; active = false; sx = e.clientX; sy = e.clientY;
+  });
+  container.addEventListener('pointermove', e => {
+    if(!el || e.pointerId !== pid) return;
+    if(!active){
+      if(Math.hypot(e.clientX - sx, e.clientY - sy) < 6) return;
+      active = true; el.classList.add('dragging');
+      try{ el.setPointerCapture(pid); }catch(_){}
+    }
+    const t = document.elementFromPoint(e.clientX, e.clientY);
+    const target = t && t.closest(container._rSel);
+    if(target && target !== el && container.contains(target)){
+      const r = target.getBoundingClientRect();
+      const before = (e.clientX - r.left) < r.width / 2;
+      container.insertBefore(el, before ? target : target.nextSibling);
+    }
+  });
+  const end = e => {
+    if(!el || e.pointerId !== pid) return;
+    const was = active;
+    el.classList.remove('dragging'); el = null; pid = null; active = false;
+    if(was){
+      const block = ev => { ev.stopPropagation(); ev.preventDefault(); };
+      container.addEventListener('click', block, { capture: true, once: true });
+      setTimeout(() => container.removeEventListener('click', block, true), 0);
+      container._rCb([...container.querySelectorAll(container._rSel)].map(c => c.dataset.id));
+    }
+  };
+  container.addEventListener('pointerup', end);
+  container.addEventListener('pointercancel', end);
+}
+// ‹ / › buttons: move the item holding `btn` one place earlier (-1) or later (+1).
+function modcrNudge(btn, dir){
+  const it = btn.closest('[data-id]'); if(!it) return;
+  const c = it.parentElement; if(!c || !c._rCb) return;
+  const sib = dir < 0 ? it.previousElementSibling : it.nextElementSibling;
+  if(!sib || !sib.matches(c._rSel)) return;
+  c.insertBefore(it, dir < 0 ? sib : sib.nextSibling);
+  c._rCb([...c.querySelectorAll(c._rSel)].map(x => x.dataset.id));
 }
 // A written-text-only attachment for a citation (no image) -- typed or pasted by a person.
 async function modcrAddSectionText(workId, section, text, opts){

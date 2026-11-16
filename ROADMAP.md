@@ -416,3 +416,7 @@ a photo of how a piece looked in print). Text stays; photos are additive.
 - Done: each citation line gets its own attachments (`work_section_media.citation_key` = short title like "Slivka 1981", derived by `modcrCiteKeys`); clipping photo and/or written text; short title is a link (to `catalogue_citation_v1_sans.html`) only when something visible is attached, otherwise plain text.
 - Open: if a citation line is edited so its short title changes, its attachments show under "Not matched to a citation" in Intake until the line is restored or they are deleted.
 - Open: inline short-title links inside Exhibition History entries (e.g. "(Venet 2011, p. 172)") pointing at the matching Literature entry, as on the Lichtenstein site.
+
+### Reorder + delete everywhere photos are uploaded (2026-11-16)
+- Done: shared `modcrMakeReorderable`/`modcrNudge` (drag or ‹ › buttons), saved as sort_order, for Intake exhibition photos, per-citation clippings, and the Exhibitions page installation/press photos; each has a visible Delete. Work photos and Series photos already had it.
+- Open: other upload areas (Sources/Researcher source pages, annotations) not yet audited for reorder.
