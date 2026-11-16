@@ -429,40 +429,40 @@
   </button>
   <div class="header-title">Michele Oka Doner — Work Intake</div>
   <div class="header-sub">
-    <a href="catalogue_admin_v117_sans.html">Dashboard</a> ·
-    <a href="catalogue_admin_manage_v115_sans.html">Works</a> ·
-    <a href="catalogue_admin_chronology_v63_sans.html">Chronology</a> ·
-    <a href="catalogue_admin_sources_v51_sans.html">Sources</a> ·
-    <a href="catalogue_admin_exhibitions_v2_sans.html">Exhibitions</a> ·
+    <a href="catalogue_admin_v118_sans.html">Dashboard</a> ·
+    <a href="catalogue_admin_manage_v116_sans.html">Works</a> ·
+    <a href="catalogue_admin_chronology_v64_sans.html">Chronology</a> ·
+    <a href="catalogue_admin_sources_v52_sans.html">Sources</a> ·
+    <a href="catalogue_admin_exhibitions_v3_sans.html">Exhibitions</a> ·
     <span class="nav-dropdown" id="agentsNavDropdown">
       <button class="nav-dropdown-trigger" onclick="toggleNavDropdown(event)">Agents ▾</button>
       <span class="nav-dropdown-menu">
-        <a href="catalogue_admin_agents_v61_sans.html">CR Team</a>
-        <a href="catalogue_admin_drafts_v61_sans.html">Archivist's Desk</a>
-        <a href="catalogue_admin_researcher_v69_sans.html">Researcher's Desk</a>
-        <a href="catalogue_admin_it_v50_sans.html">IT</a>
+        <a href="catalogue_admin_agents_v62_sans.html">CR Team</a>
+        <a href="catalogue_admin_drafts_v62_sans.html">Archivist's Desk</a>
+        <a href="catalogue_admin_researcher_v70_sans.html">Researcher's Desk</a>
+        <a href="catalogue_admin_it_v51_sans.html">IT</a>
       </span>
     </span> ·
-    <a href="catalogue_admin_it_v50_sans.html">IT</a> ·
+    <a href="catalogue_admin_it_v51_sans.html">IT</a> ·
     <a href="catalogue_v77_sans.html">View Site</a> ·
-    <button onclick="modcrLogOut('catalogue_admin_login_v81_sans.html')">Log Out</button>
+    <button onclick="modcrLogOut('catalogue_admin_login_v82_sans.html')">Log Out</button>
   </div>
   <button class="hamburger-btn" onclick="toggleMobileNav()" aria-label="Menu" title="Menu">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
 </header>
 <div class="mobile-nav-panel" id="mobileNavPanel">
-  <a href="catalogue_admin_v117_sans.html">Dashboard</a>
-  <a href="catalogue_admin_manage_v115_sans.html">Works</a>
-  <a href="catalogue_admin_chronology_v63_sans.html">Chronology</a>
-  <a href="catalogue_admin_sources_v51_sans.html">Sources</a>
-  <a href="catalogue_admin_exhibitions_v2_sans.html">Exhibitions</a>
-  <a href="catalogue_admin_drafts_v61_sans.html">Drafts</a>
-  <a href="catalogue_admin_agents_v61_sans.html">Agents</a>
-  <a href="catalogue_admin_researcher_v69_sans.html">Researcher's Desk</a>
-  <a href="catalogue_admin_it_v50_sans.html">IT</a>
+  <a href="catalogue_admin_v118_sans.html">Dashboard</a>
+  <a href="catalogue_admin_manage_v116_sans.html">Works</a>
+  <a href="catalogue_admin_chronology_v64_sans.html">Chronology</a>
+  <a href="catalogue_admin_sources_v52_sans.html">Sources</a>
+  <a href="catalogue_admin_exhibitions_v3_sans.html">Exhibitions</a>
+  <a href="catalogue_admin_drafts_v62_sans.html">Drafts</a>
+  <a href="catalogue_admin_agents_v62_sans.html">Agents</a>
+  <a href="catalogue_admin_researcher_v70_sans.html">Researcher's Desk</a>
+  <a href="catalogue_admin_it_v51_sans.html">IT</a>
   <a href="catalogue_v77_sans.html">View Site</a>
-  <button onclick="modcrLogOut('catalogue_admin_login_v81_sans.html')">Log Out</button>
+  <button onclick="modcrLogOut('catalogue_admin_login_v82_sans.html')">Log Out</button>
 </div>
 
 <main>
@@ -1031,7 +1031,7 @@ async function saveWork(){
     document.getElementById('formTitle').textContent = 'Editing: ' + saved.title + ' (MOD CR ' + saved.cr_number + ')';
     markSaved();
     updatePublishUI();
-    history.replaceState(null, '', 'catalogue_intake_v127_sans.html?edit=' + saved.cr_number);
+    history.replaceState(null, '', 'catalogue_intake_v128_sans.html?edit=' + saved.cr_number);
 
     // First save of a work started from a Draft Entry bar -- mark the
     // draft imported so it drops off Archivist's Drafts' New Entries list
@@ -1089,7 +1089,7 @@ async function deleteCurrentWork(){
   if(!confirm('Delete this work from the catalogue? This cannot be undone.')) return;
   try{
     await modcrDeleteWork(currentDbId);
-    window.location.href = 'catalogue_admin_manage_v115_sans.html';
+    window.location.href = 'catalogue_admin_manage_v116_sans.html';
   }catch(e){
     showToast('Could not delete: ' + e.message, true);
   }
@@ -2261,7 +2261,7 @@ async function loadFromQueryString(){
 }
 
 (async function(){
-  await modcrRequireAuth('catalogue_admin_login_v81_sans.html');
+  await modcrRequireAuth('catalogue_admin_login_v82_sans.html');
   modcrInitBackgroundTab('intake');
   await populateSeriesSelect();
   await populateMaterialSelect();
