@@ -1505,3 +1505,40 @@ begin
   end if;
 end;
 $$;
+
+-- ═══ WORK SECTION MEDIA (2026-11-16) — photos/clippings under Exhibition History
+-- and Publications/Literature on a work; optional extracted text; per-item
+-- visible/private. Private items live in a private bucket (file moves between
+-- buckets when visibility changes). Already applied to the live project. ═══
+create table if not exists work_section_media (
+  id             uuid primary key default gen_random_uuid(),
+  work_id        uuid not null references works(id) on delete cascade,
+  section        text not null check (section in ('exhibition','publication')),
+  storage_path   text not null,
+  caption        text,
+  sort_order     integer not null default 0,
+  is_public      boolean not null default true,
+  extracted_text text,
+  text_status    text check (text_status in ('unverified','verified')),
+  created_at     timestamptz not null default now()
+);
+create index if not exists work_section_media_work_idx on work_section_media(work_id, section);
+alter table work_section_media enable row level security;
+drop policy if exists "work_section_media_public_read" on work_section_media;
+create policy "work_section_media_public_read" on work_section_media for select
+  using (auth.role() = 'authenticated' or is_public = true);
+drop policy if exists "work_section_media_admin_write" on work_section_media;
+create policy "work_section_media_admin_write" on work_section_media for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+insert into storage.buckets (id, name, public) values ('section-media-public', 'section-media-public', true) on conflict (id) do nothing;
+insert into storage.buckets (id, name, public) values ('section-media-private', 'section-media-private', false) on conflict (id) do nothing;
+drop policy if exists "section_media_public_read" on storage.objects;
+create policy "section_media_public_read" on storage.objects for select using (bucket_id = 'section-media-public');
+drop policy if exists "section_media_private_read" on storage.objects;
+create policy "section_media_private_read" on storage.objects for select using (bucket_id = 'section-media-private' and auth.role() = 'authenticated');
+drop policy if exists "section_media_admin_insert" on storage.objects;
+create policy "section_media_admin_insert" on storage.objects for insert with check (bucket_id in ('section-media-public','section-media-private') and auth.role() = 'authenticated');
+drop policy if exists "section_media_admin_update" on storage.objects;
+create policy "section_media_admin_update" on storage.objects for update using (bucket_id in ('section-media-public','section-media-private') and auth.role() = 'authenticated');
+drop policy if exists "section_media_admin_delete" on storage.objects;
+create policy "section_media_admin_delete" on storage.objects for delete using (bucket_id in ('section-media-public','section-media-private') and auth.role() = 'authenticated');

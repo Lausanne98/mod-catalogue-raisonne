@@ -272,6 +272,74 @@ async function modcrUpdateExhibitionMediaCaption(id, caption){
   if(error) throw error;
 }
 
+// ---- Work section media (Exhibition History / Publications photos & clippings) ----
+// Visible items live in the public bucket; private items in a private one, so
+// "private" is real. Changing visibility moves the file between buckets.
+function modcrSectionBucket(isPublic){ return isPublic ? 'section-media-public' : 'section-media-private'; }
+async function modcrSectionMediaSrc(item){
+  if(item.is_public) return modcrSupabase.storage.from('section-media-public').getPublicUrl(item.storage_path).data.publicUrl;
+  const { data, error } = await modcrSupabase.storage.from('section-media-private').createSignedUrl(item.storage_path, 3600);
+  if(error) throw error;
+  return data.signedUrl;
+}
+async function modcrFetchSectionMedia(workId, section){
+  let q = modcrSupabase.from('work_section_media').select('*').eq('work_id', workId)
+    .order('sort_order').order('created_at');
+  if(section) q = q.eq('section', section);
+  const { data, error } = await q;
+  if(error) throw error;
+  return data || [];
+}
+async function modcrUploadSectionMedia(workId, section, file, opts){
+  opts = opts || {};
+  const isPublic = opts.isPublic !== false;
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${workId}/${section}/${modcrGenId()}.${ext}`;
+  const { error: upErr } = await modcrSupabase.storage.from(modcrSectionBucket(isPublic)).upload(path, file, { upsert: false });
+  if(upErr) throw upErr;
+  const { data, error } = await modcrSupabase.from('work_section_media').insert({
+    work_id: workId, section, storage_path: path, is_public: isPublic,
+    caption: opts.caption || null,
+    extracted_text: opts.extractedText || null,
+    text_status: opts.extractedText ? (opts.textStatus || 'unverified') : null
+  }).select().single();
+  if(error) throw error;
+  return data;
+}
+async function modcrUpdateSectionMedia(id, patch){
+  const { error } = await modcrSupabase.from('work_section_media').update(patch).eq('id', id);
+  if(error) throw error;
+}
+async function modcrSetSectionMediaVisibility(item, makePublic){
+  if(!!item.is_public === !!makePublic) return item;
+  const from = modcrSectionBucket(item.is_public), to = modcrSectionBucket(makePublic);
+  const { data: blob, error: dlErr } = await modcrSupabase.storage.from(from).download(item.storage_path);
+  if(dlErr) throw dlErr;
+  const { error: upErr } = await modcrSupabase.storage.from(to).upload(item.storage_path, blob, { upsert: true });
+  if(upErr) throw upErr;
+  await modcrUpdateSectionMedia(item.id, { is_public: makePublic });
+  await modcrSupabase.storage.from(from).remove([item.storage_path]);
+  return Object.assign({}, item, { is_public: makePublic });
+}
+async function modcrDeleteSectionMedia(item){
+  await modcrSupabase.storage.from(modcrSectionBucket(item.is_public)).remove([item.storage_path]);
+  const { error } = await modcrSupabase.from('work_section_media').delete().eq('id', item.id);
+  if(error) throw error;
+}
+// Reads a clipping/scan with Claude's vision (Edge Function) and returns plain text.
+// Always unverified until a person reviews it.
+async function modcrExtractClippingText(file){
+  const buf = new Uint8Array(await file.arrayBuffer());
+  let bin = ''; const chunk = 0x8000;
+  for(let i = 0; i < buf.length; i += chunk) bin += String.fromCharCode.apply(null, buf.subarray(i, i + chunk));
+  const { data, error } = await modcrSupabase.functions.invoke('transcribe-clipping', {
+    body: { image_base64: btoa(bin), media_type: file.type || 'image/jpeg' }
+  });
+  if(error) throw error;
+  if(data && data.error) throw new Error(data.error);
+  return (data && data.text) || '';
+}
+
 // ---- Shared text-cleanup helpers (research_finds -> staged_works -> intake) ----
 // Kept here, not duplicated per page, so title/tag parsing behaves
 // identically wherever it runs: at auto-promotion time (Researcher's Desk),
