@@ -386,3 +386,28 @@ Phase 1 finds no compliant route, skip this phase entirely — no crawler.
 **Non-goals:** no scraping that violates a platform's terms; no automated
 capture of third-party social content without granted permission; no
 changes to the PDF pipeline or the existing agents.
+
+---
+
+## Exhibition & Publication photo grids (+ press-clipping to text)
+
+Requested 2026-11-16. Under **Exhibition History** and **Publications /
+Literature** on the intake form, each work can carry uploaded photos shown as
+an enlargeable grid on its entry page (installation shots; press clippings or
+a photo of how a piece looked in print). Text stays; photos are additive.
+
+- **Exhibition History:** upload photos -> grid, click to enlarge, optional caption.
+- **Publications / Literature:** same upload + grid, plus a **Convert to text**
+  option on a dropped press clipping/scan. Decision tree per item: (1) save the
+  source image to the archive (always), (2) optionally convert to text
+  (shown unverified until a person reviews it), (3) **visible** (public) or
+  **private** (admin-only) — chosen per item.
+- **Design notes:** one new per-work media table covering both sections;
+  private items live in a private storage bucket so "private" is real, not
+  just an unlinked URL. Entry-page parity rule applies: whatever is
+  admin-editable must render publicly (unless private).
+- **Open ticket (UX/UI):** how the grid/carousel looks and behaves on the
+  entry page — layout, enlarge behaviour, captions. Functional build first,
+  visual treatment decided separately.
+- Status: scoped, not yet built. Needs approval for an additive live
+  Supabase change (new table + storage buckets).
