@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="modcr-gate.js"></script><script>modcrRequirePreviewAccess();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Citation — Michele Oka Doner: A Catalogue Raisonné</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --white:#fff; --sand:#f0ede8; --ink:#1c1c1c; --mid:#5c5855; --light:#999490; --rule:#e2dfda; --gold:#7a5c3a; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--white); color: var(--ink); font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.65; }
+  header { position: fixed; top: 0; left: 0; right: 0; height: 58px; display: flex; align-items: center; padding: 0 32px;
+    background: var(--white); border-bottom: 1px solid var(--rule); z-index: 10; }
+  .site-cr { font-size: 12.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--mid); text-decoration: none; }
+  .site-cr:hover { color: var(--ink); }
+  main { max-width: 860px; margin: 0 auto; padding: 98px 24px 80px; }
+  .crumb { font-size: 12px; color: var(--light); margin-bottom: 28px; }
+  .crumb a { color: var(--mid); text-decoration: none; } .crumb a:hover { color: var(--gold); text-decoration: underline; }
+  h1 { font-size: 26px; font-weight: 400; margin-bottom: 8px; }
+  .full { font-size: 15px; color: var(--mid); margin-bottom: 36px; }
+  h2 { font-size: 11px; letter-spacing: .13em; text-transform: uppercase; font-weight: 500; color: var(--light);
+    border-top: 1px solid var(--rule); padding-top: 14px; margin: 32px 0 14px; }
+  .clip img { max-width: 100%; display: block; cursor: zoom-in; background: var(--sand); margin-bottom: 6px; }
+  .clip figcaption { font-size: 12.5px; color: var(--light); margin-bottom: 24px; }
+  .text { white-space: pre-wrap; font-size: 15px; line-height: 1.75; margin-bottom: 20px; }
+  .sm-lb { position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 32px; cursor: zoom-out; }
+  .sm-lb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+</style>
+</head>
+<body>
+<header><a class="site-cr" href="catalogue_v81_sans.html">Catalogue Raisonné</a></header>
+<main id="main"><p class="full">Loading…</p></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+<script src="modcr-client.js"></script>
+<script>
+function esc(t){ return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function lightbox(src){
+  const o = document.createElement('div'); o.className = 'sm-lb'; o.innerHTML = '<img alt="">'; o.firstChild.src = src;
+  o.onclick = () => o.remove(); document.body.appendChild(o);
+}
+async function init(){
+  const main = document.getElementById('main');
+  const params = new URLSearchParams(location.search);
+  const crId = parseInt(params.get('id'), 10), cite = params.get('cite') || '';
+  const entryUrl = 'catalogue_entry_v77_sans.html?id=' + encodeURIComponent(crId);
+  const notFound = () => { main.innerHTML = `<div class="crumb"><a href="${entryUrl}">← Back to the entry</a></div><h1>Nothing to show for this citation.</h1>`; };
+  try{
+    const work = await modcrFetchWorkByCrNumber(crId);
+    if(!work || !work.dbId) return notFound();
+    const entry = modcrCiteKeys(work.literature).find(c => c.key === cite);
+    const rows = (await modcrFetchSectionMedia(work.dbId, 'publication'))
+      .filter(r => r.is_public && r.citation_key === cite);
+    const clips = rows.filter(r => r.storage_path);
+    const texts = rows.filter(r => r.extracted_text && r.text_status === 'verified');
+    if(!entry || (!clips.length && !texts.length)) return notFound();
+    for(const r of clips) r.src = await modcrSectionMediaSrc(r);
+    document.title = cite + ' — Michele Oka Doner: A Catalogue Raisonné';
+    main.innerHTML = `
+      <div class="crumb"><a href="${entryUrl}">← ${esc(work.title)} (MODCR ${esc(crId)})</a></div>
+      <h1>${esc(cite)}</h1>
+      <div class="full">${entry.rest}</div>
+      ${clips.length ? `<h2>Press clipping</h2>${clips.map(r => `<figure class="clip"><img src="${esc(r.src)}" alt="${esc(r.caption || cite)}" onclick="lightbox(this.src)">${r.caption ? `<figcaption>${esc(r.caption)}</figcaption>` : ''}</figure>`).join('')}` : ''}
+      ${texts.length ? `<h2>Text</h2>${texts.map(r => `<div class="text">${esc(r.extracted_text)}</div>`).join('')}` : ''}`;
+  }catch(e){ main.innerHTML = '<p class="full">Could not load this citation: ' + esc(e.message) + '</p>'; }
+}
+init();
+</script>
+</body>
+</html>

@@ -336,31 +336,58 @@ function modcrMakeReorderable(container, itemSel, onChange){
   container._rSel = itemSel; container._rCb = onChange;
   if(container._rBound) return;
   container._rBound = true;
-  let el = null, pid = null, active = false, sx = 0, sy = 0;
+  // The tile slides: it follows the finger/cursor (translate) while the others
+  // reflow live around it; near the screen edge the page auto-scrolls.
+  let el = null, pid = null, active = false, sx = 0, sy = 0, gx = 0, gy = 0, lastX = 0, lastY = 0, raf = 0;
+  container.addEventListener('dragstart', e => e.preventDefault());
+  const follow = () => {
+    if(!el) return;
+    el.style.transform = 'none';
+    const r = el.getBoundingClientRect();
+    el.style.transform = `translate(${lastX - gx - r.left}px, ${lastY - gy - r.top}px) scale(1.04)`;
+  };
+  const autoScroll = () => {
+    if(!active) return;
+    const h = window.innerHeight, edge = 70;
+    if(lastY < edge) window.scrollBy(0, -14); else if(lastY > h - edge) window.scrollBy(0, 14);
+    if(lastY < edge || lastY > h - edge){ follow(); reflow(); }
+    raf = requestAnimationFrame(autoScroll);
+  };
+  const reflow = () => {
+    const stack = document.elementsFromPoint(lastX, lastY);
+    const target = stack.map(n => n.closest && n.closest(container._rSel)).find(n => n && n !== el && container.contains(n));
+    if(target){
+      const r = target.getBoundingClientRect();
+      const before = (lastX - r.left) < r.width / 2;
+      container.insertBefore(el, before ? target : target.nextSibling);
+    }
+  };
   container.addEventListener('pointerdown', e => {
     const it = e.target.closest(container._rSel);
     if(!it || !container.contains(it) || e.target.closest('input, textarea, select')) return;
     el = it; pid = e.pointerId; active = false; sx = e.clientX; sy = e.clientY;
+    const r = it.getBoundingClientRect(); gx = e.clientX - r.left; gy = e.clientY - r.top;
   });
   container.addEventListener('pointermove', e => {
     if(!el || e.pointerId !== pid) return;
+    lastX = e.clientX; lastY = e.clientY;
     if(!active){
-      if(Math.hypot(e.clientX - sx, e.clientY - sy) < 6) return;
+      if(Math.hypot(lastX - sx, lastY - sy) < 6) return;
       active = true; el.classList.add('dragging');
+      el.style.zIndex = 60; el.style.position = el.style.position || 'relative';
+      el.style.boxShadow = '0 8px 22px rgba(0,0,0,.28)'; el.style.transition = 'none';
       try{ el.setPointerCapture(pid); }catch(_){}
+      raf = requestAnimationFrame(autoScroll);
     }
-    const t = document.elementFromPoint(e.clientX, e.clientY);
-    const target = t && t.closest(container._rSel);
-    if(target && target !== el && container.contains(target)){
-      const r = target.getBoundingClientRect();
-      const before = (e.clientX - r.left) < r.width / 2;
-      container.insertBefore(el, before ? target : target.nextSibling);
-    }
+    reflow(); follow();
   });
   const end = e => {
     if(!el || e.pointerId !== pid) return;
-    const was = active;
-    el.classList.remove('dragging'); el = null; pid = null; active = false;
+    const was = active, node = el;
+    cancelAnimationFrame(raf);
+    el = null; pid = null; active = false;
+    node.classList.remove('dragging');
+    node.style.transform = node.style.zIndex = node.style.boxShadow = node.style.transition = '';
     if(was){
       const block = ev => { ev.stopPropagation(); ev.preventDefault(); };
       container.addEventListener('click', block, { capture: true, once: true });
