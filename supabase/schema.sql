@@ -1542,3 +1542,9 @@ drop policy if exists "section_media_admin_update" on storage.objects;
 create policy "section_media_admin_update" on storage.objects for update using (bucket_id in ('section-media-public','section-media-private') and auth.role() = 'authenticated');
 drop policy if exists "section_media_admin_delete" on storage.objects;
 create policy "section_media_admin_delete" on storage.objects for delete using (bucket_id in ('section-media-public','section-media-private') and auth.role() = 'authenticated');
+
+-- 2026-11-16: clippings attach to one citation line (Lichtenstein-style literature).
+-- citation_key = the short title ("Slivka 1981"); storage_path is null for text-only attachments.
+alter table work_section_media add column if not exists citation_key text;
+alter table work_section_media alter column storage_path drop not null;
+create index if not exists work_section_media_citation_idx on work_section_media (work_id, section, citation_key);

@@ -277,6 +277,7 @@ async function modcrUpdateExhibitionMediaCaption(id, caption){
 // "private" is real. Changing visibility moves the file between buckets.
 function modcrSectionBucket(isPublic){ return isPublic ? 'section-media-public' : 'section-media-private'; }
 async function modcrSectionMediaSrc(item){
+  if(!item.storage_path) return '';
   if(item.is_public) return modcrSupabase.storage.from('section-media-public').getPublicUrl(item.storage_path).data.publicUrl;
   const { data, error } = await modcrSupabase.storage.from('section-media-private').createSignedUrl(item.storage_path, 3600);
   if(error) throw error;
@@ -300,11 +301,39 @@ async function modcrUploadSectionMedia(workId, section, file, opts){
   const { data, error } = await modcrSupabase.from('work_section_media').insert({
     work_id: workId, section, storage_path: path, is_public: isPublic,
     caption: opts.caption || null,
+    citation_key: opts.citationKey || null,
     extracted_text: opts.extractedText || null,
     text_status: opts.extractedText ? (opts.textStatus || 'unverified') : null
   }).select().single();
   if(error) throw error;
   return data;
+}
+// A written-text-only attachment for a citation (no image) -- typed or pasted by a person.
+async function modcrAddSectionText(workId, section, text, opts){
+  opts = opts || {};
+  const { data, error } = await modcrSupabase.from('work_section_media').insert({
+    work_id: workId, section, storage_path: null, is_public: opts.isPublic !== false,
+    citation_key: opts.citationKey || null, extracted_text: text, text_status: 'verified'
+  }).select().single();
+  if(error) throw error;
+  return data;
+}
+// Splits a literature field (one citation per line) into [{line, key, rest}].
+// key is the short title shown as the link ("Slivka 1981"): first author's surname
+// + year, de-duplicated with a/b/c when two lines would collide.
+function modcrCiteKeys(text){
+  const seen = {};
+  return String(text || '').split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+    const plain = line.replace(/<[^>]+>/g, '');
+    const lead = plain.match(/^((?:c\.\s*)?\d{4}(?:[–-]\d{2,4})?)\s*[-–—,]?\s*/);
+    const body = lead ? plain.slice(lead[0].length) : plain;
+    const sur = body.split(',')[0].trim().split(/\s+/).slice(0, 4).join(' ');
+    const ym = (lead && lead[1].match(/\d{4}/)) || plain.match(/\b(1[5-9]\d\d|20\d\d)\b/);
+    let key = (sur + (ym ? ' ' + ym[0] : '')).trim() || plain.slice(0, 24);
+    const base = key; seen[base] = (seen[base] || 0) + 1;
+    if(seen[base] > 1) key = base + String.fromCharCode(96 + seen[base]);
+    return { line, key, rest: lead ? line.slice(line.indexOf(lead[0]) + lead[0].length) : line };
+  });
 }
 async function modcrUpdateSectionMedia(id, patch){
   const { error } = await modcrSupabase.from('work_section_media').update(patch).eq('id', id);
@@ -312,6 +341,7 @@ async function modcrUpdateSectionMedia(id, patch){
 }
 async function modcrSetSectionMediaVisibility(item, makePublic){
   if(!!item.is_public === !!makePublic) return item;
+  if(!item.storage_path){ await modcrUpdateSectionMedia(item.id, { is_public: makePublic }); return Object.assign({}, item, { is_public: makePublic }); }
   const from = modcrSectionBucket(item.is_public), to = modcrSectionBucket(makePublic);
   const { data: blob, error: dlErr } = await modcrSupabase.storage.from(from).download(item.storage_path);
   if(dlErr) throw dlErr;
@@ -322,7 +352,7 @@ async function modcrSetSectionMediaVisibility(item, makePublic){
   return Object.assign({}, item, { is_public: makePublic });
 }
 async function modcrDeleteSectionMedia(item){
-  await modcrSupabase.storage.from(modcrSectionBucket(item.is_public)).remove([item.storage_path]);
+  if(item.storage_path) await modcrSupabase.storage.from(modcrSectionBucket(item.is_public)).remove([item.storage_path]);
   const { error } = await modcrSupabase.from('work_section_media').delete().eq('id', item.id);
   if(error) throw error;
 }

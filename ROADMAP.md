@@ -411,3 +411,8 @@ a photo of how a piece looked in print). Text stays; photos are additive.
   visual treatment decided separately.
 - Status: scoped, not yet built. Needs approval for an additive live
   Supabase change (new table + storage buckets).
+
+### Literature citations, Lichtenstein-style (2026-11-16)
+- Done: each citation line gets its own attachments (`work_section_media.citation_key` = short title like "Slivka 1981", derived by `modcrCiteKeys`); clipping photo and/or written text; short title is a link (to `catalogue_citation_v1_sans.html`) only when something visible is attached, otherwise plain text.
+- Open: if a citation line is edited so its short title changes, its attachments show under "Not matched to a citation" in Intake until the line is restored or they are deleted.
+- Open: inline short-title links inside Exhibition History entries (e.g. "(Venet 2011, p. 172)") pointing at the matching Literature entry, as on the Lichtenstein site.
