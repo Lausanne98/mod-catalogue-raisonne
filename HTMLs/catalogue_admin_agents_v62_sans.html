@@ -200,24 +200,24 @@
 <header>
   <div class="header-title">MOD CR — Admin</div>
   <div class="header-nav">
-    <a href="catalogue_admin_v118_sans.html">Dashboard</a>
-    <a href="catalogue_admin_manage_v116_sans.html">Works</a>
-    <a href="catalogue_intake_v128_sans.html">Add a Work</a>
-    <a href="catalogue_admin_chronology_v64_sans.html">Chronology</a>
-    <a href="catalogue_admin_sources_v52_sans.html">Sources</a>
-    <a href="catalogue_admin_exhibitions_v3_sans.html">Exhibitions</a>
+    <a href="catalogue_admin_v117_sans.html">Dashboard</a>
+    <a href="catalogue_admin_manage_v115_sans.html">Works</a>
+    <a href="catalogue_intake_v127_sans.html">Add a Work</a>
+    <a href="catalogue_admin_chronology_v63_sans.html">Chronology</a>
+    <a href="catalogue_admin_sources_v51_sans.html">Sources</a>
+    <a href="catalogue_admin_exhibitions_v2_sans.html">Exhibitions</a>
     <div class="nav-dropdown" id="agentsNavDropdown">
       <button class="nav-dropdown-trigger nav-dark" onclick="toggleNavDropdown(event)">Agents ▾</button>
       <div class="nav-dropdown-menu">
         <a href="catalogue_admin_agents_v62_sans.html">CR Team</a>
-        <a href="catalogue_admin_drafts_v62_sans.html">Archivist's Desk</a>
-        <a href="catalogue_admin_researcher_v70_sans.html">Researcher's Desk</a>
-        <a href="catalogue_admin_it_v51_sans.html">IT</a>
+        <a href="catalogue_admin_drafts_v61_sans.html">Archivist's Desk</a>
+        <a href="catalogue_admin_researcher_v69_sans.html">Researcher's Desk</a>
+        <a href="catalogue_admin_it_v50_sans.html">IT</a>
       </div>
     </div>
-    <a href="catalogue_admin_it_v51_sans.html">IT</a>
+    <a href="catalogue_admin_it_v50_sans.html">IT</a>
     <a href="catalogue_v77_sans.html">View Site</a>
-    <button onclick="modcrLogOut('catalogue_admin_login_v82_sans.html')">Log Out</button>
+    <button onclick="modcrLogOut('catalogue_admin_login_v81_sans.html')">Log Out</button>
   </div>
 </header>
 
@@ -265,24 +265,15 @@
     <div class="name-edit" id="nameEdit">
       Not the right name? <a href="#" onclick="editName();return false;">Update it</a>
     </div>
-    <!-- New real ElevenLabs Conversational AI agent for Khalo (ROADMAP item 2,
-         2026-10-25) -- sits alongside the push-to-talk button above rather than
-         replacing it yet, since that's still an open call. Renders as its own
-         floating chat bubble (bottom-right of the page) via the <elevenlabs-convai>
-         widget script loaded near the end of this file -- nothing to wire up
-         here beyond pointing at it. -->
-    <div class="briefing-body" style="margin-top:4px;">
-      Also trying out Khalo's new, fully agentic voice assistant (beta) — look for the chat bubble in the bottom-right corner of this page.
-    </div>
   </div>
 
   <!-- AGENT CARDS -->
   <div class="agent-grid">
-    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_researcher_v70_sans.html')">
+    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_researcher_v69_sans.html')">
       <div class="agent-name">Chloe</div>
       <div class="agent-role">Researcher</div>
       <div class="agent-desc">Gathers provenance research, exhibition history, and raw material into a holding folder for Khalo to sort through. Read-only against the database — never writes.</div>
-      <a class="agent-goto" href="catalogue_admin_researcher_v70_sans.html">Open Researcher's Desk →</a>
+      <a class="agent-goto" href="catalogue_admin_researcher_v69_sans.html">Open Researcher's Desk →</a>
       <div class="card-actions">
         <button class="btn" onclick="toggleOverview('chloe')">Overview</button>
         <button class="btn play" onclick="speakAgent('chloe', overviews.chloe, this)" aria-label="Play" title="Play"><svg class="eq-icon" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect class="eq-bar" x="2" y="5" width="2.6" height="6"/><rect class="eq-bar" x="6.7" y="2" width="2.6" height="12"/><rect class="eq-bar" x="11.4" y="5" width="2.6" height="6"/></svg></button>
@@ -298,11 +289,11 @@
       </div>
     </div>
 
-    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_drafts_v62_sans.html')">
+    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_drafts_v61_sans.html')">
       <div class="agent-name">Khalo</div>
       <div class="agent-role">Associate Archivist</div>
       <div class="agent-desc">Processes and verifies research, matches it against the catalogue, and proposes new entries or revisions — never writes to a live work directly.</div>
-      <a class="agent-goto" href="catalogue_admin_drafts_v62_sans.html">Open Archivist's Drafts →</a>
+      <a class="agent-goto" href="catalogue_admin_drafts_v61_sans.html">Open Archivist's Drafts →</a>
       <div class="card-actions">
         <button class="btn" onclick="toggleOverview('khalo')">Overview</button>
         <button class="btn play" onclick="speakAgent('khalo', overviews.khalo, this)" aria-label="Play" title="Play"><svg class="eq-icon" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect class="eq-bar" x="2" y="5" width="2.6" height="6"/><rect class="eq-bar" x="6.7" y="2" width="2.6" height="12"/><rect class="eq-bar" x="11.4" y="5" width="2.6" height="6"/></svg></button>
@@ -318,11 +309,11 @@
       </div>
     </div>
 
-    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_it_v51_sans.html')">
+    <div class="agent-card" onclick="cardNavigate(event, 'catalogue_admin_it_v50_sans.html')">
       <div class="agent-name">Timur</div>
       <div class="agent-role">IT / Infrastructure</div>
       <div class="agent-desc">Tracks where everything lives — Supabase, GitHub, third-party services — and watches for vendor or protocol risk over time.</div>
-      <a class="agent-goto" href="catalogue_admin_it_v51_sans.html">Open IT / Infrastructure →</a>
+      <a class="agent-goto" href="catalogue_admin_it_v50_sans.html">Open IT / Infrastructure →</a>
       <div class="card-actions">
         <button class="btn" onclick="toggleOverview('timur')">Overview</button>
         <button class="btn play" onclick="speakAgent('timur', overviews.timur, this)" aria-label="Play" title="Play"><svg class="eq-icon" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect class="eq-bar" x="2" y="5" width="2.6" height="6"/><rect class="eq-bar" x="6.7" y="2" width="2.6" height="12"/><rect class="eq-bar" x="11.4" y="5" width="2.6" height="6"/></svg></button>
@@ -783,7 +774,7 @@ async function voiceSendToKhalo(text){
     document.getElementById('voiceReply').textContent = data.reply;
     if(data.staged_work_id){
       document.getElementById('voiceStagedLink').innerHTML =
-        `<a href="catalogue_intake_v128_sans.html?from_draft=${data.staged_work_id}" target="_blank">Open in Intake Form →</a>`;
+        `<a href="catalogue_intake_v127_sans.html?from_draft=${data.staged_work_id}" target="_blank">Open in Intake Form →</a>`;
     }
     await voiceSpeak(data.reply);
   }catch(e){
@@ -880,20 +871,20 @@ async function loadBriefing(){
   try{
     const staged = await modcrFetchStagedWorks();
     const newCount = staged.filter(s => s.status === 'new').length;
-    lines.push(`<li><strong>${newCount}</strong> new draft${newCount === 1 ? '' : 's'} in New Entries awaiting review. <a href="catalogue_admin_drafts_v62_sans.html">Go to Archivist's Drafts →</a></li>`);
+    lines.push(`<li><strong>${newCount}</strong> new draft${newCount === 1 ? '' : 's'} in New Entries awaiting review. <a href="catalogue_admin_drafts_v61_sans.html">Go to Archivist's Drafts →</a></li>`);
     spoken.push(`${newCount} new draft${newCount === 1 ? '' : 's'} in New Entries`);
   }catch(e){ lines.push('<li>Could not load New Entries count.</li>'); }
 
   try{
     const revisions = await modcrFetchWorkRevisions('pending');
-    lines.push(`<li><strong>${revisions.length}</strong> proposed revision${revisions.length === 1 ? '' : 's'} awaiting approval. <a href="catalogue_admin_drafts_v62_sans.html">Go to Archivist's Drafts →</a></li>`);
+    lines.push(`<li><strong>${revisions.length}</strong> proposed revision${revisions.length === 1 ? '' : 's'} awaiting approval. <a href="catalogue_admin_drafts_v61_sans.html">Go to Archivist's Drafts →</a></li>`);
     spoken.push(`${revisions.length} proposed revision${revisions.length === 1 ? '' : 's'} awaiting approval`);
   }catch(e){ lines.push('<li>Could not load Revisions count.</li>'); }
 
   try{
     const sources = await modcrFetchSourceMaterials();
     const unreviewed = sources.filter(s => s.status === 'unreviewed').length;
-    lines.push(`<li><strong>${unreviewed}</strong> source material${unreviewed === 1 ? '' : 's'} not yet mined. <a href="catalogue_admin_sources_v52_sans.html">Go to Source Materials →</a></li>`);
+    lines.push(`<li><strong>${unreviewed}</strong> source material${unreviewed === 1 ? '' : 's'} not yet mined. <a href="catalogue_admin_sources_v51_sans.html">Go to Source Materials →</a></li>`);
     spoken.push(`${unreviewed} source material${unreviewed === 1 ? '' : 's'} not yet mined`);
   }catch(e){ lines.push('<li>Could not load Source Materials count.</li>'); }
 
@@ -904,18 +895,22 @@ async function loadBriefing(){
 }
 
 (async function(){
-  await modcrRequireAuth('catalogue_admin_login_v82_sans.html');
+  await modcrRequireAuth('catalogue_admin_login_v81_sans.html');
   modcrInitBackgroundTab('cr-team');
   await loadBriefing();
 })();
 </script>
 
-<!-- Khalo's real ElevenLabs Conversational AI agent (ROADMAP item 2,
-     2026-10-25) -- replaces nothing on this page, just adds a floating
-     chat bubble (bottom-right, per the agent's own widget config) that
-     talks and uses real tools against the live MOD CR database, as an
-     admin-only beta alongside the existing push-to-talk pipeline above. -->
-<elevenlabs-convai agent-id="agent_2801m5t7ha7fex3ttaeay5he54xp"></elevenlabs-convai>
-<script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
+<!-- (2026-10-25, reverted same day) The stock <elevenlabs-convai> widget
+     embed was tried here and pulled right back out -- it renders ElevenLabs'
+     own generic "Need help? / Start a call" bubble, which is the wrong look
+     (doesn't match this site at all), the wrong interaction model (a phone-
+     call metaphor, not this page's existing push-to-talk pattern), and the
+     wrong spot (a floating corner widget instead of living in the briefing
+     area with Chloe/Khalo/Timur). Khalo's real ElevenLabs Conversational AI
+     agent (agent_2801m5t7ha7fex3ttaeay5he54xp) is still live and working --
+     the fix in progress is wiring it into the EXISTING "Talk to Khalo"
+     button/UI above via ElevenLabs' client SDK (real-time conversation, no
+     pre-built widget chrome) instead of dropping in their default embed. -->
 </body>
 </html>
