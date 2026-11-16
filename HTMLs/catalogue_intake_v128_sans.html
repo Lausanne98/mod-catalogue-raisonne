@@ -305,6 +305,8 @@
     color: var(--light); background: none; border: none; cursor: pointer; padding: 0;
   }
   .pc-actions button:hover { color: var(--ink); }
+  .pc-actions .pc-delete-btn { margin-left: auto; }
+  .pc-actions .pc-delete-btn:hover { color: var(--gold); }
   .pc-actions .pc-primary-badge {
     font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); cursor: default;
   }
@@ -1136,7 +1138,6 @@ function renderPhotoGrid(photos, legacyImg){
       <div class="pc-handle" title="Drag to reorder">⠿</div>
       <div class="pc-thumb-wrap">
         <img class="pc-thumb" src="${photoSrc(p)}" alt="" draggable="false" onclick="openLightbox('${photoSrc(p).replace(/'/g,"\\'")}')">
-        <button class="pc-remove-x" onclick="removePhoto('${p.id}','${(p.storage_path||'').replace(/'/g,"\\'")}')" title="Remove photo">×</button>
       </div>
       <div class="pc-body">
         <input type="text" class="pc-caption" placeholder="Add a note about this photo…"
@@ -1147,6 +1148,7 @@ function renderPhotoGrid(photos, legacyImg){
           <button onclick="togglePhotoType('${p.id}', '${p.photo_type === 'process' ? 'work' : 'process'}')" title="Process photos (e.g. a foundry or patina shot) show in their own section on the work's page, separate from the main image.">
             ${p.photo_type === 'process' ? '✓ Process Photo' : 'Mark as Process Photo'}
           </button>
+          <button class="pc-delete-btn" onclick="removePhoto('${p.id}','${(p.storage_path||'').replace(/'/g,"\\'")}')" title="Delete this photo">Delete photo</button>
         </div>
       </div>
     </div>`).join('');
@@ -1466,6 +1468,7 @@ async function removePhoto(id, storagePath){
     renderPhotoGrid(pendingPhotos);
     return;
   }
+  if(!(await modcrConfirm('Delete this photo? This can\'t be undone.', { okLabel: 'Delete', danger: true }))) return;
   try{
     await modcrDeletePhoto(id, storagePath);
     await reloadPhotos();
